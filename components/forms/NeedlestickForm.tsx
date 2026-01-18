@@ -1,0 +1,272 @@
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../AuthContext';
+import Layout from '../ui/Layout';
+import Input from '../ui/Input';
+import Select from '../ui/Select';
+import InteractiveBodyMap from '../ui/InteractiveBodyMap';
+import ThankYouModal from '../ui/ThankYouModal';
+import { 
+  AREAS,
+  DEVICES_NEEDLE, 
+  DEVICES_SURGICAL 
+} from '../../constants';
+import { submitReport } from '../../services/ipcService';
+import { ChevronLeft, Send, Loader2, ClipboardCheck, AlertTriangle, ShieldAlert, Droplets, Printer, Sparkles } from 'lucide-react';
+
+const JOB_CATEGORIES_NS = [
+  "Doctor", 
+  "Nurse", 
+  "Housekeeping", 
+  "Intern", 
+  "Medical Technologist", 
+  "Radiology Technologist", 
+  "Respiratory Therapist", 
+  "Others (specify)"
+];
+
+const NeedlestickForm: React.FC = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [loading, setLoading] = useState(false);
+  const [showThankYou, setShowThankYou] = useState(false);
+
+  const [formData, setFormData] = useState<any>({
+    dateReported: new Date().toISOString().split('T')[0],
+    timeReported: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    hcwName: '',
+    hospitalNumber: '',
+    jobTitle: '',
+    jobTitleOther: '',
+    department: '',
+    workLocation: '',
+    workLocationOther: '',
+    dateOfInjury: '',
+    timeOfInjury: '',
+    exposureType: '',
+    exposureTypeOther: '',
+    deviceInvolved: '',
+    deviceBrand: '',
+    deviceContaminated: '',
+    activity: '',
+    narrative: '',
+    locationOnBodyCode: '',
+    locationOnBody: '',
+    sourceIdentified: '',
+    sourceMrn: '',
+    sourceStatusHIV: false,
+    sourceStatusHBV: false,
+    sourceStatusHCV: false,
+    sourceStatusUnknown: false,
+    evalDate: '',
+    pepReceived: '',
+    vaccinationHistory: '',
+    supervisorNotified: '',
+    supervisorName: '',
+    ipcNotified: '',
+    ipcName: '',
+    ipcNotifyDate: '',
+  });
+
+  const handleMagicFill = () => {
+    const today = new Date().toISOString().split('T')[0];
+    const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+    setFormData({
+      ...formData,
+      hcwName: 'Reyes, Maria Clara',
+      hospitalNumber: 'EMP-' + Math.floor(Math.random() * 9000 + 1000),
+      jobTitle: 'Nurse',
+      department: 'Critical Care',
+      workLocation: 'ICU',
+      dateOfInjury: today,
+      timeOfInjury: '09:30',
+      dateReported: today,
+      timeReported: now,
+      exposureType: 'Percutaneous',
+      deviceInvolved: 'Disposable syringe needle - 21-gauge',
+      activity: 'Recapping needle after blood draw',
+      narrative: 'While attempting to recap the needle after an ABG draw, the needle slipped and punctured the left index finger tip.',
+      locationOnBodyCode: '19',
+      locationOnBody: 'Zone 19 - Index Tip (L)',
+      sourceIdentified: 'Yes',
+      sourceMrn: '25-00442',
+      pepReceived: 'No',
+      vaccinationHistory: 'Completed Hepta-B series',
+      supervisorNotified: 'Yes',
+      supervisorName: 'Head Nurse B. Cruz',
+      ipcNotified: 'Yes',
+      ipcNotifyDate: today
+    });
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData((prev: any) => ({ ...prev, [name]: value }));
+  };
+
+  const resetForm = () => {
+    setFormData({
+        dateReported: new Date().toISOString().split('T')[0],
+        hcwName: '', hospitalNumber: '', jobTitle: '', department: '',
+        workLocation: '', dateOfInjury: '', exposureType: '', deviceInvolved: '',
+        narrative: '', locationOnBody: '', sourceIdentified: '', evalDate: '',
+        pepReceived: '', vaccinationHistory: '', supervisorNotified: '', ipcNotified: ''
+    });
+    setShowThankYou(false);
+  };
+
+  const handleCheckboxChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
+    setFormData((prev: any) => ({ ...prev, [name]: checked }));
+  };
+  
+  const handleBodyMapSelect = (code: string, description: string) => {
+    setFormData((prev: any) => ({
+        ...prev,
+        locationOnBodyCode: code,
+        locationOnBody: `Zone ${code} - ${description}`
+    }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+
+    const submissionData = { ...formData };
+    
+    // Merge "Other" fields
+    if (submissionData.jobTitle === 'Others (specify)') {
+      submissionData.jobTitle = submissionData.jobTitleOther || 'Other Staff';
+    }
+    if (submissionData.workLocation === 'Other (specify)') {
+      submissionData.workLocation = submissionData.workLocationOther || 'Other Location';
+    }
+    if (submissionData.exposureType === 'Other') {
+      submissionData.exposureType = submissionData.exposureTypeOther || 'Other Exposure';
+    }
+
+    // Cleanup UI fields
+    delete submissionData.jobTitleOther;
+    delete submissionData.workLocationOther;
+    delete submissionData.exposureTypeOther;
+
+    try {
+      await submitReport("Needlestick Injury", submissionData);
+      setShowThankYou(true);
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : "Failed to submit.";
+      alert(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const ALL_DEVICES = [...DEVICES_NEEDLE, ...DEVICES_SURGICAL, "Other"];
+
+  return (
+    <Layout title="Needlestick & Sharp Injury Report">
+      <div className="max-w-5xl mx-auto px-4">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6">
+          <button onClick={() => navigate('/')} className="flex items-center text-xs font-bold text-gray-500 hover:text-primary transition-colors">
+            <ChevronLeft size={14} /> Back
+          </button>
+          {user === 'Max' && (
+            <button 
+              type="button" 
+              onClick={handleMagicFill}
+              className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 rounded-xl border border-amber-200 text-[10px] font-black uppercase tracking-widest hover:bg-amber-100 transition-all shadow-sm"
+            >
+              <Sparkles size={14} className="text-amber-500" /> Magic Fill (Sample Injury)
+            </button>
+          )}
+        </div>
+
+        <div className="bg-red-50 border-2 border-red-200 p-4 mb-6 rounded-xl flex items-center gap-4 shadow-sm animate-pulse">
+          <div className="bg-red-500 text-white p-2 rounded-full">
+            <Droplets size={24} />
+          </div>
+          <div>
+            <h3 className="text-red-800 font-black uppercase text-xs tracking-widest">Immediate Action Required</h3>
+            <p className="text-red-700 font-bold text-sm">Wash the exposed site with soap and water immediately. Proceed to the Emergency Room for consultation.</p>
+          </div>
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-6 pb-20">
+          {/* Incident Info */}
+          <section className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col gap-4">
+            <h3 className="font-black text-sm text-gray-800 flex items-center gap-2 border-b pb-2 uppercase tracking-wide">
+              <ShieldAlert size={18} className="text-red-500"/> Incident Identification
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Input label="Staff Name" name="hcwName" value={formData.hcwName} onChange={handleChange} placeholder="Last, First" required />
+              <Input label="Hospital/Employee Number" name="hospitalNumber" value={formData.hospitalNumber} onChange={handleChange} required />
+              <div className="flex flex-col gap-2">
+                <Select label="Job Title" name="jobTitle" options={JOB_CATEGORIES_NS} value={formData.jobTitle} onChange={handleChange} required />
+                {formData.jobTitle === 'Others (specify)' && <Input label="Specify Job Title" name="jobTitleOther" value={formData.jobTitleOther} onChange={handleChange} required />}
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <Input label="Department" name="department" value={formData.department} onChange={handleChange} required />
+              <div className="flex flex-col gap-2">
+                <Select label="Work Location" name="workLocation" options={AREAS} value={formData.workLocation} onChange={handleChange} required />
+                {formData.workLocation === 'Other (specify)' && <Input label="Specify Location" name="workLocationOther" value={formData.workLocationOther} onChange={handleChange} required />}
+              </div>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-2">
+              <Input label="Date of Injury" name="dateOfInjury" type="date" value={formData.dateOfInjury} onChange={handleChange} required />
+              <Input label="Time of Injury" name="timeOfInjury" type="time" value={formData.timeOfInjury} onChange={handleChange} required />
+              <Input label="Date Reported" name="dateReported" type="date" value={formData.dateReported} onChange={handleChange} required />
+              <Input label="Time Reported" name="timeReported" type="time" value={formData.timeReported} onChange={handleChange} required />
+            </div>
+          </section>
+
+          <section className="bg-white p-5 rounded-xl shadow-sm border border-gray-200 flex flex-col gap-4">
+            <h3 className="font-black text-sm text-gray-800 flex items-center gap-2 border-b pb-2 uppercase tracking-wide">
+              <Droplets size={18} className="text-red-500"/> Exposure Details
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="flex flex-col gap-2">
+                <label className="text-[11px] font-black text-gray-500 uppercase">Exposure Type</label>
+                <div className="flex flex-col gap-1">
+                   {["Percutaneous", "Mucous membrane splash", "Other"].map(type => (
+                     <label key={type} className="flex items-center gap-2 text-sm cursor-pointer py-1 px-2 rounded hover:bg-gray-50 border border-transparent hover:border-gray-200">
+                       <input type="radio" name="exposureType" value={type} checked={formData.exposureType === type} onChange={handleChange} required className="text-red-500" />
+                       <span>{type}</span>
+                     </label>
+                   ))}
+                </div>
+                {formData.exposureType === 'Other' && <Input label="Specify Exposure" name="exposureTypeOther" value={formData.exposureTypeOther} onChange={handleChange} required />}
+              </div>
+              <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-4">
+                 <Select label="Sharp Device Involved" name="deviceInvolved" options={ALL_DEVICES} value={formData.deviceInvolved} onChange={handleChange} />
+                 <Input label="Activity" name="activity" value={formData.activity} onChange={handleChange} required />
+                 <div className="md:col-span-2">
+                    <label className="text-[11px] font-black text-gray-500 uppercase block mb-1">Brief Narrative</label>
+                    <textarea name="narrative" rows={2} className="w-full px-3 py-2 rounded-lg border border-gray-300 text-sm focus:ring-2 focus:ring-red-500 outline-none" value={formData.narrative} onChange={handleChange} required />
+                 </div>
+              </div>
+            </div>
+            <div className="bg-blue-50 p-4 rounded-xl border border-blue-100 mt-2">
+               <label className="text-xs font-black text-blue-800 uppercase tracking-widest block mb-3">Injury Site Selection</label>
+               <InteractiveBodyMap selectedCode={formData.locationOnBodyCode} onSelect={handleBodyMapSelect} />
+            </div>
+          </section>
+
+          <button type="submit" disabled={loading} className="w-full h-14 bg-red-600 text-white rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-xl hover:bg-red-700 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50">
+            {loading ? <><Loader2 size={24} className="animate-spin" /> Submitting...</> : <><Send size={24} /> Submit Incident Report</>}
+          </button>
+        </form>
+      </div>
+
+      <ThankYouModal 
+        show={showThankYou} 
+        reporterName={formData.hcwName} 
+        moduleName="Sharps Injury Log" 
+        onClose={resetForm} 
+      />
+    </Layout>
+  );
+};
+
+export default NeedlestickForm;

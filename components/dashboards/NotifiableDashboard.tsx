@@ -1,0 +1,426 @@
+
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../AuthContext';
+import Layout from '../ui/Layout';
+import Input from '../ui/Input';
+import Select from '../ui/Select';
+import PasswordConfirmModal from '../ui/PasswordConfirmModal';
+import { getNotifiableReports, updateNotifiableReport, deleteRecord } from '../../services/ipcService';
+import { 
+  AREAS, NOTIFIABLE_DISEASES, PATIENT_OUTCOMES
+} from '../../constants';
+import { 
+  ChevronLeft, 
+  Save, 
+  X, 
+  List, 
+  BarChart2, 
+  Activity,
+  Filter,
+  RotateCcw,
+  TrendingUp,
+  Users,
+  FileText,
+  PlusCircle,
+  Edit3,
+  Trash2,
+  Download
+} from 'lucide-react';
+import { 
+  BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, Legend, 
+  ResponsiveContainer, PieChart, Pie, Cell, CartesianGrid 
+} from 'recharts';
+
+interface Props {
+  isNested?: boolean;
+  viewMode?: 'list' | 'analysis';
+}
+
+const NotifiableDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) => {
+  const navigate = useNavigate();
+  const { isAuthenticated, user, validatePassword } = useAuth();
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<'list' | 'analysis'>(initialViewMode || 'list');
+  const [formModal, setFormModal] = useState<{ show: boolean, item: any | null, isEditable: boolean }>({
+    show: false, item: null, isEditable: false
+  });
+  const [showPasswordConfirm, setShowPasswordConfirm] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<any | null>(null);
+  const [passwordConfirmLoading, setPasswordConfirmLoading] = useState(false);
+
+  const [filterDisease, setFilterDisease] = useState('');
+  const [filterArea, setFilterArea] = useState('');
+  const [filterOutcome, setFilterOutcome] = useState('Active');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
+  const [selectedQuarter, setSelectedQuarter] = useState('');
+
+  useEffect(() => {
+    if (initialViewMode) setViewMode(initialViewMode);
+  }, [initialViewMode]);
+
+  useEffect(() => { loadData(); }, []);
+
+  const loadData = async () => {
+    setLoading(true);
+    try {
+      const reports = await getNotifiableReports();
+      reports.sort((a, b) => new Date(b.dateReported).getTime() - new Date(a.dateReported).getTime());
+      setData(reports);
+    } catch (e) {
+      console.error("Failed to load Notifiable reports:", e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const formatName = (last: string, first: string) => {
+    if (isAuthenticated) return `${last}, ${first}`;
+    return `${last?.[0] || ''}.${first?.[0] || ''}.`;
+  };
+
+  const getPrivacyValue = (val: string) => {
+    if (isAuthenticated || (formModal.show && formModal.isEditable)) return val;
+    return val ? `${val[0]}.` : '';
+  };
+
+  const handleExportCSV = () => {
+    if (filteredData.length === 0) return;
+    
+    const exportItems = filteredData.map(item => ({
+      ID: item.id || '',
+      Date_Reported: item.dateReported || '',
+      Hospital_Number: item.hospitalNumber || '',
+      Last_Name: item.lastName || '',
+      First_Name: item.firstName || '',
+      Disease: item.disease || '',
+      Ward: item.area || '',
+      Outcome: item.outcome || 'Admitted',
+      Reporter: item.reporterName || ''
+    }));
+
+    const headers = Object.keys(exportItems[0]).join(',');
+    const rows = exportItems.map(item => 
+      Object.values(item).map(val => `"${String(val).replace(/"/g, '""')}"`).join(',')
+    ).join('\n');
+    
+    const csvContent = `${headers}\n${rows}`;
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `Notifiable_Diseases_${new Date().toISOString().split('T')[0]}.csv`);
+    link.click();
+  };
+
+  const handleQuarterChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const q = e.target.value; 
+    setSelectedQuarter(q); 
+    const year = selectedYear || new Date().getFullYear().toString();
+    if (q === 'Q1') { setStartDate(`${year}-01-01`); setEndDate(`${year}-03-31`); }
+    else if (q === 'Q2') { setStartDate(`${year}-04-01`); setEndDate(`${year}-06-30`); }
+    else if (q === 'Q3') { setStartDate(`${year}-07-01`); setEndDate(`${year}-09-30`); }
+    else if (q === 'Q4') { setStartDate(`${year}-10-01`); setEndDate(`${year}-12-31`); }
+    else if (q === 'YTD') { setStartDate(`${year}-01-01`); setEndDate(new Date().toISOString().split('T')[0]); }
+    else { setStartDate(''); setEndDate(''); }
+  };
+
+  const filteredData = useMemo(() => {
+    return data.filter(item => {
+      const itemDate = new Date(item.dateReported);
+      const matchesYear = selectedYear ? itemDate.getFullYear().toString() === selectedYear : true;
+      const matchesDisease = filterDisease ? item.disease === filterDisease : true;
+      const matchesArea = filterArea ? item.area === filterArea : true;
+      
+      let matchesOutcome = true;
+      if (filterOutcome === 'Active') {
+        matchesOutcome = !item.outcome || item.outcome === 'Admitted' || item.outcome === 'ER-level';
+      } else if (filterOutcome !== 'All') {
+        matchesOutcome = item.outcome === filterOutcome;
+      }
+      
+      const matchesDateRange = (startDate ? itemDate >= new Date(startDate) : true) && 
+                         (endDate ? itemDate <= new Date(endDate) : true);
+      return matchesYear && matchesDisease && matchesArea && matchesDateRange && matchesOutcome;
+    });
+  }, [data, filterDisease, filterArea, filterOutcome, startDate, endDate, selectedYear]);
+
+  const summaryStats = useMemo(() => {
+    const active = data.filter(item => !item.outcome || item.outcome === 'Admitted' || item.outcome === 'ER-level');
+    const counts: Record<string, number> = {};
+    active.forEach(item => { if(item.disease) counts[item.disease] = (counts[item.disease] || 0) + 1; });
+    return {
+      totalActive: active.length,
+      diseaseCensus: Object.entries(counts).sort((a, b) => b[1] - a[1])
+    };
+  }, [data]);
+
+  const analytics = useMemo(() => {
+    if (filteredData.length === 0) return null;
+    const diseaseMonthMap: Record<string, any> = {};
+    filteredData.forEach(d => {
+      const month = d.dateReported.substring(0, 7);
+      const disease = d.disease;
+      if (!diseaseMonthMap[month]) diseaseMonthMap[month] = { name: month };
+      diseaseMonthMap[month][disease] = (diseaseMonthMap[month][disease] || 0) + 1;
+      diseaseMonthMap[month].total = (diseaseMonthMap[month].total || 0) + 1;
+    });
+    const monthlyTrendData = Object.values(diseaseMonthMap).sort((a: any, b: any) => a.name.localeCompare(b.name));
+    const outcomeMap: Record<string, number> = {};
+    filteredData.forEach(d => { const key = d.outcome || 'Active'; outcomeMap[key] = (outcomeMap[key] || 0) + 1; });
+    const outcomeData = Object.entries(outcomeMap).map(([name, value]) => ({ name, value }));
+    return { monthlyTrendData, outcomeData };
+  }, [filteredData]);
+
+  const handleRowClick = (item: any) => { setFormModal({ show: true, item: { ...item }, isEditable: false }); };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target;
+    setFormModal(prev => ({ ...prev, item: { ...prev.item, [name]: value } }));
+  };
+
+  const saveChanges = async () => {
+    await updateNotifiableReport(formModal.item);
+    setFormModal({ show: false, item: null, isEditable: false });
+    loadData();
+  };
+
+  const promptDeleteConfirmation = (item: any) => {
+    setItemToDelete(item);
+    setShowPasswordConfirm(true);
+  };
+
+  const handlePasswordConfirmed = async (password: string) => {
+    if (!itemToDelete || !user) return;
+    setPasswordConfirmLoading(true);
+    if (!validatePassword(user, password)) {
+      alert("Incorrect password. Deletion failed.");
+      setPasswordConfirmLoading(false);
+      return;
+    }
+    try {
+      await deleteRecord('reports_notifiable', itemToDelete.id);
+      setFormModal({ show: false, item: null, isEditable: false });
+      setShowPasswordConfirm(false);
+      setItemToDelete(null);
+      loadData();
+    } catch (e) { 
+      alert("Failed to delete record.");
+    } finally {
+      setPasswordConfirmLoading(false);
+    }
+  };
+
+  const COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6', '#06b6d4', '#ec4899', '#111827'];
+
+  const content = (
+    <div className="flex flex-col gap-6">
+        <div className="flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
+            <div className="flex gap-4 items-center">
+                {!isNested && <button onClick={() => navigate('/')} className="flex items-center text-sm text-gray-600 hover:text-red-600 font-bold transition-colors"><ChevronLeft size={16} /> Hub</button>}
+                <div className="flex bg-gray-100 p-1 rounded-lg">
+                    <button onClick={() => setViewMode('list')} className={`px-3 py-1 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${viewMode === 'list' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-500'}`}><List size={14} /> List</button>
+                    <button onClick={() => setViewMode('analysis')} className={`px-3 py-1 rounded-md text-sm font-medium transition-all flex items-center gap-2 ${viewMode === 'analysis' ? 'bg-white text-red-600 shadow-sm' : 'text-gray-500'}`}><BarChart2 size={14} /> Analysis</button>
+                </div>
+            </div>
+            <div className="flex items-center gap-2">
+                <button 
+                  onClick={handleExportCSV}
+                  disabled={filteredData.length === 0}
+                  className="bg-white text-slate-600 px-4 py-2 rounded-lg font-black uppercase tracking-widest border border-slate-200 shadow-sm hover:bg-slate-50 flex items-center gap-2 transition-all text-xs"
+                >
+                  <Download size={18} /> Export CSV
+                </button>
+                <button onClick={() => navigate('/report-disease')} className="bg-red-600 text-white px-4 py-2 rounded-lg font-black uppercase tracking-widest shadow hover:bg-red-700 flex items-center gap-2 transition-all text-xs">
+                  <PlusCircle size={18} /> New Report
+                </button>
+            </div>
+        </div>
+
+        <div className="bg-white px-4 py-3 rounded-xl shadow-sm border border-gray-200 overflow-x-auto print:hidden">
+            <div className="flex items-center gap-3 min-w-max">
+                <div className="flex items-center gap-2 border-r pr-3 border-slate-100">
+                    <Filter size={14} className="text-slate-400" />
+                    <span className="text-[10px] font-black uppercase tracking-tighter text-slate-400">Filters</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    <select className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:ring-1 focus:ring-red-500 outline-none bg-slate-50/50" value={filterDisease} onChange={(e) => setFilterDisease(e.target.value)}>
+                        <option value="">All Diseases</option>
+                        {NOTIFIABLE_DISEASES.map(d => <option key={d} value={d}>{d}</option>)}
+                    </select>
+                </div>
+                <div className="h-6 w-px bg-slate-100 mx-1"></div>
+                <div className="flex items-center gap-2">
+                    <select className="text-xs border border-slate-200 rounded-lg px-2 py-1.5 focus:ring-1 focus:ring-red-500 outline-none font-bold bg-slate-50/50 text-slate-600" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
+                        <option value="2024">2024</option>
+                        <option value="2025">2025</option>
+                    </select>
+                </div>
+                <button onClick={() => { setFilterDisease(''); setFilterOutcome('Active'); setStartDate(''); setEndDate(''); setSelectedQuarter(''); }} className="p-1.5 text-slate-400 hover:text-red-600 rounded-lg"><RotateCcw size={14} /></button>
+            </div>
+        </div>
+
+        <div className="flex flex-col lg:flex-row gap-6">
+            <div className="flex-1 order-2 lg:order-1 min-w-0">
+                {viewMode === 'analysis' ? (
+                    <div className="flex flex-col gap-8 print:block">
+                        <div className="text-center flex flex-col gap-2 mb-6">
+                          <h2 className="text-3xl font-black text-slate-900 tracking-tight uppercase">Notifiable Analysis</h2>
+                          <div className="h-1.5 w-24 bg-red-600 mx-auto mt-2 rounded-full"></div>
+                        </div>
+                        {!analytics ? <div className="p-20 text-center text-slate-400 font-bold uppercase text-xs">No records found</div> : (
+                            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 print:gap-4">
+                                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-4">
+                                    <h3 className="font-black text-slate-800 uppercase text-xs tracking-widest flex items-center gap-2"><TrendingUp size={14}/> Monthly Census Trend</h3>
+                                    <div className="h-64"><ResponsiveContainer width="100%" height="100%"><BarChart data={analytics.monthlyTrendData}><CartesianGrid strokeDasharray="3 3" vertical={false} /><XAxis dataKey="name" tick={{fontSize: 10}} /><YAxis tick={{fontSize: 10}} /><RechartsTooltip /><Bar dataKey={filterDisease || "total"} fill="#ef4444" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></div>
+                                </div>
+                                <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-4">
+                                    <h3 className="font-black text-slate-800 uppercase text-xs tracking-widest flex items-center gap-2"><Users size={14}/> Outcome Distribution</h3>
+                                    <div className="h-64"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={analytics.outcomeData} cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={5} dataKey="value" label={({name, value}) => `${name}: ${value}`}>{analytics.outcomeData.map((e, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><RechartsTooltip /></PieChart></ResponsiveContainer></div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-gray-50 text-gray-700 font-bold border-b">
+                              <tr>
+                                <th className="px-6 py-4">Report Date</th>
+                                <th className="px-6 py-4">Patient</th>
+                                <th className="px-6 py-4">Hosp #</th>
+                                <th className="px-6 py-4">Disease</th>
+                                <th className="px-6 py-4 text-center">Status</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-gray-100">
+                                {loading ? <tr><td colSpan={5} className="p-8 text-center uppercase text-xs font-black text-slate-400">Loading Surveillance Data...</td></tr> : filteredData.length === 0 ? <tr><td colSpan={5} className="p-8 text-center uppercase text-xs font-black text-slate-400">No Validated Records Found</td></tr> : filteredData.map((report) => (
+                                    <tr key={report.id} onClick={() => handleRowClick(report)} className="hover:bg-red-50/50 transition-colors cursor-pointer group">
+                                      <td className="px-6 py-3 font-medium text-slate-600">{report.dateReported}</td>
+                                      <td className="px-6 py-3 font-bold text-red-600">{formatName(report.lastName, report.firstName)}</td>
+                                      <td className="px-6 py-3 text-slate-500 font-medium">{report.hospitalNumber}</td>
+                                      <td className="px-6 py-3 font-medium text-red-600">{report.disease}</td>
+                                      <td className="px-6 py-3 text-center"><span className={`px-3 py-1 rounded-full text-[10px] font-black border uppercase ${!report.outcome || report.outcome === 'Admitted' || report.outcome === 'ER-level' ? "bg-green-100 text-green-700 border-green-200" : "bg-blue-100 text-blue-700 border-blue-200"}`}>{report.outcome || "Admitted"}</span></td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+            </div>
+            
+            {viewMode === 'list' && (
+              <div className="w-full lg:w-48 flex flex-col gap-3 print:hidden order-1 lg:order-2">
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+                      <div className="px-3 py-2 border-b border-slate-50 bg-slate-50/30">
+                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-400">Snapshot</span>
+                      </div>
+                      <div className="flex flex-col divide-y divide-slate-50">
+                        <button onClick={() => setFilterOutcome('Active')} className="p-4 flex flex-col gap-0.5 text-left hover:bg-slate-50 group transition-all">
+                            <span className="text-[7px] font-black uppercase text-slate-400 group-hover:text-red-600">Active</span>
+                            <span className="text-2xl font-black text-slate-900 leading-none">{summaryStats.totalActive}</span>
+                        </button>
+                        {summaryStats.diseaseCensus.slice(0, 3).map(([name, count]) => (
+                            <button key={name} onClick={() => setFilterDisease(name)} className="p-4 flex flex-col gap-0.5 text-left hover:bg-slate-50 group transition-all">
+                                <span className="text-[7px] font-black uppercase text-slate-400 group-hover:text-red-600 truncate">{name}</span>
+                                <span className="text-xl font-black text-red-600 leading-none">{count}</span>
+                            </button>
+                        ))}
+                      </div>
+                  </div>
+              </div>
+            )}
+        </div>
+
+        {formModal.show && formModal.item && (
+            <div className="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 print:hidden">
+                <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] overflow-y-auto flex flex-col animate-in fade-in zoom-in-95">
+                    <div className="bg-red-700 text-white p-6 sticky top-0 z-10 flex justify-between items-center shadow-lg">
+                        <h2 className="font-black text-xl leading-tight">
+                          {formModal.isEditable ? 'Edit Notifiable Record' : 'Registry Details'}
+                        </h2>
+                        <div className="flex items-center gap-2">
+                          {isAuthenticated && !formModal.isEditable && (
+                            <>
+                              <button onClick={() => setFormModal(prev => ({ ...prev, isEditable: true }))} className="bg-white/20 hover:bg-white/30 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold">
+                                <Edit3 size={16}/> Edit
+                              </button>
+                              <button onClick={() => promptDeleteConfirmation(formModal.item)} className="bg-red-500 hover:bg-red-600 p-2 rounded-lg transition-colors flex items-center gap-2 text-xs font-bold text-white shadow-sm">
+                                <Trash2 size={16}/> Delete
+                              </button>
+                            </>
+                          )}
+                          <button onClick={() => setFormModal({ show: false, item: null, isEditable: false })} className="p-2 hover:bg-white/20 rounded-full transition-colors"><X size={24}/></button>
+                        </div>
+                    </div>
+                    
+                    <div className="p-6 md:p-8 flex flex-col gap-8">
+                        <section className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-5">
+                            <h3 className="font-black text-sm text-slate-800 flex items-center gap-2 uppercase tracking-wide border-b pb-3">
+                              <Users size={18} className="text-red-600"/> Patient Identification
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                <Input label="Hospital Number" name="hospitalNumber" value={formModal.item.hospitalNumber} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                                <Input label="Last Name" name="lastName" value={formModal.isEditable ? formModal.item.lastName : getPrivacyValue(formModal.item.lastName)} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                                <Input label="First Name" name="firstName" value={formModal.isEditable ? formModal.item.firstName : getPrivacyValue(formModal.item.firstName)} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                                <Input label="Age" name="age" value={formModal.item.age} readOnly className="bg-slate-50 font-bold" />
+                                <Select label="Sex" name="sex" options={['Male', 'Female']} value={formModal.item.sex} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                                <Input label="Barangay" name="barangay" value={formModal.item.barangay} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                                <Input label="City" name="city" value={formModal.item.city} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                            </div>
+                        </section>
+
+                        <section className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-5">
+                            <h3 className="font-black text-sm text-slate-800 flex items-center gap-2 uppercase tracking-wide border-b pb-3">
+                              <Activity size={18} className="text-red-600"/> Case Details
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                              <Select label="Disease" name="disease" options={NOTIFIABLE_DISEASES} value={formModal.item.disease} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                              <Select label="Reporting Area" name="area" options={AREAS} value={formModal.item.area} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                              <Input label="Admission Date" name="dateOfAdmission" type="date" value={formModal.item.dateOfAdmission} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                              <Input label="Reported On" name="dateReported" type="date" value={formModal.item.dateReported} readOnly className="bg-slate-50" />
+                            </div>
+                        </section>
+
+                        <section className="bg-white p-6 rounded-2xl border border-slate-100 shadow-sm flex flex-col gap-5">
+                            <h3 className="font-black text-sm text-slate-800 flex items-center gap-2 uppercase tracking-wide border-b pb-3">
+                              <FileText size={18} className="text-red-600"/> Disposition & Reporter
+                            </h3>
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                              <Select label="Outcome" name="outcome" options={PATIENT_OUTCOMES} value={formModal.item.outcome} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                              <Input label="Reporter" name="reporterName" value={formModal.item.reporterName} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                              <Input label="Designation" name="designation" value={formModal.item.designation} onChange={handleInputChange} disabled={!formModal.isEditable} />
+                            </div>
+                        </section>
+                    </div>
+
+                    <div className="p-6 bg-slate-50 border-t flex justify-end items-center gap-3 sticky bottom-0">
+                        <button onClick={() => setFormModal({ show: false, item: null, isEditable: false })} className="px-6 py-3 bg-white text-slate-600 font-bold rounded-xl shadow-sm border border-slate-200 hover:bg-slate-50 transition-colors">Close</button>
+                        {formModal.isEditable && (
+                          <button onClick={saveChanges} className="bg-red-700 text-white px-8 py-3 rounded-xl font-black uppercase tracking-widest shadow-lg hover:bg-red-800 flex items-center gap-2 transition-all">
+                            <Save size={20}/> Save Changes
+                          </button>
+                        )}
+                    </div>
+                </div>
+            </div>
+        )}
+
+        <PasswordConfirmModal
+          show={showPasswordConfirm}
+          onClose={() => setShowPasswordConfirm(false)}
+          onConfirm={handlePasswordConfirmed}
+          loading={passwordConfirmLoading}
+          title="Confirm Deletion"
+          description={`Permanently delete the record for ${itemToDelete?.lastName || ''}.`}
+        />
+    </div>
+  );
+
+  return isNested ? content : <Layout title="Notifiable Diseases">{content}</Layout>;
+};
+
+export default NotifiableDashboard;
