@@ -3,7 +3,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from './ui/Layout';
 import { useAuth } from '../AuthContext';
-import { getHAIReports, getTBReports, getIsolationReports, getCultureReports, getNotifiableReports, getNeedlestickReports } from '../services/ipcService';
+import { getHAIReports, getTBReports, getIsolationReports, getCultureReports, getNotifiableReports, getNeedlestickReports, getNTPReports } from '../services/ipcService';
 import { Search, X, User, LayoutDashboard, ArrowRight, Loader2 } from 'lucide-react';
 
 interface SearchResult {
@@ -46,6 +46,16 @@ const Dashboard: React.FC = () => {
       reportIcon: "campaign"
     },
     {
+      title: "NTP Registration",
+      desc: "National TB Program Referrals",
+      path: "/surveillance?module=ntp",
+      reportPath: "/report-ntp",
+      reportLabel: "Register for NTP",
+      icon: "assignment_ind",
+      colorClass: "bg-amber-100 text-amber-800",
+      reportIcon: "person_add"
+    },
+    {
       title: "TB Registry",
       desc: "TB Monitoring & Treatment Log",
       path: "/surveillance?module=tb",
@@ -74,16 +84,6 @@ const Dashboard: React.FC = () => {
       icon: "vaccines",
       colorClass: "bg-amber-100 text-amber-700",
       reportIcon: "add_alert"
-    },
-    {
-      title: "Antibiogram",
-      desc: "Lab Results & Culture Studies",
-      path: "/surveillance?module=culture",
-      reportPath: "/report-culture",
-      reportLabel: "Add Lab Result",
-      icon: "science",
-      colorClass: "bg-teal-100 text-teal-700",
-      reportIcon: "biotech"
     }
   ];
 
@@ -91,6 +91,9 @@ const Dashboard: React.FC = () => {
     { title: "Clinical SOPs", desc: "Official IPC Policies & Procedures", path: "/policies", icon: "policy", color: "bg-slate-100 text-slate-700" },
     { title: "Care Pathways", desc: "Standardized Evidence-Based Care", path: "/pathways", icon: "alt_route", color: "bg-slate-100 text-slate-700" }
   ];
+
+  // Logic: Hide NTP from unauthenticated users
+  const visibleRegistries = registries.filter(r => r.title !== "NTP Registration" || isAuthenticated);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -112,7 +115,7 @@ const Dashboard: React.FC = () => {
       const query = searchQuery.toLowerCase();
       const results: SearchResult[] = [];
 
-      registries.forEach(item => {
+      visibleRegistries.forEach(item => {
         if (item.title.toLowerCase().includes(query)) {
           results.push({
             id: item.path,
@@ -142,12 +145,13 @@ const Dashboard: React.FC = () => {
 
       if (isAuthenticated) {
         try {
-          const [hai, tb, isolation, culture, notifiable, needle] = await Promise.all([
-            getHAIReports(), getTBReports(), getIsolationReports(), getCultureReports(), getNotifiableReports(), getNeedlestickReports()
+          const [hai, tb, ntp, isolation, culture, notifiable, needle] = await Promise.all([
+            getHAIReports(), getTBReports(), getNTPReports(), getIsolationReports(), getCultureReports(), getNotifiableReports(), getNeedlestickReports()
           ]);
           const allPatients = [
             ...hai.map(p => ({ ...p, source: 'HAI Registry', link: '/surveillance?module=hai' })),
             ...notifiable.map(p => ({ ...p, source: 'Notifiable Registry', link: '/surveillance?module=notifiable' })),
+            ...ntp.map(p => ({ ...p, source: 'NTP Registry', link: '/surveillance?module=ntp' })),
             ...needle.map(p => ({ ...p, source: 'Needlestick Log', link: '/surveillance?module=needlestick' })),
             ...tb.map(p => ({ ...p, source: 'TB Registry', link: '/surveillance?module=tb' })),
             ...isolation.map(p => ({ ...p, source: 'Isolation', link: '/surveillance?module=isolation' })),
@@ -254,7 +258,7 @@ const Dashboard: React.FC = () => {
         </div>
         
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-          {registries.map((item, idx) => (
+          {visibleRegistries.map((item, idx) => (
             <div key={idx} className="flex flex-col gap-3 group">
               <div 
                 onClick={() => navigate(item.path)}

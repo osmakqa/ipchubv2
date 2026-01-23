@@ -6,6 +6,7 @@ import SurveillanceHub from './components/SurveillanceHub';
 import HAIDashboard from './components/dashboards/HAIDashboard';
 import IsolationDashboard from './components/dashboards/IsolationDashboard';
 import PTBDashboard from './components/dashboards/PTBDashboard';
+import NTPDashboard from './components/dashboards/NTPDashboard';
 import CultureDashboard from './components/dashboards/CultureDashboard';
 import NotifiableDashboard from './components/dashboards/NotifiableDashboard';
 import NeedlestickDashboard from './components/dashboards/NeedlestickDashboard';
@@ -15,9 +16,11 @@ import HAIForm from './components/forms/HAIForm';
 import IsolationForm from './components/forms/IsolationForm';
 import NeedlestickForm from './components/forms/NeedlestickForm';
 import PTBForm from './components/forms/PTBForm';
+import NTPForm from './components/forms/NTPForm';
 import CultureReportForm from './components/forms/CultureReportForm';
 import Resources from './components/Resources';
 import ReporterAnalytics from './components/dashboards/ReporterAnalytics';
+import PlaceholderPage from './components/PlaceholderPage';
 
 const App: React.FC = () => {
   return (
@@ -33,6 +36,8 @@ const App: React.FC = () => {
           <Route path="/hai-dashboard" element={<HAIDashboard />} />
           <Route path="/isolation-dashboard" element={<IsolationDashboard />} />
           <Route path="/ptb-dashboard" element={<PTBDashboard />} />
+          {/* Fix: Route updated to implement existing NTP Dashboard */}
+          <Route path="/ntp-dashboard" element={<NTPDashboard />} />
           <Route path="/culture-dashboard" element={<CultureDashboard />} />
           <Route path="/notifiable-dashboard" element={<NotifiableDashboard />} />
           <Route path="/needlestick-dashboard" element={<NeedlestickDashboard />} />
@@ -42,6 +47,8 @@ const App: React.FC = () => {
           {/* Form Routes */}
           <Route path="/report-disease" element={<NotifiableDiseaseForm />} />
           <Route path="/report-ptb" element={<PTBForm />} />
+          {/* Fix: Route updated to implement existing NTP Form */}
+          <Route path="/report-ntp" element={<NTPForm />} />
           <Route path="/report-hai" element={<HAIForm />} />
           <Route path="/report-isolation" element={<IsolationForm />} />
           <Route path="/report-needlestick" element={<NeedlestickForm />} />

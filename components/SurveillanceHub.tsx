@@ -32,19 +32,23 @@ import {
   FileSpreadsheet,
   Radio,
   Terminal,
-  Clock
+  Clock,
+  FileText,
+  UserPlus
 } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 
 // Import Dashboards
 import HAIDashboard from './dashboards/HAIDashboard';
 import PTBDashboard from './dashboards/PTBDashboard';
+import NTPDashboard from './dashboards/NTPDashboard';
 import IsolationDashboard from './dashboards/IsolationDashboard';
 import NotifiableDashboard from './dashboards/NotifiableDashboard';
 import NeedlestickDashboard from './dashboards/NeedlestickDashboard';
 import CultureDashboard from './dashboards/CultureDashboard';
 import Resources from './Resources';
 import ReporterAnalytics from './dashboards/ReporterAnalytics';
+import PlaceholderPage from './PlaceholderPage';
 
 // Import Audit dashboards
 import HandHygieneAudit from './audits/HandHygieneAudit';
@@ -81,8 +85,9 @@ interface ModuleConfig {
 
 const OverviewModule: React.FC = () => {
     const navigate = useNavigate();
+    const { isAuthenticated } = useAuth();
     const [, setSearchParams] = useSearchParams();
-    const [counts, setCounts] = useState({ hai: 0, notifiable: 0, tb: 0, isolation: 0 });
+    const [counts, setCounts] = useState({ hai: 0, notifiable: 0, tb: 0, isolation: 0, ntp: 0 });
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
@@ -104,26 +109,34 @@ const OverviewModule: React.FC = () => {
             setCounts(prev => ({ ...prev, isolation: data.length }));
         });
 
-        return () => { unsubHAI(); unsubNotif(); unsubTB(); unsubIso(); };
+        const unsubNTP = subscribeToReports('reports_ntp', 'validated', (data) => {
+            setCounts(prev => ({ ...prev, ntp: data.length }));
+        });
+
+        return () => { unsubHAI(); unsubNotif(); unsubTB(); unsubIso(); unsubNTP(); };
     }, []);
 
     const handleQuickNav = (id: string) => setSearchParams({ module: id });
     
     const actions = [
       { label: 'Report HAI', path: '/report-hai', icon: <Activity size={18}/>, color: 'bg-blue-600' },
+      { label: 'Register NTP', path: '/report-ntp', icon: <UserPlus size={18}/>, color: 'bg-amber-600' },
       { label: 'Register TB', path: '/report-ptb', icon: <Stethoscope size={18}/>, color: 'bg-amber-700' },
       { label: 'New Notifiable', path: '/report-disease', icon: <Bell size={18}/>, color: 'bg-red-600' },
       { label: 'Log Injury', path: '/report-needlestick', icon: <ShieldAlert size={18}/>, color: 'bg-red-500' },
       { label: 'Isolation Admit', path: '/report-isolation', icon: <ShieldCheck size={18}/>, color: 'bg-indigo-600' },
-      { label: 'Antibiogram', path: '/report-culture', icon: <FlaskConical size={18}/>, color: 'bg-teal-600' },
     ];
 
     const stats = [
       { id: 'hai', label: 'Active HAIs', value: counts.hai, icon: <Activity size={24}/>, color: 'text-blue-600', bg: 'bg-blue-50', trend: 'Registry' },
       { id: 'notifiable', label: 'New Notifiable', value: counts.notifiable, icon: <Bell size={24}/>, color: 'text-red-600', bg: 'bg-red-50', trend: 'Urgent' },
-      { id: 'tb', label: 'Active TB Cases', value: counts.tb, icon: <Stethoscope size={24}/>, color: 'text-amber-700', bg: 'bg-amber-50', trend: 'Monitoring' },
-      { id: 'isolation', label: 'IsolationCensus', value: counts.isolation, icon: <Bed size={24}/>, color: 'text-indigo-600', bg: 'bg-indigo-50', trend: 'Limited' }
+      { id: 'ntp', label: 'NTP Referrals', value: counts.ntp, icon: <FileText size={24}/>, color: 'text-amber-600', bg: 'bg-amber-50', trend: 'Program' },
+      { id: 'tb', label: 'Active TB Cases', value: counts.tb, icon: <Stethoscope size={24}/>, color: 'text-amber-700', bg: 'bg-amber-50', trend: 'Monitoring' }
     ];
+
+    // Hide NTP if not authenticated
+    const visibleActions = actions.filter(a => a.label !== 'Register NTP' || isAuthenticated);
+    const visibleStats = stats.filter(s => s.id !== 'ntp' || isAuthenticated);
 
     return (
         <div className="flex flex-col gap-8 max-w-[1400px] mx-auto">
@@ -136,7 +149,7 @@ const OverviewModule: React.FC = () => {
                   </div>
                 </div>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                  {actions.map((action, i) => (
+                  {visibleActions.map((action, i) => (
                     <button key={i} onClick={() => navigate(action.path)} className={`${action.color} text-white p-4 rounded-2xl flex flex-col items-center justify-center gap-3 shadow-lg hover:brightness-110 active:scale-95 group overflow-hidden`}>
                       <div className="bg-white/20 p-2 rounded-xl group-hover:scale-110 transition-transform">{action.icon}</div>
                       <span className="text-[10px] font-black uppercase tracking-widest text-center leading-tight">{action.label}</span>
@@ -146,7 +159,7 @@ const OverviewModule: React.FC = () => {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {stats.map((stat) => (
+                {visibleStats.map((stat) => (
                     <button key={stat.id} onClick={() => handleQuickNav(stat.id)} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-4 text-left hover:border-primary transition-all group min-h-[160px] animate-in fade-in zoom-in-95 duration-500">
                         <div className="flex items-center justify-between"><div className={`p-3 ${stat.bg} ${stat.color} rounded-2xl group-hover:scale-110 transition-transform`}>{stat.icon}</div><span className={`text-[10px] font-black uppercase ${stat.color} ${stat.bg} px-2 py-1 rounded`}>{stat.trend}</span></div>
                         {loading ? <div className="h-8 w-1/2 bg-slate-100 animate-pulse rounded"></div> : (
@@ -205,15 +218,15 @@ const AuditOverview: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {[
                   { id: 'hand-hygiene', label: 'Hand Hygiene', desc: 'WHO 5 Moments Audit', icon: <Hand size={24}/>, color: 'bg-emerald-50 text-emerald-600', stats: 'Compliance Tracker' },
-                  { id: 'hai-bundles', label: 'Clinical Bundles', desc: 'VAP/CAUTI/CLABSI Checks', icon: <CheckCircle2 size={24}/>, color: 'bg-blue-50 text-blue-600', stats: 'Quality Assurance' },
                   { id: 'area-audit', label: 'Environmental', desc: 'Area Cleaning Audit', icon: <SearchCode size={24}/>, color: 'bg-amber-50 text-amber-600', stats: 'Safety Inspection' },
-                  { id: 'hai-data', label: 'Surveillance', desc: 'Census & Device Days', icon: <FileBarChart size={24}/>, color: 'bg-indigo-50 text-indigo-600', stats: 'Infection Rates' }
+                  { id: 'hai-data', label: 'Surveillance', desc: 'Census & Device Days', icon: <FileBarChart size={24}/>, color: 'bg-indigo-50 text-indigo-600', stats: 'Infection Rates' },
+                  { id: 'hai-bundles', label: 'Clinical Bundles', desc: 'VAP/CAUTI/CLABSI Checks', icon: <CheckCircle2 size={24}/>, color: 'bg-blue-50 text-blue-600', stats: 'Quality Assurance' }
                 ].map(card => (
                     <button key={card.id} onClick={() => handleQuickNav(card.id)} className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col items-center text-center gap-4 hover:border-emerald-500 transition-all group">
                         <div className={`p-5 rounded-3xl ${card.color} group-hover:scale-110 transition-transform`}>{card.icon}</div>
                         <div>
                             <h3 className="text-xl font-black uppercase text-slate-900 leading-tight">{card.label}</h3>
-                            <p className="text-xs text-slate-400 font-bold uppercase mt-1">{card.desc}</p>
+                            <p className="text-xs font-bold text-slate-400 uppercase mt-1">{card.desc}</p>
                         </div>
                         <div className="mt-4 px-4 py-1.5 rounded-full bg-slate-50 text-[10px] font-black uppercase text-slate-500 tracking-widest">{card.stats}</div>
                     </button>
@@ -303,33 +316,38 @@ const SurveillanceHub: React.FC = () => {
     { id: 'overview', label: 'IPC Hub', icon: <LayoutDashboard size={20} />, color: 'text-slate-600', component: OverviewModule },
     { id: 'hai', label: 'HAI Registry', icon: <Activity size={20} />, color: 'text-blue-600', component: HAIDashboard },
     { id: 'notifiable', label: 'Notifiable Diseases', icon: <Bell size={20} />, color: 'text-red-600', component: NotifiableDashboard },
+    // Fix: Connected NTPDashboard to the NTP module in report mode
+    { id: 'ntp', label: 'NTP Registry', icon: <FileText size={20} />, color: 'text-amber-600', component: NTPDashboard },
     { id: 'tb', label: 'TB Registry', icon: <Stethoscope size={20} />, color: 'text-amber-700', component: PTBDashboard },
     { id: 'isolation', label: 'Isolation Room', icon: <ShieldCheck size={20} />, color: 'text-indigo-600', component: IsolationDashboard },
     { id: 'needlestick', label: 'Sharps / Injury', icon: <ShieldAlert size={20} />, color: 'text-red-500', component: NeedlestickDashboard },
     { id: 'analytics', label: 'Reporters', icon: <FileSpreadsheet size={20} />, color: 'text-emerald-600', component: ReporterAnalytics },
-  ];
+  ].filter(m => m.id !== 'ntp' || isAuthenticated); // Hide NTP from sidebar if not logged in
 
   const auditModules: ModuleConfig[] = [
     { id: 'overview', label: 'Audit Desk', icon: <LayoutDashboard size={20} />, color: 'text-slate-600', component: AuditOverview },
     { id: 'audit-schedule', label: 'Audit Schedule', icon: <Calendar size={20} />, color: 'text-teal-600', component: AuditSchedule },
     { id: 'hand-hygiene', label: 'Hand Hygiene', icon: <Hand size={20} />, color: 'text-emerald-600', component: HandHygieneAudit },
-    { id: 'hai-bundles', label: 'HAI Bundles', icon: <CheckCircle2 size={20} />, color: 'text-blue-600', component: HAIBundlesAudit },
     { id: 'area-audit', label: 'Area Audit', icon: <SearchCode size={20} />, color: 'text-amber-600', component: AreaAudit },
     { id: 'hai-data', label: 'HAI Data', icon: <FileBarChart size={20} />, color: 'text-indigo-600', component: HAIDataDashboard },
+    { id: 'hai-bundles', label: 'HAI Bundles', icon: <CheckCircle2 size={20} />, color: 'text-blue-600', component: HAIBundlesAudit },
     { id: 'action-plans', label: 'Action Tracker', icon: <ClipboardList size={20} />, color: 'text-rose-600', component: ActionPlanTracker },
   ];
 
   const presentModules: ModuleConfig[] = [
     { id: 'overview', label: 'Executive Brief', icon: <MonitorPlay size={20} />, color: 'text-slate-600', component: ExecutiveDashboard },
     { id: 'hai', label: 'HAI Analysis', icon: <Activity size={20} />, color: 'text-blue-600', component: HAIDashboard },
+    // Fix: Connected NTPDashboard to the NTP module in analysis mode
+    { id: 'ntp', label: 'NTP Referrals', icon: <FileText size={20} />, color: 'text-amber-600', component: NTPDashboard },
     { id: 'notifiable', label: 'Epidemiology', icon: <Bell size={20} />, color: 'text-red-600', component: NotifiableDashboard },
     { id: 'tb', label: 'TB Surveillance', icon: <Stethoscope size={20} />, color: 'text-amber-700', component: PTBDashboard },
     { id: 'isolation', label: 'Isolation Room', icon: <ShieldCheck size={20} />, color: 'text-indigo-600', component: IsolationDashboard },
     { id: 'area-audit', label: 'Safety Audit', icon: <SearchCode size={20} />, color: 'text-amber-600', component: AreaAudit },
     { id: 'hand-hygiene', label: 'Hand Hygiene', icon: <Hand size={20} />, color: 'text-emerald-600', component: HandHygieneAudit },
+    { id: 'hai-data', label: 'HAI Data Analysis', icon: <FileBarChart size={20} />, color: 'text-indigo-600', component: HAIDataDashboard },
     { id: 'hai-bundles', label: 'Care Bundles', icon: <CheckCircle2 size={20} />, color: 'text-blue-600', component: HAIBundlesAudit },
     { id: 'action-plans', label: 'Action Tracker', icon: <ClipboardList size={20} />, color: 'text-rose-600', component: ActionPlanTracker },
-  ];
+  ].filter(m => m.id !== 'ntp' || isAuthenticated); // Hide NTP from sidebar if not logged in
 
   const getMainModules = () => {
     if (appMode === 'report') return reportModules;

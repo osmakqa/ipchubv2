@@ -1,5 +1,5 @@
-// Fix: Ensure modular import for initializeApp and other firestore methods
-import { initializeApp } from 'firebase/app';
+
+import { initializeApp } from "firebase/app";
 import { 
   getFirestore, 
   collection, 
@@ -11,16 +11,13 @@ import {
   query, 
   where, 
   orderBy, 
-  setDoc,
-  serverTimestamp,
-  limit,
-  onSnapshot
+  setDoc, 
+  serverTimestamp, 
+  limit, 
+  onSnapshot 
 } from 'firebase/firestore';
 import { GoogleGenAI, Type } from "@google/genai";
 
-/**
- * OsMak IPC Hub Firebase Configuration
- */
 const firebaseConfig = {
   apiKey: "AIzaSyCz7tbHcUFqnx91hwxvSTXDC2upAUrq_fo",
   authDomain: "ipchub.firebaseapp.com",
@@ -31,25 +28,22 @@ const firebaseConfig = {
   measurementId: "G-XSXRBK1P2B"
 };
 
-// Fix: Initialize Firebase app using the named export from the modular SDK
+// Fix: Corrected initialization sequence and ensured modular Firebase app instance
+// Initializing Firebase App using modular SDK v9+ named export to avoid property not found error
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
-// --- GOOGLE APPS SCRIPT CONFIG ---
 const APPS_SCRIPT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzsMbAKmXiIcn1vbVM8E5M20xNXU2bIH7zOMVvwmOCoPIqr3QNyMjaHWwLbzc70-riQ/exec"; 
 
-// --- COLLECTION MAPPING ---
-// normalized keys to ensure consistent routing between forms and dashboards
 export const TYPE_TO_COLLECTION: Record<string, string> = {
   'hai': 'reports_hai',
   'notifiable': 'reports_notifiable',
   'needlestick': 'reports_needlestick',
   'isolation': 'reports_isolation',
   'tb': 'reports_tb',
+  'ntp': 'reports_ntp',
   'culture': 'reports_culture'
 };
-
-// --- UTILS ---
 
 const toTitleCase = (str: string) => {
   if (!str) return str;
@@ -60,7 +54,7 @@ const toTitleCase = (str: string) => {
 
 const sanitizeData = (data: any) => {
   const sanitized = { ...data };
-  const nameFields = ['lastName', 'firstName', 'middleName', 'reporterName', 'hcwName', 'organism', 'patientName'];
+  const nameFields = ['lastName', 'firstName', 'middleName', 'reporterName', 'hcwName', 'organism', 'patientName', 'referredBy'];
   
   if (sanitized.id) delete sanitized.id;
 
@@ -87,8 +81,6 @@ const snapshotToArray = (snapshot: any) => {
   }));
 };
 
-// --- REAL-TIME SUBSCRIPTIONS ---
-
 export const subscribeToReports = (collectionName: string, status: string, callback: (data: any[]) => void) => {
   const q = query(
     collection(db, collectionName), 
@@ -105,8 +97,6 @@ export const subscribeToReports = (collectionName: string, status: string, callb
     callback(sorted);
   });
 };
-
-// --- CORE DATA ACCESSORS ---
 
 export const getReportsByStatus = async (collectionName: string, status: string = 'validated') => {
   try {
@@ -133,6 +123,7 @@ export const getNotifiableReports = () => getReportsByStatus('reports_notifiable
 export const getNeedlestickReports = () => getReportsByStatus('reports_needlestick');
 export const getIsolationReports = () => getReportsByStatus('reports_isolation');
 export const getTBReports = () => getReportsByStatus('reports_tb');
+export const getNTPReports = () => getReportsByStatus('reports_ntp');
 export const getCultureReports = () => getReportsByStatus('reports_culture');
 
 export const getCensusLogs = async () => {
@@ -171,10 +162,7 @@ export const getAuditSchedules = async () => {
   return snapshotToArray(snapshot);
 };
 
-// --- SUBMISSIONS ---
-
 export const submitReport = async (formType: string, data: any): Promise<boolean> => {
-  // Normalizing formType to lowercase and checking for common variations (e.g., "HAI Case" -> "hai")
   const typeKey = formType.toLowerCase().split(' ')[0];
   const collectionName = TYPE_TO_COLLECTION[typeKey] || TYPE_TO_COLLECTION[formType.toLowerCase()];
   
@@ -183,18 +171,17 @@ export const submitReport = async (formType: string, data: any): Promise<boolean
   const sanitizedData = sanitizeData(data);
   const entry = { 
     ...sanitizedData, 
-    dateReported: new Date().toISOString().split('T')[0], 
+    dateReported: data.date || new Date().toISOString().split('T')[0], 
     validationStatus: 'pending',
     created_at: serverTimestamp()
   };
   
   try {
     await addDoc(collection(db, collectionName), entry);
-    console.debug(`Successfully saved entry to ${collectionName}`);
     return true;
   } catch (error) {
     console.error("Submission error:", error);
-    throw new Error("Submission Failed. Check your database connection.");
+    throw new Error("Submission Failed. Check database connection.");
   }
 };
 
@@ -255,8 +242,6 @@ export const submitAuditSchedule = async (data: any) => {
   } catch (e) { return false; }
 };
 
-// --- VALIDATION WORKFLOW ---
-
 export const getPendingReports = async () => {
   try {
     const results = await Promise.all([
@@ -265,6 +250,7 @@ export const getPendingReports = async () => {
       getReportsByStatus('reports_needlestick', 'pending'),
       getReportsByStatus('reports_isolation', 'pending'),
       getReportsByStatus('reports_tb', 'pending'),
+      getReportsByStatus('reports_ntp', 'pending'),
       getReportsByStatus('reports_culture', 'pending')
     ]);
 
@@ -274,11 +260,12 @@ export const getPendingReports = async () => {
       needlestick: results[2],
       isolation: results[3],
       tb: results[4],
-      culture: results[5]
+      ntp: results[5],
+      culture: results[6]
     };
   } catch (error) {
     console.error("Error fetching pending reports:", error);
-    return { hai: [], notifiable: [], needlestick: [], isolation: [], tb: [], culture: [] };
+    return { hai: [], notifiable: [], needlestick: [], isolation: [], tb: [], ntp: [], culture: [] };
   }
 };
 
@@ -295,8 +282,6 @@ export const validateReport = async (type: string, id: string, coordinator: stri
     throw new Error(`Validation Failed: ${error}`);
   }
 };
-
-// --- UPDATE HANDLERS ---
 
 const updateGenericReport = async (collectionName: string, data: any) => {
   const { id, ...rest } = data;
@@ -317,9 +302,8 @@ export const updateNotifiableReport = (data: any) => updateGenericReport('report
 export const updateNeedlestickReport = (data: any) => updateGenericReport('reports_needlestick', data);
 export const updateIsolationReport = (data: any) => updateGenericReport('reports_isolation', data);
 export const updateTBReport = (data: any) => updateGenericReport('reports_tb', data);
+export const updateNTPReport = (data: any) => updateGenericReport('reports_ntp', data);
 export const updateCultureReport = (data: any) => updateGenericReport('reports_culture', data);
-
-// --- DELETION ---
 
 export const deleteRecord = async (collectionName: string, id: string) => {
   if (!id) return false;
@@ -340,70 +324,6 @@ export const deletePendingReport = (type: string, id: string) => {
 
 export const deleteAuditSchedule = (id: string) => deleteRecord('audit_schedules', id);
 
-// --- SHEET SYNC ---
-
-export const syncToGoogleSheets = async (data: any) => {
-  if (!APPS_SCRIPT_WEB_APP_URL) {
-    console.warn("Sheet Sync skipped: No Web App URL configured in ipcService.ts");
-    return true; 
-  }
-
-  try {
-    const response = await fetch(APPS_SCRIPT_WEB_APP_URL, {
-      method: 'POST',
-      mode: 'no-cors', 
-      cache: 'no-cache',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        record: data,
-        sheetName: data.module ? `Push_${data.module}` : 'App_Push_Log'
-      })
-    });
-    return true;
-  } catch (error) {
-    console.error("Sync to Sheets failed:", error);
-    return false;
-  }
-};
-
-// --- CALCULATION LOGIC ---
-
-export const calculateInfectionRates = (censusLogs: any[], infections: any[]) => {
-  const sum = (arr: any[], key: string) => arr.reduce((a, b) => a + (Number(b[key]) || 0), 0);
-  const count = (type: string, area?: string) => 
-    infections.filter(inf => inf.haiType === type && (area ? inf.area === area : true)).length;
-
-  const getRatesForArea = (areaLabel: string, areaKeyPrefix: string) => {
-    const patientDays = areaLabel === "Overall" ? sum(censusLogs, 'overall') : sum(censusLogs, areaKeyPrefix);
-    const ventDays = (areaLabel === "Overall" ? sum(censusLogs, 'overallVent') : sum(censusLogs, `${areaKeyPrefix}Vent`)) || 1;
-    const ifcDays = (areaLabel === "Overall" ? sum(censusLogs, 'overallIfc') : sum(censusLogs, `${areaKeyPrefix}Ifc`)) || 1;
-    const centralDays = (areaLabel === "Overall" ? sum(censusLogs, 'overallCentral') : sum(censusLogs, `${areaKeyPrefix}Central`)) || 1;
-    const pDays = patientDays || 1;
-
-    const vap = count("Ventilator Associated Pneumonia", areaLabel === "Overall" ? undefined : areaLabel);
-    const hap = count("Healthcare-Associated Pneumonia", areaLabel === "Overall" ? undefined : areaLabel);
-    const cauti = count("Catheter-Associated UTI", areaLabel === "Overall" ? undefined : areaLabel);
-    const clabsi = count("Catheter-Related Blood Stream Infections", areaLabel === "Overall" ? undefined : areaLabel);
-
-    return {
-      overall: parseFloat(((vap + hap + cauti + clabsi) / pDays * 1000).toFixed(2)),
-      vap: parseFloat((vap / ventDays * 1000).toFixed(2)),
-      hap: parseFloat((hap / pDays * 1000).toFixed(2)),
-      cauti: parseFloat((cauti / ifcDays * 1000).toFixed(2)),
-      clabsi: parseFloat((clabsi / centralDays * 1000).toFixed(2))
-    };
-  };
-
-  return {
-    overall: getRatesForArea("Overall", "overall"),
-    icu: getRatesForArea("ICU", "icu"),
-    picu: getRatesForArea("PICU", "picu"),
-    nicu: getRatesForArea("NICU", "nicu"),
-    medicine: getRatesForArea("Medicine Ward", "medicine"),
-    cohort: getRatesForArea("Cohort", "cohort")
-  };
-};
-
 export const calculateAge = (dobString: string): string => {
   if (!dobString) return "";
   const dob = new Date(dobString);
@@ -413,16 +333,86 @@ export const calculateAge = (dobString: string): string => {
   return age.toString();
 };
 
-// --- AI SERVICES ---
+export const calculateInfectionRates = (logs: any[], infections: any[]) => {
+  const initStats = () => ({
+    hap: 0, vap: 0, cauti: 0, clabsi: 0, overall: 0,
+    patientDays: 0, ventDays: 0, ifcDays: 0, centralDays: 0,
+    counts: { hap: 0, vap: 0, cauti: 0, clabsi: 0 }
+  });
 
-// Robust API error handling helper
+  const stats: any = {
+    overall: initStats(),
+    icu: initStats(),
+    picu: initStats(),
+    nicu: initStats(),
+    medicine: initStats(),
+    cohort: initStats()
+  };
+
+  logs.forEach(log => {
+    // Overall totals
+    stats.overall.patientDays += Number(log.overall || 0);
+    stats.overall.ventDays += Number(log.overallVent || 0);
+    stats.overall.ifcDays += Number(log.overallIfc || 0);
+    stats.overall.centralDays += Number(log.overallCentral || 0);
+
+    // Ward specific totals
+    const wardMap: Record<string, string> = { icu: 'icu', picu: 'picu', nicu: 'nicu', medicine: 'med', cohort: 'cohort' };
+    Object.keys(wardMap).forEach(key => {
+      const prefix = wardMap[key];
+      stats[key].patientDays += Number(log[key] || 0);
+      stats[key].ventDays += Number(log[prefix + 'Vent'] || 0);
+      stats[key].ifcDays += Number(log[prefix + 'Ifc'] || 0);
+      stats[key].centralDays += Number(log[prefix + 'Central'] || 0);
+    });
+  });
+
+  infections.forEach(inf => {
+    const type = inf.haiType;
+    const area = (inf.area || '').toLowerCase();
+    
+    let typeKey: 'hap' | 'vap' | 'cauti' | 'clabsi' | null = null;
+    if (type === 'Healthcare-Associated Pneumonia') typeKey = 'hap';
+    else if (type === 'Ventilator Associated Pneumonia') typeKey = 'vap';
+    else if (type === 'Catheter-Associated UTI') typeKey = 'cauti';
+    else if (type === 'Catheter-Related Blood Stream Infections') typeKey = 'clabsi';
+
+    if (typeKey) {
+      stats.overall.counts[typeKey]++;
+      
+      let wardKey = '';
+      if (area.includes('icu') && !area.includes('pedia') && !area.includes('nicu')) wardKey = 'icu';
+      else if (area.includes('picu') || area.includes('pedia icu')) wardKey = 'picu';
+      else if (area.includes('nicu')) wardKey = 'nicu';
+      else if (area.includes('medicine')) wardKey = 'medicine';
+      else if (area.includes('cohort')) wardKey = 'cohort';
+
+      if (wardKey && stats[wardKey]) {
+        stats[wardKey].counts[typeKey]++;
+      }
+    }
+  });
+
+  const finalize = (s: any) => {
+    s.hap = s.patientDays > 0 ? Number(((s.counts.hap / s.patientDays) * 1000).toFixed(2)) : 0;
+    s.vap = s.ventDays > 0 ? Number(((s.counts.vap / s.ventDays) * 1000).toFixed(2)) : 0;
+    s.cauti = s.ifcDays > 0 ? Number(((s.counts.cauti / s.ifcDays) * 1000).toFixed(2)) : 0;
+    s.clabsi = s.centralDays > 0 ? Number(((s.counts.clabsi / s.centralDays) * 1000).toFixed(2)) : 0;
+    
+    const totalInfs = s.counts.hap + s.counts.vap + s.counts.cauti + s.counts.clabsi;
+    s.overall = s.patientDays > 0 ? Number(((totalInfs / s.patientDays) * 1000).toFixed(2)) : 0;
+  };
+
+  Object.values(stats).forEach(finalize);
+  return stats;
+};
+
 const handleAIRequest = async (request: () => Promise<any>) => {
   try {
     return await request();
   } catch (error: any) {
     console.error("Gemini API Error:", error);
     if (error?.message?.includes("Requested entity was not found.")) {
-      // Prompt user to select paid API key if entity not found
       if (typeof window !== 'undefined' && (window as any).aistudio?.openSelectKey) {
         (window as any).aistudio.openSelectKey();
       }
@@ -431,9 +421,10 @@ const handleAIRequest = async (request: () => Promise<any>) => {
   }
 };
 
+// Fix: Corrected model name usage and accessed response.text directly as a property
 export const generateExecutiveBriefing = async (dataSnapshot: any): Promise<any> => {
   return handleAIRequest(async () => {
-    // Fix: Instantiate GoogleGenAI exactly as per guidelines inside call right before API request (no extra spaces in config object)
+    // Fix: Always create new GoogleGenAI instance right before the call
     const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
@@ -452,101 +443,29 @@ export const generateExecutiveBriefing = async (dataSnapshot: any): Promise<any>
               items: { type: Type.STRING }
             }
           },
-          required: ["status", "summary", "riskLevel", "recommendations"]
+          propertyOrdering: ["status", "summary", "riskLevel", "recommendations"]
         }
       }
     });
+    // Fix: Accessing .text as a property, not a method
     return JSON.parse(response.text || "{}");
   }).catch(() => ({ 
     status: "VIGILANT", 
     summary: "Data analysis incomplete. Maintain standard precautions.", 
     riskLevel: 5, 
-    recommendations: ["Review recent HAI entries manually", "Check hand hygiene supply chain"] 
+    recommendations: ["Review recent entries manually", "Maintain vigilance"] 
   }));
 };
 
-export const extractPatientInfoFromImage = async (base64Image: string): Promise<any> => {
-  return handleAIRequest(async () => {
-    // Fix: Instantiate GoogleGenAI exactly as per guidelines inside call (no extra spaces in config object)
-    const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
-    const cleanBase64 = base64Image.includes('base64,') ? base64Image.split('base64,')[1] : base64Image;
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
-      contents: { 
-        parts: [
-          { inlineData: { mimeType: 'image/jpeg', data: cleanBase64 } }, 
-          { text: "Extract clinical patient identification info from this image. Focus on hospital number, name, DOB, and sex." }
-        ] 
-      },
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            lastName: { type: Type.STRING },
-            firstName: { type: Type.STRING },
-            middleName: { type: Type.STRING },
-            hospitalNumber: { type: Type.STRING },
-            dob: { type: Type.STRING, description: "YYYY-MM-DD" },
-            sex: { type: Type.STRING, description: "Male or Female" }
-          }
-        }
-      }
-    });
-    return JSON.parse(response.text || "{}");
-  }).catch(() => null);
-};
-
-export const extractCombinedCultureReport = async (base64Image: string): Promise<any> => {
-  return handleAIRequest(async () => {
-    // Fix: Instantiate GoogleGenAI exactly as per guidelines inside call (no extra spaces in config object)
-    const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
-    const cleanBase64 = base64Image.includes('base64,') ? base64Image.split('base64,')[1] : base64Image;
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-pro-preview',
-      contents: { 
-        parts: [
-          { inlineData: { mimeType: 'image/jpeg', data: cleanBase64 } }, 
-          { text: "Extract all culture and sensitivity results from this lab report image." }
-        ] 
-      },
-      config: {
-        responseMimeType: "application/json",
-        responseSchema: {
-          type: Type.OBJECT,
-          properties: {
-            lastName: { type: Type.STRING },
-            firstName: { type: Type.STRING },
-            hospitalNumber: { type: Type.STRING },
-            organism: { type: Type.STRING },
-            specimen: { type: Type.STRING },
-            antibiotics: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  name: { type: Type.STRING },
-                  mic: { type: Type.STRING },
-                  interpretation: { type: Type.STRING, description: "One of: S, I, R" }
-                }
-              }
-            }
-          }
-        }
-      }
-    });
-    return JSON.parse(response.text || "{}");
-  }).catch(() => null);
-};
-
+// Fix: Corrected model name usage and accessed response.text directly as a property
 export const queryIPCAssistant = async (queryStr: string, history: any[]): Promise<string> => {
   return handleAIRequest(async () => {
-    // Fix: Instantiate GoogleGenAI exactly as per guidelines inside call (no extra spaces in config object)
+    // Fix: Always create new GoogleGenAI instance right before the call
     const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
     const chat = ai.chats.create({
       model: 'gemini-3-flash-preview',
       config: {
-        systemInstruction: "You are an expert Infection Prevention and Control Assistant for Ospital ng Makati (OsMak). Provide clinical guidance based on WHO, DOH, and OsMak protocols. Keep answers professional and evidence-based."
+        systemInstruction: "You are an expert Infection Prevention and Control Assistant for Ospital ng Makati (OsMak). Provide clinical guidance based on WHO, DOH, and OsMak protocols."
       },
       history: history.map(h => ({
         role: h.role === 'assistant' ? 'model' : 'user',
@@ -554,8 +473,10 @@ export const queryIPCAssistant = async (queryStr: string, history: any[]): Promi
       }))
     });
     
+    // Fix: Use chat.sendMessage correctly and access text property
     const response = await chat.sendMessage({ message: queryStr });
-    return response.text || "Advisor is processing...";
+    // Fix: Accessing response.text as a property
+    return response.text || "Processing...";
   }).catch((error) => {
     console.error("AI Advisor Error:", error);
     return "Advisor currently unavailable.";

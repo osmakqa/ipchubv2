@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Input from '../ui/Input';
+import Select from '../ui/Select';
 import { getCensusLogs, submitCensusLog, getHAIReports, calculateInfectionRates } from '../../services/ipcService';
 import { 
     Activity, 
@@ -22,12 +23,23 @@ import {
     ChevronRight,
     AlertCircle,
     Calendar as CalendarIcon,
-    Sparkles
+    Sparkles,
+    Hash,
+    CalendarX
 } from 'lucide-react';
 import { 
     BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, 
     CartesianGrid, LineChart, Line, Legend, Cell 
 } from 'recharts';
+
+const CENSUS_LOG_AREAS = [
+    { label: 'Overall Hospital', prefix: 'overall' },
+    { label: 'ICU', prefix: 'icu' },
+    { label: 'NICU', prefix: 'nicu' },
+    { label: 'PICU', prefix: 'picu' },
+    { label: 'Medicine Ward', prefix: 'medicine' }, 
+    { label: 'Cohort Ward', prefix: 'cohort' }
+];
 
 const HAIDataDashboard: React.FC = () => {
     const [view, setView] = useState<'log' | 'analysis'>('log');
@@ -35,40 +47,34 @@ const HAIDataDashboard: React.FC = () => {
     const [logs, setLogs] = useState<any[]>([]);
     const [infections, setInfections] = useState<any[]>([]);
     
-    const [currentMonth, setCurrentMonth] = useState(new Date());
-    const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-
-    const initialFormData = {
+    const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
-        overall: '', icu: '', nicu: '', picu: '', medicine: '', cohort: '',
-        overallVent: '', overallIfc: '', overallCentral: '',
-        icuVent: '', icuIfc: '', icuCentral: '',
-        nicuVent: '', nicuIfc: '', nicuCentral: '',
-        picuVent: '', picuIfc: '', picuCentral: '',
-        medVent: '', medIfc: '', medCentral: '',
-        cohortVent: '', cohortIfc: '', cohortCentral: ''
-    };
-
-    const [formData, setFormData] = useState(initialFormData);
-
-    const handleMagicFill = () => {
-        setFormData({
-            date: selectedDate,
-            overall: '245', icu: '18', nicu: '12', picu: '10', medicine: '120', cohort: '85',
-            overallVent: '42', overallIfc: '156', overallCentral: '88',
-            icuVent: '12', icuIfc: '18', icuCentral: '18',
-            nicuVent: '5', nicuIfc: '4', nicuCentral: '12',
-            picuVent: '8', picuIfc: '10', picuCentral: '10',
-            medVent: '10', medIfc: '80', medCentral: '30',
-            cohortVent: '7', cohortIfc: '44', cohortCentral: '18'
-        });
-    };
+        areaPrefix: CENSUS_LOG_AREAS[0].prefix, 
+        ventCount: '',
+        ifcCount: '',
+        centralCount: ''
+    });
 
     useEffect(() => { loadData(); }, []);
 
     useEffect(() => {
-        setFormData(prev => ({ ...prev, date: selectedDate }));
-    }, [selectedDate]);
+        const existingLog = logs.find(l => l.date === formData.date);
+        if (existingLog) {
+            setFormData(prev => ({
+                ...prev,
+                ventCount: existingLog[`${prev.areaPrefix}Vent`] || '',
+                ifcCount: existingLog[`${prev.areaPrefix}Ifc`] || '',
+                centralCount: existingLog[`${prev.areaPrefix}Central`] || ''
+            }));
+        } else {
+            setFormData(prev => ({
+                ...prev,
+                ventCount: '',
+                ifcCount: '',
+                centralCount: '',
+            }));
+        }
+    }, [formData.date, formData.areaPrefix, logs]);
 
     const loadData = async () => {
         setLoading(true);
@@ -78,55 +84,68 @@ const HAIDataDashboard: React.FC = () => {
         setLoading(false);
     };
 
+    const handleMagicFill = () => {
+        const randomVent = Math.floor(Math.random() * 50) + 10;
+        const randomIfc = Math.floor(Math.random() * 100) + 30;
+        const randomCentral = Math.floor(Math.random() * 60) + 20;
+
+        setFormData(prev => ({
+            ...prev,
+            ventCount: randomVent.toString(),
+            ifcCount: randomIfc.toString(),
+            centralCount: randomCentral.toString()
+        }));
+    };
+
     const handleLogSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        await submitCensusLog(formData);
-        alert("Daily Census Logged Successfully.");
-        loadData();
-        setLoading(false);
+
+        const payload: any = {
+            date: formData.date,
+        };
+        payload[`${formData.areaPrefix}Vent`] = parseInt(formData.ventCount || '0', 10);
+        payload[`${formData.areaPrefix}Ifc`] = parseInt(formData.ifcCount || '0', 10);
+        payload[`${formData.areaPrefix}Central`] = parseInt(formData.centralCount || '0', 10);
+
+        try {
+            await submitCensusLog(payload);
+            alert("Daily Census Logged Successfully.");
+            loadData();
+        } catch (error) {
+            console.error("Error submitting census log:", error);
+            alert("Failed to save census log.");
+        } finally {
+            setLoading(false);
+        }
     };
 
     const stats = useMemo(() => calculateInfectionRates(logs, infections), [logs, infections]);
+    
+    const currentDayLog = useMemo(() => {
+        return logs.find(l => l.date === formData.date);
+    }, [logs, formData.date]);
 
-    const daysInMonth = (year: number, month: number) => new Date(year, month + 1, 0).getDate();
-    const firstDayOfMonth = (year: number, month: number) => new Date(year, month, 1).getDay();
+    // Calculation for previous missing dates in current month
+    const missingDates = useMemo(() => {
+        const today = new Date();
+        const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+        const yesterday = new Date();
+        yesterday.setDate(today.getDate() - 1);
 
-    const calendarDays = useMemo(() => {
-        const year = currentMonth.getFullYear();
-        const month = currentMonth.getMonth();
-        const totalDays = daysInMonth(year, month);
-        const startDay = firstDayOfMonth(year, month);
-        const days = [];
+        const missing = [];
+        const current = new Date(startOfMonth);
         
-        for (let i = 0; i < startDay; i++) {
-            days.push(null);
-        }
-        
-        for (let d = 1; d <= totalDays; d++) {
-            const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
+        while (current <= yesterday) {
+            const dateStr = current.toISOString().split('T')[0];
             const hasLog = logs.some(l => l.date === dateStr);
-            const isToday = new Date().toISOString().split('T')[0] === dateStr;
-            const isPast = new Date(dateStr) < new Date(new Date().toISOString().split('T')[0]);
-            days.push({ date: dateStr, day: d, hasLog, isToday, isPast });
+            if (!hasLog) {
+                missing.push(dateStr);
+            }
+            current.setDate(current.getDate() + 1);
         }
-        return days;
-    }, [currentMonth, logs]);
-
-    const changeMonth = (offset: number) => {
-        const newMonth = new Date(currentMonth);
-        newMonth.setMonth(newMonth.getMonth() + offset);
-        setCurrentMonth(newMonth);
-    };
-
-    const WardDeviceRow = ({ title, prefix, data, setter }: { title: string, prefix: string, data: any, setter: any }) => (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-            <div className="flex items-center gap-2"><div className="size-2 rounded-full bg-slate-400"></div><span className="text-[10px] font-black uppercase text-slate-500">{title}</span></div>
-            <Input label="Vent" type="number" value={data[`${prefix}Vent`]} onChange={e => setter({...data, [`${prefix}Vent`]: e.target.value})} />
-            <Input label="IFC" type="number" value={data[`${prefix}Ifc`]} onChange={e => setter({...data, [`${prefix}Ifc`]: e.target.value})} />
-            <Input label="Central" type="number" value={data[`${prefix}Central`]} onChange={e => setter({...data, [`${prefix}Central`]: e.target.value})} />
-        </div>
-    );
+        return missing.reverse(); // Newest missing dates first
+    }, [logs]);
 
     const RateCard = ({ title, rates }: { title: string, rates: any }) => (
         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-4">
@@ -153,159 +172,141 @@ const HAIDataDashboard: React.FC = () => {
 
             {view === 'log' ? (
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                    <div className="lg:col-span-4 flex flex-col gap-6 sticky top-24">
-                        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm">
-                            <div className="flex items-center justify-between mb-6">
-                                <h3 className="text-sm font-black uppercase text-slate-900 tracking-tight flex items-center gap-2">
-                                    <CalendarIcon size={18} className="text-primary"/> Census Schedule
-                                </h3>
-                                <div className="flex gap-1">
-                                    <button onClick={() => changeMonth(-1)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors"><ChevronLeft size={16}/></button>
-                                    <button onClick={() => changeMonth(1)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors"><ChevronRight size={16}/></button>
-                                </div>
-                            </div>
-                            
-                            <div className="mb-4 text-center">
-                                <span className="text-xs font-black uppercase text-slate-400 tracking-widest">
-                                    {currentMonth.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}
-                                </span>
-                            </div>
-
-                            <div className="grid grid-cols-7 gap-1 mb-2">
-                                {['S','M','T','W','T','F','S'].map((day, i) => (
-                                    <div key={i} className="text-[10px] font-black text-slate-300 text-center py-2">{day}</div>
-                                ))}
-                            </div>
-
-                            <div className="grid grid-cols-7 gap-1">
-                                {calendarDays.map((day, i) => {
-                                    if (!day) return <div key={i} className="h-10" />;
-                                    const isSelected = selectedDate === day.date;
-                                    const needsLog = day.isPast && !day.hasLog;
-                                    
-                                    return (
-                                        <button
-                                            key={i}
-                                            onClick={() => setSelectedDate(day.date)}
-                                            className={`
-                                                relative h-10 rounded-xl text-xs font-bold transition-all flex items-center justify-center
-                                                ${isSelected ? 'bg-primary text-white shadow-lg' : 'hover:bg-slate-50 text-slate-600'}
-                                                ${day.isToday && !isSelected ? 'border-2 border-primary text-primary' : ''}
-                                            `}
-                                        >
-                                            {day.day}
-                                            <div className="absolute bottom-1 flex gap-0.5">
-                                                {day.hasLog && <div className={`size-1 rounded-full ${isSelected ? 'bg-white' : 'bg-emerald-500'}`}></div>}
-                                                {needsLog && <div className={`size-1 rounded-full ${isSelected ? 'bg-white' : 'bg-red-500 animate-pulse'}`}></div>}
-                                            </div>
-                                        </button>
-                                    );
-                                })}
-                            </div>
-
-                            <div className="mt-8 flex flex-col gap-2 border-t border-slate-50 pt-4">
-                                <div className="flex items-center gap-2">
-                                    <div className="size-2 rounded-full bg-emerald-500"></div>
-                                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Logged Data</span>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <div className="size-2 rounded-full bg-red-500"></div>
-                                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Missing / Pending Log</span>
-                                </div>
-                            </div>
-                        </div>
-
-                        {selectedDate && (
-                            <div className="bg-slate-900 p-6 rounded-[2rem] text-white shadow-xl animate-in slide-in-from-bottom-2 duration-300">
-                                <div className="flex items-center gap-3 mb-2">
-                                    <div className="p-2 bg-white/10 rounded-lg"><Clock size={16}/></div>
-                                    <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Current selection</span>
-                                </div>
-                                <h4 className="text-2xl font-black tracking-tight mb-1">
-                                    {new Date(selectedDate).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric' })}
-                                </h4>
-                                <p className="text-xs font-bold text-slate-400 uppercase">
-                                    {logs.find(l => l.date === selectedDate) ? 'Record already exists for this date' : 'Awaiting data entry'}
-                                </p>
-                            </div>
-                        )}
-                    </div>
-
-                    <div className="lg:col-span-8 flex flex-col gap-8">
+                    <div className="lg:col-span-7 flex flex-col gap-8">
                         <form onSubmit={handleLogSubmit} className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col gap-8 animate-in fade-in duration-500">
                             <div className="flex items-center justify-between border-b border-slate-100 pb-5">
                                 <div className="flex items-center gap-3">
-                                    <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl"><ClipboardList size={24}/></div>
+                                    <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl"><ClipboardList size={24}/></div>
                                     <div>
-                                        <h2 className="text-xl font-black text-slate-900 uppercase">Daily Census Entry</h2>
-                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Surveillance for {selectedDate}</p>
+                                        <h2 className="text-xl font-black text-slate-900 uppercase leading-none">HAI Data Entry</h2>
+                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Census & Device Days</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-3">
-                                    <button 
-                                        type="button" 
-                                        onClick={handleMagicFill}
-                                        className="text-[10px] font-black uppercase text-amber-600 bg-amber-50 px-4 py-2 rounded-xl border border-amber-100 flex items-center gap-2 hover:bg-amber-100 transition-all"
-                                    >
-                                        <Sparkles size={14}/> Magic Fill
-                                    </button>
-                                    {logs.find(l => l.date === selectedDate) && (
-                                        <div className="bg-emerald-50 text-emerald-600 px-3 py-1.5 rounded-xl flex items-center gap-2 border border-emerald-100">
-                                            <CheckCircle2 size={16}/>
-                                            <span className="text-[10px] font-black uppercase">Logged</span>
-                                        </div>
-                                    )}
-                                </div>
+                                <button 
+                                    type="button" 
+                                    onClick={handleMagicFill}
+                                    className="text-[10px] font-black uppercase text-amber-600 bg-amber-50 px-4 py-2 rounded-xl border border-amber-100 flex items-center gap-2 hover:bg-amber-100 transition-all shadow-sm"
+                                >
+                                    <Sparkles size={14}/> Magic Fill
+                                </button>
                             </div>
 
-                            <div className="flex flex-col gap-8">
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-indigo-50/50 p-6 rounded-3xl border border-indigo-100">
-                                    <div className="md:col-span-3 flex items-center gap-2 mb-1">
+                            <div className="flex flex-col gap-6">
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <Input 
+                                        label="Entry Date" 
+                                        type="date" 
+                                        value={formData.date} 
+                                        onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))} 
+                                        required 
+                                    />
+                                    <Select 
+                                        label="Clinical Area / Ward" 
+                                        options={CENSUS_LOG_AREAS.map(a => a.label)} 
+                                        value={CENSUS_LOG_AREAS.find(a => a.prefix === formData.areaPrefix)?.label || ''}
+                                        onChange={e => setFormData(prev => ({ ...prev, areaPrefix: CENSUS_LOG_AREAS.find(a => a.label === e.target.value)?.prefix || 'overall' }))} 
+                                        required 
+                                    />
+                                </div>
+
+                                <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 flex flex-col gap-5">
+                                    <div className="flex items-center gap-2 mb-1">
                                         <Activity size={14} className="text-indigo-600"/>
-                                        <span className="text-[10px] font-black uppercase text-indigo-600 tracking-widest">Global Device Totals</span>
+                                        <span className="text-[10px] font-black uppercase text-indigo-600 tracking-widest">Device Counts: {CENSUS_LOG_AREAS.find(a => a.prefix === formData.areaPrefix)?.label}</span>
                                     </div>
-                                    <Input label="Overall Ventilator" type="number" value={formData.overallVent} onChange={e => setFormData({...formData, overallVent: e.target.value})} required />
-                                    <Input label="Overall IFC" type="number" value={formData.overallIfc} onChange={e => setFormData({...formData, overallIfc: e.target.value})} required />
-                                    <Input label="Overall Central Line" type="number" value={formData.overallCentral} onChange={e => setFormData({...formData, overallCentral: e.target.value})} required />
-                                </div>
-
-                                <div className="bg-slate-50 p-6 rounded-3xl border border-slate-200">
-                                    <div className="flex items-center gap-2 mb-4 border-b border-slate-200 pb-2">
-                                        <Users size={16} className="text-slate-900"/>
-                                        <h3 className="text-xs font-black uppercase text-slate-900 tracking-widest">Patient Admissions / Daily Census</h3>
-                                    </div>
-                                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-                                        <Input label="Overall" type="number" value={formData.overall} onChange={e => setFormData({...formData, overall: e.target.value})} required />
-                                        <Input label="ICU" type="number" value={formData.icu} onChange={e => setFormData({...formData, icu: e.target.value})} required />
-                                        <Input label="NICU" type="number" value={formData.nicu} onChange={e => setFormData({...formData, nicu: e.target.value})} required />
-                                        <Input label="PICU" type="number" value={formData.picu} onChange={e => setFormData({...formData, picu: e.target.value})} required />
-                                        <Input label="Medicine" type="number" value={formData.medicine} onChange={e => setFormData({...formData, medicine: e.target.value})} required />
-                                        <Input label="Cohort" type="number" value={formData.cohort} onChange={e => setFormData({...formData, cohort: e.target.value})} required />
-                                    </div>
-                                </div>
-
-                                <div className="bg-white rounded-3xl border border-slate-200 p-6 flex flex-col gap-4">
-                                    <div className="flex items-center gap-2 mb-2 border-b border-slate-100 pb-2">
-                                        <LayoutDashboard size={16} className="text-blue-600"/>
-                                        <h3 className="text-xs font-black uppercase text-blue-600 tracking-widest">Ward-Specific Device Days</h3>
-                                    </div>
-                                    <div className="grid grid-cols-1 gap-4">
-                                        <WardDeviceRow title="ICU" prefix="icu" data={formData} setter={setFormData} />
-                                        <WardDeviceRow title="NICU" prefix="nicu" data={formData} setter={setFormData} />
-                                        <WardDeviceRow title="PICU" prefix="picu" data={formData} setter={setFormData} />
-                                        <WardDeviceRow title="Medicine Ward" prefix="med" data={formData} setter={setFormData} />
-                                        <WardDeviceRow title="Cohort" prefix="cohort" data={formData} setter={setFormData} />
+                                    {/* Aligned textboxes for device counts */}
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                        <Input label="Ventilator Count" type="number" value={formData.ventCount} onChange={e => setFormData({...formData, ventCount: e.target.value})} required />
+                                        <Input label="IFC Count" type="number" value={formData.ifcCount} onChange={e => setFormData({...formData, ifcCount: e.target.value})} required />
+                                        <Input label="Central Line Count" type="number" value={formData.centralCount} onChange={e => setFormData({...formData, centralCount: e.target.value})} required />
                                     </div>
                                 </div>
                             </div>
 
                             <div className="flex justify-end pt-4 border-t border-slate-100">
-                                <button disabled={loading} className="w-full md:w-fit h-14 bg-slate-900 text-white px-12 py-4 rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-xl hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50">
+                                <button disabled={loading} className="w-full md:w-fit h-14 bg-indigo-600 text-white px-12 py-4 rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-xl shadow-indigo-600/20 hover:bg-indigo-700 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50">
                                     {loading ? <Clock size={24} className="animate-spin" /> : <Save size={24} />} 
-                                    {logs.find(l => l.date === selectedDate) ? 'Update Daily Log' : 'Save Daily Log'}
+                                    {currentDayLog && currentDayLog[`${formData.areaPrefix}Vent`] !== undefined ? 'Update Registry' : 'Save Daily Entry'}
                                 </button>
                             </div>
                         </form>
+                    </div>
+
+                    <div className="lg:col-span-5 flex flex-col gap-6 sticky top-24">
+                        <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col gap-6 animate-in slide-in-from-right-4 duration-500">
+                            <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
+                                <div className="p-3 bg-slate-50 text-slate-600 rounded-2xl"><Hash size={24}/></div>
+                                <div>
+                                    <h2 className="text-xl font-black text-slate-900 uppercase leading-none">Daily Summary</h2>
+                                    <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">{new Date(formData.date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                                </div>
+                            </div>
+                            
+                            {!currentDayLog ? (
+                                <div className="py-10 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200">
+                                    <Clock size={32} className="mx-auto text-slate-200 mb-2" />
+                                    <p className="text-slate-400 font-bold uppercase text-[10px] tracking-widest">No data logged for this date</p>
+                                </div>
+                            ) : (
+                                <div className="flex flex-col gap-3">
+                                    <div className="bg-slate-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-slate-900/10 transition-all hover:scale-[1.02]">
+                                        <div className="flex items-center gap-3"><Wind size={18} className="text-blue-400"/><span className="font-black text-xs uppercase tracking-wider">Overall Ventilators</span></div>
+                                        <span className="text-2xl font-black">{currentDayLog.overallVent || '0'}</span>
+                                    </div>
+                                    <div className="bg-slate-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-slate-900/10 transition-all hover:scale-[1.02]">
+                                        <div className="flex items-center gap-3"><Droplets size={18} className="text-amber-400"/><span className="font-black text-xs uppercase tracking-wider">Overall IFC</span></div>
+                                        <span className="text-2xl font-black">{currentDayLog.overallIfc || '0'}</span>
+                                    </div>
+                                    <div className="bg-slate-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-slate-900/10 transition-all hover:scale-[1.02]">
+                                        <div className="flex items-center gap-3"><Syringe size={18} className="text-rose-400"/><span className="font-black text-xs uppercase tracking-wider">Overall Central Lines</span></div>
+                                        <span className="text-2xl font-black">{currentDayLog.overallCentral || '0'}</span>
+                                    </div>
+
+                                    <div className="mt-4 flex flex-col gap-2">
+                                        <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] px-1">Breakdown per Ward</h3>
+                                        <div className="grid grid-cols-1 gap-2">
+                                            {CENSUS_LOG_AREAS.filter(a => a.prefix !== 'overall').map(area => (
+                                                <button key={area.prefix} onClick={() => setFormData(prev => ({...prev, areaPrefix: area.prefix}))} className={`group p-3 rounded-xl border transition-all flex items-center justify-between ${formData.areaPrefix === area.prefix ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-slate-100 hover:border-slate-300'}`}>
+                                                    <span className={`text-[10px] font-black uppercase ${formData.areaPrefix === area.prefix ? 'text-indigo-600' : 'text-slate-600'}`}>{area.label}</span>
+                                                    <div className="flex items-center gap-4 text-[10px] font-bold text-slate-400 group-hover:text-slate-600">
+                                                        <div className="flex items-center gap-1"><span>V:</span><span className="font-black text-slate-900">{currentDayLog[`${area.prefix}Vent`] || '0'}</span></div>
+                                                        <div className="flex items-center gap-1"><span>I:</span><span className="font-black text-slate-900">{currentDayLog[`${area.prefix}Ifc`] || '0'}</span></div>
+                                                        <div className="flex items-center gap-1"><span>C:</span><span className="font-black text-slate-900">{currentDayLog[`${area.prefix}Central`] || '0'}</span></div>
+                                                    </div>
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Missing dates in current month section */}
+                            <div className="mt-4 pt-6 border-t border-slate-100 flex flex-col gap-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <CalendarX size={18} className="text-rose-500" />
+                                        <h3 className="text-xs font-black uppercase text-slate-900 tracking-tight">Missing Log Dates</h3>
+                                    </div>
+                                    <span className="text-[9px] font-black uppercase text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">{missingDates.length} pending</span>
+                                </div>
+                                <div className="flex flex-wrap gap-2">
+                                    {missingDates.length === 0 ? (
+                                        <p className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-100 w-full text-center">🎉 All dates in current month are logged!</p>
+                                    ) : (
+                                        missingDates.map(d => (
+                                            <button 
+                                                key={d} 
+                                                onClick={() => setFormData(prev => ({...prev, date: d}))}
+                                                className="px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-100 text-rose-600 text-[10px] font-black uppercase hover:bg-rose-100 transition-all active:scale-95"
+                                            >
+                                                {new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                            </button>
+                                        ))
+                                    )}
+                                </div>
+                                {missingDates.length > 0 && <p className="text-[9px] text-slate-400 font-bold italic">* Click a date above to quickly jump and log data.</p>}
+                            </div>
+                        </div>
                     </div>
                 </div>
             ) : (
@@ -341,8 +342,8 @@ const HAIDataDashboard: React.FC = () => {
                     </div>
 
                     <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col gap-6">
-                        <div className="flex items-center justify-between">
-                            <h3 className="text-xl font-black uppercase text-slate-900 flex items-center gap-3"><BarChart2 className="text-primary"/> Ward-Wise Comparison</h3>
+                        <div className="flex items-center gap-3">
+                            <div className="p-3 bg-blue-50 rounded-2xl text-blue-600"><BarChart2 className="text-primary"/> Ward-Wise Comparison</div>
                             <div className="flex items-center gap-4 hidden sm:flex">
                                 <div className="flex items-center gap-2"><div className="size-3 rounded bg-emerald-500"></div><span className="text-[10px] font-black uppercase text-slate-400">HAP</span></div>
                                 <div className="flex items-center gap-2"><div className="size-3 rounded bg-blue-500"></div><span className="text-[10px] font-black uppercase text-slate-400">VAP</span></div>
