@@ -1,19 +1,19 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
+import PasswordConfirmModal from '../ui/PasswordConfirmModal';
+import { useAuth } from '../../AuthContext';
 import { AREAS } from '../../constants';
-import { submitHHAudit, submitActionPlan, getHandHygieneAudits } from '../../services/ipcService';
+import { submitHHAudit, submitActionPlan, getHandHygieneAudits, deleteRecord, updateHHAudit } from '../../services/ipcService';
 import { 
     Hand, 
     User, 
-    MapPin, 
     Calendar, 
     Clock, 
     CheckCircle2, 
     XCircle, 
     Plus, 
     Trash2, 
-    AlertCircle, 
     Save, 
     ShieldCheck,
     Briefcase,
@@ -25,10 +25,14 @@ import {
     RotateCcw,
     Loader2,
     Trophy,
-    Medal,
     Star,
     Sparkles,
-    MessageSquareQuote
+    MessageSquareQuote,
+    List,
+    Edit3,
+    Search,
+    MapPin,
+    ChevronLeft
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, CartesianGrid, Cell } from 'recharts';
 
@@ -44,15 +48,21 @@ interface MomentEntry {
 }
 
 interface Props {
-  viewMode?: 'log' | 'analysis';
+  viewMode?: 'log' | 'list' | 'analysis';
 }
 
 const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
-    const [view, setView] = useState<'log' | 'analysis'>(initialViewMode || 'log');
+    const { user, isAuthenticated, validatePassword } = useAuth();
+    const [view, setView] = useState<'log' | 'list' | 'analysis'>(initialViewMode || 'log');
     const [loading, setLoading] = useState(false);
     const [auditHistory, setAuditHistory] = useState<any[]>([]);
     const [showActionPlanModal, setShowActionPlanModal] = useState(false);
     
+    const [editingItem, setEditingItem] = useState<any | null>(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<any | null>(null);
+    const [passwordConfirmLoading, setPasswordConfirmLoading] = useState(false);
+
     const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
 
     const initialForm = {
@@ -95,7 +105,7 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
     });
 
     useEffect(() => {
-        if (view === 'analysis') loadHistory();
+        if (view === 'analysis' || view === 'list') loadHistory();
     }, [view]);
 
     const loadHistory = async () => {
@@ -134,10 +144,10 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
             actionsMissed 
         });
 
-        alert("Hand Hygiene Audit Logged Successfully.");
+        alert("Direct Observation Logged.");
         setForm(initialForm);
         setLoading(false);
-        if (view === 'analysis') loadHistory();
+        if (view !== 'log') loadHistory();
     };
 
     const handleSaveActionPlan = async () => {
@@ -145,6 +155,45 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
         setShowActionPlanModal(false);
         setApForm({ action: '', targetDate: '', personResponsible: '', category: 'Hand Hygiene', area: '', areaOther: '' });
         alert("Action Plan Added.");
+    };
+
+    const handleEditItem = (item: any) => {
+        setEditingItem({ ...item });
+    };
+
+    const handleUpdateItem = async () => {
+        if (!editingItem) return;
+        setLoading(true);
+        try {
+            await updateHHAudit(editingItem);
+            setEditingItem(null);
+            loadHistory();
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteClick = (item: any) => {
+        setItemToDelete(item);
+        setShowDeleteConfirm(true);
+    };
+
+    const handleConfirmDelete = async (password: string) => {
+        if (!itemToDelete || !user) return;
+        setPasswordConfirmLoading(true);
+        if (!validatePassword(user, password)) {
+            alert("Incorrect password.");
+            setPasswordConfirmLoading(false);
+            return;
+        }
+        try {
+            await deleteRecord('audit_hand_hygiene', itemToDelete.id);
+            setShowDeleteConfirm(false);
+            setItemToDelete(null);
+            loadHistory();
+        } finally {
+            setPasswordConfirmLoading(false);
+        }
     };
 
     const stats = useMemo(() => {
@@ -214,8 +263,9 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
     return (
         <div className="flex flex-col gap-6 max-w-5xl mx-auto pb-20">
             <div className="flex bg-slate-200 p-1.5 rounded-2xl w-fit">
-                <button onClick={() => setView('log')} className={`px-8 py-2.5 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 ${view === 'log' ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-500 hover:text-slate-700'}`}><LayoutList size={16}/> Log</button>
-                <button onClick={() => setView('analysis')} className={`px-8 py-2.5 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 ${view === 'analysis' ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-500 hover:text-slate-700'}`}><TrendingUp size={16}/> Analysis</button>
+                <button onClick={() => setView('log')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 ${view === 'log' ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-500 hover:text-slate-700'}`}><LayoutList size={16}/> Log</button>
+                <button onClick={() => setView('list')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 ${view === 'list' ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-500 hover:text-slate-700'}`}><List size={16}/> List</button>
+                <button onClick={() => setView('analysis')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 ${view === 'analysis' ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-500 hover:text-slate-700'}`}><TrendingUp size={16}/> Analysis</button>
             </div>
 
             {view === 'log' ? (
@@ -226,16 +276,10 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                             <div><h2 className="text-xl font-black text-slate-900 uppercase">Direct Observation Audit</h2><p className="text-xs font-bold text-slate-400 uppercase tracking-widest">WHO 5 Moments Recording</p></div>
                         </div>
                         <div className="flex items-center gap-3">
-                            <button 
-                                onClick={handleMagicFill}
-                                className="text-[10px] font-black uppercase text-amber-600 bg-amber-50 px-4 py-2 rounded-xl border border-amber-100 flex items-center gap-2 hover:bg-amber-100 transition-all"
-                            >
+                            <button onClick={handleMagicFill} className="text-[10px] font-black uppercase text-amber-600 bg-amber-50 px-4 py-2 rounded-xl border border-amber-100 flex items-center gap-2 hover:bg-amber-100 transition-all">
                                 <Sparkles size={14}/> Magic Fill
                             </button>
-                            <button 
-                                onClick={() => setShowActionPlanModal(true)}
-                                className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 flex items-center gap-2 hover:bg-emerald-100 transition-all"
-                            >
+                            <button onClick={() => setShowActionPlanModal(true)} className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 flex items-center gap-2 hover:bg-emerald-100 transition-all">
                                 <Zap size={14}/> Add Action Plan
                             </button>
                         </div>
@@ -244,7 +288,7 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <Input label="Audit Date" type="date" value={form.date} onChange={e => setForm({...form, date: e.target.value})} />
                         <div className="flex flex-col gap-2">
-                            <Select label="Observation Area" options={AREAS} value={form.area} onChange={e => setForm({...form, area: e.target.value})} />
+                            <Select label="Ward" options={AREAS} value={form.area} onChange={e => setForm({...form, area: e.target.value})} />
                             {form.area === 'Other (specify)' && <Input label="Specify Area" value={form.areaOther} onChange={e => setForm({...form, areaOther: e.target.value})} />}
                         </div>
                         <Input label="Auditee Name" value={form.auditeeName} onChange={e => setForm({...form, auditeeName: e.target.value})} placeholder="Full Name" />
@@ -268,12 +312,7 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                                         <label className="text-[10px] font-black text-slate-500 uppercase block mb-1.5">Action Taken</label>
                                         <div className="flex gap-1 p-1 bg-white border border-slate-200 rounded-lg">
                                             {ACTIONS.map(a => (
-                                                <button 
-                                                    key={a}
-                                                    type="button"
-                                                    onClick={() => updateMoment(idx, 'action', a)}
-                                                    className={`flex-1 text-[10px] font-black py-1.5 rounded-md transition-all ${entry.action === a ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:bg-slate-50'}`}
-                                                >
+                                                <button key={a} type="button" onClick={() => updateMoment(idx, 'action', a)} className={`flex-1 text-[10px] font-black py-1.5 rounded-md transition-all ${entry.action === a ? 'bg-emerald-500 text-white' : 'text-slate-400 hover:bg-slate-50'}`}>
                                                     {a === 'Missed' ? '✖' : a === 'Hand Rub' ? '💧' : '🧼'} {a.split(' ')[1] || a}
                                                 </button>
                                             ))}
@@ -297,39 +336,76 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                                     </div>
                                     <div className="lg:col-span-11 lg:col-start-2">
                                         <div className="relative">
-                                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300">
-                                                <MessageSquareQuote size={14} />
-                                            </div>
-                                            <input 
-                                                className="w-full pl-10 pr-4 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all bg-white placeholder:text-slate-300 font-bold text-slate-600"
-                                                placeholder="Remarks (Optional)"
-                                                value={entry.remarks || ''}
-                                                onChange={e => updateMoment(idx, 'remarks', e.target.value)}
-                                            />
+                                            <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-300"><MessageSquareQuote size={14} /></div>
+                                            <input className="w-full pl-10 pr-4 py-2 text-xs rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 transition-all bg-white placeholder:text-slate-300 font-bold text-slate-600" placeholder="Remarks (Optional)" value={entry.remarks || ''} onChange={e => updateMoment(idx, 'remarks', e.target.value)}/>
                                         </div>
                                     </div>
                                 </div>
                             ))}
                         </div>
 
-                        <button 
-                            type="button"
-                            onClick={handleAddMoment} 
-                            disabled={form.moments.length >= 10} 
-                            className="mt-2 w-full py-4 rounded-2xl border-2 border-dashed border-emerald-200 bg-emerald-50/30 text-emerald-600 font-black uppercase text-xs tracking-widest hover:bg-emerald-50 hover:border-emerald-400 transition-all flex items-center justify-center gap-3 disabled:opacity-30 disabled:cursor-not-allowed"
-                        >
+                        <button type="button" onClick={handleAddMoment} disabled={form.moments.length >= 10} className="mt-2 w-full py-4 rounded-2xl border-2 border-dashed border-emerald-200 bg-emerald-50/30 text-emerald-600 font-black uppercase text-xs tracking-widest hover:bg-emerald-50 hover:border-emerald-400 transition-all flex items-center justify-center gap-3 disabled:opacity-30 disabled:cursor-not-allowed">
                             <Plus size={18}/> Add Opportunity
                         </button>
                     </div>
 
                     <div className="border-t border-slate-100 pt-6 flex justify-end">
-                        <button 
-                            onClick={handleSubmit}
-                            disabled={loading || !form.area || !form.auditeeRole || !form.auditeeName}
-                            className="w-full md:w-fit h-14 bg-emerald-600 text-white rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-xl shadow-emerald-500/20 hover:bg-emerald-700 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50"
-                        >
+                        <button onClick={handleSubmit} disabled={loading || !form.area || !form.auditeeRole || !form.auditeeName} className="w-full md:w-fit h-14 bg-emerald-600 text-white rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-xl shadow-emerald-500/20 hover:bg-emerald-700 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50">
                             {loading ? <Clock size={24} className="animate-spin" /> : <Save size={24} />} Publish Audit Results
                         </button>
+                    </div>
+                </div>
+            ) : view === 'list' ? (
+                <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col animate-in fade-in duration-500">
+                    <div className="p-8 border-b border-slate-100 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl"><List size={24}/></div>
+                            <div>
+                                <h2 className="text-xl font-black text-slate-900 uppercase">Audit Records</h2>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Historical observation data</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-slate-50 text-slate-400 font-black text-[10px] uppercase border-b border-slate-100">
+                                <tr>
+                                    <th className="p-6">Date</th>
+                                    <th className="p-6">Auditee</th>
+                                    <th className="p-6">Role</th>
+                                    <th className="p-6">Ward</th>
+                                    <th className="p-6 text-center">Compliance</th>
+                                    <th className="p-6 text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {auditHistory.map(audit => {
+                                    const moments = audit.moments || [];
+                                    const performed = audit.actionsPerformed !== undefined ? audit.actionsPerformed : moments.filter((m: any) => m.action !== 'Missed').length;
+                                    const total = audit.totalMomentsObserved !== undefined ? audit.totalMomentsObserved : moments.length;
+                                    const score = total > 0 ? Math.round((performed / total) * 100) : 0;
+                                    return (
+                                        <tr key={audit.id} className="hover:bg-slate-50 transition-colors group">
+                                            <td className="p-6 font-medium text-slate-600">{audit.date}</td>
+                                            <td className="p-6 font-black text-slate-900 uppercase">{audit.auditeeName}</td>
+                                            <td className="p-6 text-slate-500 text-xs font-bold uppercase">{audit.auditeeRole}</td>
+                                            <td className="p-6 font-medium text-slate-800">{audit.area}</td>
+                                            <td className="p-6 text-center">
+                                                <span className={`px-3 py-1 rounded-full font-black text-[10px] border uppercase ${score >= 85 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : score >= 70 ? 'bg-amber-50 text-amber-600 border-amber-100' : 'bg-rose-50 text-rose-600 border-rose-100'}`}>
+                                                    {score}%
+                                                </span>
+                                            </td>
+                                            <td className="p-6">
+                                                <div className="flex items-center justify-center gap-2">
+                                                    <button onClick={() => handleEditItem(audit)} className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all"><Edit3 size={18}/></button>
+                                                    <button onClick={() => handleDeleteClick(audit)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={18}/></button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             ) : (
@@ -444,6 +520,39 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                 </div>
             )}
 
+            {/* Edit Modal */}
+            {editingItem && (
+                <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95">
+                        <div className="bg-emerald-600 p-8 text-white flex justify-between items-center">
+                            <div>
+                                <h3 className="text-2xl font-black uppercase tracking-tight">Edit Audit Log</h3>
+                                <p className="text-xs opacity-80 font-bold uppercase tracking-widest">{editingItem.auditeeName}</p>
+                            </div>
+                            <button onClick={() => setEditingItem(null)} className="p-2 hover:bg-white/20 rounded-full transition-colors"><ChevronLeft className="rotate-180" size={24}/></button>
+                        </div>
+                        <div className="p-10 flex flex-col gap-6">
+                            <Input label="Auditee Name" value={editingItem.auditeeName} onChange={e => setEditingItem({...editingItem, auditeeName: e.target.value})} />
+                            <Select label="Role" options={ROLES} value={editingItem.auditeeRole} onChange={e => setEditingItem({...editingItem, auditeeRole: e.target.value})} />
+                            <Select label="Ward" options={AREAS} value={editingItem.area} onChange={e => setEditingItem({...editingItem, area: e.target.value})} />
+                            <div className="flex gap-4 mt-4">
+                                <button onClick={() => setEditingItem(null)} className="flex-1 py-4 text-slate-400 font-black uppercase text-xs hover:bg-slate-50 rounded-2xl transition-all">Cancel</button>
+                                <button onClick={handleUpdateItem} className="flex-1 py-4 bg-emerald-600 text-white font-black uppercase text-xs rounded-2xl shadow-xl hover:bg-emerald-700 transition-all">Save Changes</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <PasswordConfirmModal
+                show={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={handleConfirmDelete}
+                loading={passwordConfirmLoading}
+                title="Confirm Record Deletion"
+                description={`Permanently delete the audit record for ${itemToDelete?.auditeeName}?`}
+            />
+
             {showActionPlanModal && (
                 <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95">
@@ -454,8 +563,7 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                         </div>
                         <div className="p-8 flex flex-col gap-4">
                             <div className="flex flex-col gap-2">
-                                <Select label="Target Area / Ward" options={AREAS} value={apForm.area} onChange={e => setApForm({...apForm, area: e.target.value})} />
-                                {apForm.area === 'Other (specify)' && <Input label="Specify Ward" value={apForm.areaOther} onChange={e => setApForm({...apForm, areaOther: e.target.value})} />}
+                                <Select label="Target Ward" options={AREAS} value={apForm.area} onChange={e => setApForm({...apForm, area: e.target.value})} />
                             </div>
                             <Input label="Correction Action" value={apForm.action} onChange={e => setApForm({...apForm, action: e.target.value})} placeholder="e.g. Provide pocket alcohol dispensers" />
                             <Input label="Target Date" type="date" value={apForm.targetDate} onChange={e => setApForm({...apForm, targetDate: e.target.value})} />

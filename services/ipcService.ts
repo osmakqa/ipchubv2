@@ -1,5 +1,4 @@
-
-import { initializeApp } from "firebase/app";
+import { initializeApp } from 'firebase/app';
 import { 
   getFirestore, 
   collection, 
@@ -28,12 +27,9 @@ const firebaseConfig = {
   measurementId: "G-XSXRBK1P2B"
 };
 
-// Fix: Corrected initialization sequence and ensured modular Firebase app instance
-// Initializing Firebase App using modular SDK v9+ named export to avoid property not found error
+// Fix: Ensure firebase initialization uses correctly imported initializeApp
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
-
-const APPS_SCRIPT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzsMbAKmXiIcn1vbVM8E5M20xNXU2bIH7zOMVvwmOCoPIqr3QNyMjaHWwLbzc70-riQ/exec"; 
 
 export const TYPE_TO_COLLECTION: Record<string, string> = {
   'hai': 'reports_hai',
@@ -127,7 +123,7 @@ export const getNTPReports = () => getReportsByStatus('reports_ntp');
 export const getCultureReports = () => getReportsByStatus('reports_culture');
 
 export const getCensusLogs = async () => {
-  const q = query(collection(db, 'census_logs'), orderBy('date', 'desc'), limit(31));
+  const q = query(collection(db, 'census_logs'), orderBy('date', 'desc'), limit(100));
   const snapshot = await getDocs(q);
   return snapshotToArray(snapshot);
 };
@@ -234,6 +230,17 @@ export const updateActionPlanStatus = async (id: string, status: string) => {
   } catch (e) { return false; }
 };
 
+export const updateActionPlan = async (data: any) => {
+    const { id, ...rest } = data;
+    if (!id) return false;
+    const sanitized = sanitizeData(rest);
+    const docRef = doc(db, 'action_plans', id);
+    try {
+        await updateDoc(docRef, sanitized);
+        return true;
+    } catch (e) { return false; }
+};
+
 export const submitAuditSchedule = async (data: any) => {
   const sanitized = sanitizeData(data);
   try {
@@ -283,7 +290,7 @@ export const validateReport = async (type: string, id: string, coordinator: stri
   }
 };
 
-const updateGenericReport = async (collectionName: string, data: any) => {
+const updateGenericRecord = async (collectionName: string, data: any) => {
   const { id, ...rest } = data;
   if (!id) return false;
   const sanitized = sanitizeData(rest);
@@ -297,13 +304,27 @@ const updateGenericReport = async (collectionName: string, data: any) => {
   }
 };
 
-export const updateHAIReport = (data: any) => updateGenericReport('reports_hai', data);
-export const updateNotifiableReport = (data: any) => updateGenericReport('reports_notifiable', data);
-export const updateNeedlestickReport = (data: any) => updateGenericReport('reports_needlestick', data);
-export const updateIsolationReport = (data: any) => updateGenericReport('reports_isolation', data);
-export const updateTBReport = (data: any) => updateGenericReport('reports_tb', data);
-export const updateNTPReport = (data: any) => updateGenericReport('reports_ntp', data);
-export const updateCultureReport = (data: any) => updateGenericReport('reports_culture', data);
+export const updateHAIReport = (data: any) => updateGenericRecord('reports_hai', data);
+export const updateNotifiableReport = (data: any) => updateGenericRecord('reports_notifiable', data);
+export const updateNeedlestickReport = (data: any) => updateGenericRecord('reports_needlestick', data);
+export const updateIsolationReport = (data: any) => updateGenericRecord('reports_isolation', data);
+export const updateTBReport = (data: any) => updateGenericRecord('reports_tb', data);
+export const updateNTPReport = (data: any) => updateGenericRecord('reports_ntp', data);
+export const updateCultureReport = (data: any) => updateGenericRecord('reports_culture', data);
+
+export const updateHHAudit = (data: any) => updateGenericRecord('audit_hand_hygiene', data);
+export const updateAreaAudit = (data: any) => updateGenericRecord('audit_area', data);
+export const updateBundleAudit = (data: any) => updateGenericRecord('audit_bundles', data);
+export const updateCensusLog = async (data: any) => {
+    const { date, ...rest } = data;
+    if (!date) return false;
+    const sanitized = sanitizeData(rest);
+    const docRef = doc(db, 'census_logs', date);
+    try {
+        await updateDoc(docRef, sanitized);
+        return true;
+    } catch (e) { return false; }
+};
 
 export const deleteRecord = async (collectionName: string, id: string) => {
   if (!id) return false;
@@ -323,6 +344,7 @@ export const deletePendingReport = (type: string, id: string) => {
 };
 
 export const deleteAuditSchedule = (id: string) => deleteRecord('audit_schedules', id);
+export const deleteCensusLog = (date: string) => deleteRecord('census_logs', date);
 
 export const calculateAge = (dobString: string): string => {
   if (!dobString) return "";
@@ -350,17 +372,15 @@ export const calculateInfectionRates = (logs: any[], infections: any[]) => {
   };
 
   logs.forEach(log => {
-    // Overall totals
     stats.overall.patientDays += Number(log.overall || 0);
     stats.overall.ventDays += Number(log.overallVent || 0);
     stats.overall.ifcDays += Number(log.overallIfc || 0);
     stats.overall.centralDays += Number(log.overallCentral || 0);
 
-    // Ward specific totals
-    const wardMap: Record<string, string> = { icu: 'icu', picu: 'picu', nicu: 'nicu', medicine: 'med', cohort: 'cohort' };
+    const wardMap: Record<string, string> = { icu: 'icu', picu: 'picu', nicu: 'nicu', medicine: 'medicine', cohort: 'cohort' };
     Object.keys(wardMap).forEach(key => {
       const prefix = wardMap[key];
-      stats[key].patientDays += Number(log[key] || 0);
+      stats[key].patientDays += Number(log[prefix] || 0);
       stats[key].ventDays += Number(log[prefix + 'Vent'] || 0);
       stats[key].ifcDays += Number(log[prefix + 'Ifc'] || 0);
       stats[key].centralDays += Number(log[prefix + 'Central'] || 0);
@@ -421,10 +441,9 @@ const handleAIRequest = async (request: () => Promise<any>) => {
   }
 };
 
-// Fix: Corrected model name usage and accessed response.text directly as a property
 export const generateExecutiveBriefing = async (dataSnapshot: any): Promise<any> => {
   return handleAIRequest(async () => {
-    // Fix: Always create new GoogleGenAI instance right before the call
+    // Fix: Create new instance for each request per guidelines
     const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
@@ -447,7 +466,7 @@ export const generateExecutiveBriefing = async (dataSnapshot: any): Promise<any>
         }
       }
     });
-    // Fix: Accessing .text as a property, not a method
+    // Fix: Access response.text directly per guidelines
     return JSON.parse(response.text || "{}");
   }).catch(() => ({ 
     status: "VIGILANT", 
@@ -457,10 +476,9 @@ export const generateExecutiveBriefing = async (dataSnapshot: any): Promise<any>
   }));
 };
 
-// Fix: Corrected model name usage and accessed response.text directly as a property
 export const queryIPCAssistant = async (queryStr: string, history: any[]): Promise<string> => {
   return handleAIRequest(async () => {
-    // Fix: Always create new GoogleGenAI instance right before the call
+    // Fix: Create new instance for each request per guidelines
     const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
     const chat = ai.chats.create({
       model: 'gemini-3-flash-preview',
@@ -473,9 +491,9 @@ export const queryIPCAssistant = async (queryStr: string, history: any[]): Promi
       }))
     });
     
-    // Fix: Use chat.sendMessage correctly and access text property
+    // Fix: Use sendMessage for next turn
     const response = await chat.sendMessage({ message: queryStr });
-    // Fix: Accessing response.text as a property
+    // Fix: Access response.text directly per guidelines
     return response.text || "Processing...";
   }).catch((error) => {
     console.error("AI Advisor Error:", error);

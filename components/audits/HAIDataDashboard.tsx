@@ -1,80 +1,103 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
-import { getCensusLogs, submitCensusLog, getHAIReports, calculateInfectionRates } from '../../services/ipcService';
+import PasswordConfirmModal from '../ui/PasswordConfirmModal';
+import { useAuth } from '../../AuthContext';
+import { getCensusLogs, submitCensusLog, getHAIReports, calculateInfectionRates, deleteCensusLog, updateCensusLog } from '../../services/ipcService';
+import { AREAS } from '../../constants';
 import { 
     Activity, 
     BarChart2, 
     ClipboardList, 
     Save, 
     Clock, 
-    Bed, 
     Wind, 
     Droplets, 
     Syringe, 
     LayoutList,
     TrendingUp,
-    CheckCircle2,
-    Users,
-    FileText,
-    Info,
-    LayoutDashboard,
-    ChevronLeft,
-    ChevronRight,
-    AlertCircle,
-    Calendar as CalendarIcon,
-    Sparkles,
     Hash,
-    CalendarX
+    CalendarX,
+    List,
+    Edit3,
+    Trash2,
+    Search,
+    ChevronLeft,
+    Sparkles,
+    Users
 } from 'lucide-react';
 import { 
     BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, 
     CartesianGrid, LineChart, Line, Legend, Cell 
 } from 'recharts';
 
-const CENSUS_LOG_AREAS = [
+const ANALYTICAL_WARDS = [
     { label: 'Overall Hospital', prefix: 'overall' },
     { label: 'ICU', prefix: 'icu' },
     { label: 'NICU', prefix: 'nicu' },
     { label: 'PICU', prefix: 'picu' },
     { label: 'Medicine Ward', prefix: 'medicine' }, 
-    { label: 'Cohort Ward', prefix: 'cohort' }
+    { label: 'Cohort', prefix: 'cohort' }
 ];
 
 const HAIDataDashboard: React.FC = () => {
-    const [view, setView] = useState<'log' | 'analysis'>('log');
+    const { user, isAuthenticated, validatePassword } = useAuth();
+    const [view, setView] = useState<'log' | 'list' | 'analysis'>('log');
     const [loading, setLoading] = useState(false);
     const [logs, setLogs] = useState<any[]>([]);
     const [infections, setInfections] = useState<any[]>([]);
     
+    const [editingLog, setEditingLog] = useState<any | null>(null);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [logToDelete, setLogToDelete] = useState<string | null>(null);
+    const [passwordConfirmLoading, setPasswordConfirmLoading] = useState(false);
+
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
-        areaPrefix: CENSUS_LOG_AREAS[0].prefix, 
+        areaName: 'Overall Hospital',
+        patientDays: '',
         ventCount: '',
         ifcCount: '',
         centralCount: ''
     });
 
+    const areaOptions = useMemo(() => ["Overall Hospital", ...AREAS], []);
+
+    const currentPrefix = useMemo(() => {
+        const area = formData.areaName;
+        if (area === "Overall Hospital") return "overall";
+        if (area === "ICU") return "icu";
+        if (area === "NICU") return "nicu";
+        if (area === "PICU" || area === "Pedia ICU") return "picu";
+        if (area === "Medicine Ward") return "medicine";
+        if (area === "Cohort") return "cohort";
+        return area.toLowerCase().replace(/\s+/g, '');
+    }, [formData.areaName]);
+
     useEffect(() => { loadData(); }, []);
 
     useEffect(() => {
-        const existingLog = logs.find(l => l.date === formData.date);
-        if (existingLog) {
-            setFormData(prev => ({
-                ...prev,
-                ventCount: existingLog[`${prev.areaPrefix}Vent`] || '',
-                ifcCount: existingLog[`${prev.areaPrefix}Ifc`] || '',
-                centralCount: existingLog[`${prev.areaPrefix}Central`] || ''
-            }));
-        } else {
-            setFormData(prev => ({
-                ...prev,
-                ventCount: '',
-                ifcCount: '',
-                centralCount: '',
-            }));
+        if (view === 'log') {
+            const existingLog = logs.find(l => l.date === formData.date);
+            if (existingLog) {
+                setFormData(prev => ({
+                    ...prev,
+                    patientDays: existingLog[currentPrefix] || '',
+                    ventCount: existingLog[`${currentPrefix}Vent`] || '',
+                    ifcCount: existingLog[`${currentPrefix}Ifc`] || '',
+                    centralCount: existingLog[`${currentPrefix}Central`] || ''
+                }));
+            } else {
+                setFormData(prev => ({
+                    ...prev,
+                    patientDays: '',
+                    ventCount: '',
+                    ifcCount: '',
+                    centralCount: '',
+                }));
+            }
         }
-    }, [formData.date, formData.areaPrefix, logs]);
+    }, [formData.date, currentPrefix, logs, view]);
 
     const loadData = async () => {
         setLoading(true);
@@ -85,12 +108,14 @@ const HAIDataDashboard: React.FC = () => {
     };
 
     const handleMagicFill = () => {
+        const randomCensus = Math.floor(Math.random() * 200) + 50;
         const randomVent = Math.floor(Math.random() * 50) + 10;
         const randomIfc = Math.floor(Math.random() * 100) + 30;
         const randomCentral = Math.floor(Math.random() * 60) + 20;
 
         setFormData(prev => ({
             ...prev,
+            patientDays: randomCensus.toString(),
             ventCount: randomVent.toString(),
             ifcCount: randomIfc.toString(),
             centralCount: randomCentral.toString()
@@ -104,17 +129,17 @@ const HAIDataDashboard: React.FC = () => {
         const payload: any = {
             date: formData.date,
         };
-        payload[`${formData.areaPrefix}Vent`] = parseInt(formData.ventCount || '0', 10);
-        payload[`${formData.areaPrefix}Ifc`] = parseInt(formData.ifcCount || '0', 10);
-        payload[`${formData.areaPrefix}Central`] = parseInt(formData.centralCount || '0', 10);
+        payload[currentPrefix] = parseInt(formData.patientDays || '0', 10);
+        payload[`${currentPrefix}Vent`] = parseInt(formData.ventCount || '0', 10);
+        payload[`${currentPrefix}Ifc`] = parseInt(formData.ifcCount || '0', 10);
+        payload[`${currentPrefix}Central`] = parseInt(formData.centralCount || '0', 10);
 
         try {
             await submitCensusLog(payload);
             alert("Daily Census Logged Successfully.");
             loadData();
         } catch (error) {
-            console.error("Error submitting census log:", error);
-            alert("Failed to save census log.");
+            alert("Failed to save entry.");
         } finally {
             setLoading(false);
         }
@@ -126,7 +151,6 @@ const HAIDataDashboard: React.FC = () => {
         return logs.find(l => l.date === formData.date);
     }, [logs, formData.date]);
 
-    // Calculation for previous missing dates in current month
     const missingDates = useMemo(() => {
         const today = new Date();
         const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
@@ -144,8 +168,47 @@ const HAIDataDashboard: React.FC = () => {
             }
             current.setDate(current.getDate() + 1);
         }
-        return missing.reverse(); // Newest missing dates first
+        return missing.reverse();
     }, [logs]);
+
+    const handleEditLog = (log: any) => {
+        setEditingLog({ ...log });
+    };
+
+    const handleUpdateLog = async () => {
+        if (!editingLog) return;
+        setLoading(true);
+        try {
+            await updateCensusLog(editingLog);
+            setEditingLog(null);
+            loadData();
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeleteClick = (date: string) => {
+        setLogToDelete(date);
+        setShowDeleteConfirm(true);
+    };
+
+    const handleConfirmDelete = async (password: string) => {
+        if (!logToDelete || !user) return;
+        setPasswordConfirmLoading(true);
+        if (!validatePassword(user, password)) {
+            alert("Incorrect password.");
+            setPasswordConfirmLoading(false);
+            return;
+        }
+        try {
+            await deleteCensusLog(logToDelete);
+            setShowDeleteConfirm(false);
+            setLogToDelete(null);
+            loadData();
+        } finally {
+            setPasswordConfirmLoading(false);
+        }
+    };
 
     const RateCard = ({ title, rates }: { title: string, rates: any }) => (
         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-4">
@@ -166,8 +229,9 @@ const HAIDataDashboard: React.FC = () => {
     return (
         <div className="flex flex-col gap-6 max-w-6xl mx-auto pb-20">
             <div className="flex bg-slate-200 p-1.5 rounded-2xl w-fit">
-                <button onClick={() => setView('log')} className={`px-8 py-2.5 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 ${view === 'log' ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-500 hover:text-slate-700'}`}><LayoutList size={16}/> Log</button>
-                <button onClick={() => setView('analysis')} className={`px-8 py-2.5 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 ${view === 'analysis' ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-500 hover:text-slate-700'}`}><TrendingUp size={16}/> Analysis</button>
+                <button onClick={() => setView('log')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 ${view === 'log' ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-500 hover:text-slate-700'}`}><LayoutList size={16}/> Log</button>
+                <button onClick={() => setView('list')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 ${view === 'list' ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-500 hover:text-slate-700'}`}><List size={16}/> List</button>
+                <button onClick={() => setView('analysis')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 ${view === 'analysis' ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-500 hover:text-slate-700'}`}><TrendingUp size={16}/> Analysis</button>
             </div>
 
             {view === 'log' ? (
@@ -178,44 +242,28 @@ const HAIDataDashboard: React.FC = () => {
                                 <div className="flex items-center gap-3">
                                     <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl"><ClipboardList size={24}/></div>
                                     <div>
-                                        <h2 className="text-xl font-black text-slate-900 uppercase leading-none">HAI Data Entry</h2>
-                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Census & Device Days</p>
+                                        <h2 className="text-xl font-black text-slate-900 uppercase leading-none">Daily Census Log</h2>
+                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Registry Entry</p>
                                     </div>
                                 </div>
-                                <button 
-                                    type="button" 
-                                    onClick={handleMagicFill}
-                                    className="text-[10px] font-black uppercase text-amber-600 bg-amber-50 px-4 py-2 rounded-xl border border-amber-100 flex items-center gap-2 hover:bg-amber-100 transition-all shadow-sm"
-                                >
+                                <button type="button" onClick={handleMagicFill} className="text-[10px] font-black uppercase text-amber-600 bg-amber-50 px-4 py-2 rounded-xl border border-amber-100 flex items-center gap-2 hover:bg-amber-100 transition-all shadow-sm">
                                     <Sparkles size={14}/> Magic Fill
                                 </button>
                             </div>
 
                             <div className="flex flex-col gap-6">
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <Input 
-                                        label="Entry Date" 
-                                        type="date" 
-                                        value={formData.date} 
-                                        onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))} 
-                                        required 
-                                    />
-                                    <Select 
-                                        label="Clinical Area / Ward" 
-                                        options={CENSUS_LOG_AREAS.map(a => a.label)} 
-                                        value={CENSUS_LOG_AREAS.find(a => a.prefix === formData.areaPrefix)?.label || ''}
-                                        onChange={e => setFormData(prev => ({ ...prev, areaPrefix: CENSUS_LOG_AREAS.find(a => a.label === e.target.value)?.prefix || 'overall' }))} 
-                                        required 
-                                    />
+                                    <Input label="Registry Date" type="date" value={formData.date} onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))} required />
+                                    <Select label="Ward" options={areaOptions} value={formData.areaName} onChange={e => setFormData(prev => ({ ...prev, areaName: e.target.value }))} required />
                                 </div>
 
                                 <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 flex flex-col gap-5">
                                     <div className="flex items-center gap-2 mb-1">
                                         <Activity size={14} className="text-indigo-600"/>
-                                        <span className="text-[10px] font-black uppercase text-indigo-600 tracking-widest">Device Counts: {CENSUS_LOG_AREAS.find(a => a.prefix === formData.areaPrefix)?.label}</span>
+                                        <span className="text-[10px] font-black uppercase text-indigo-600 tracking-widest">Census & Device Days: {formData.areaName}</span>
                                     </div>
-                                    {/* Aligned textboxes for device counts */}
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <Input label="Total Census (Patient Days)" type="number" value={formData.patientDays} onChange={e => setFormData({...formData, patientDays: e.target.value})} required />
                                         <Input label="Ventilator Count" type="number" value={formData.ventCount} onChange={e => setFormData({...formData, ventCount: e.target.value})} required />
                                         <Input label="IFC Count" type="number" value={formData.ifcCount} onChange={e => setFormData({...formData, ifcCount: e.target.value})} required />
                                         <Input label="Central Line Count" type="number" value={formData.centralCount} onChange={e => setFormData({...formData, centralCount: e.target.value})} required />
@@ -226,7 +274,7 @@ const HAIDataDashboard: React.FC = () => {
                             <div className="flex justify-end pt-4 border-t border-slate-100">
                                 <button disabled={loading} className="w-full md:w-fit h-14 bg-indigo-600 text-white px-12 py-4 rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-xl shadow-indigo-600/20 hover:bg-indigo-700 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50">
                                     {loading ? <Clock size={24} className="animate-spin" /> : <Save size={24} />} 
-                                    {currentDayLog && currentDayLog[`${formData.areaPrefix}Vent`] !== undefined ? 'Update Registry' : 'Save Daily Entry'}
+                                    {currentDayLog && currentDayLog[`${currentPrefix}Vent`] !== undefined ? 'Update Registry' : 'Save Entry'}
                                 </button>
                             </div>
                         </form>
@@ -249,15 +297,19 @@ const HAIDataDashboard: React.FC = () => {
                                 </div>
                             ) : (
                                 <div className="flex flex-col gap-3">
-                                    <div className="bg-slate-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-slate-900/10 transition-all hover:scale-[1.02]">
+                                    <div className="bg-slate-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-slate-900/10">
+                                        <div className="flex items-center gap-3"><Users size={18} className="text-emerald-400"/><span className="font-black text-xs uppercase tracking-wider">Overall Census</span></div>
+                                        <span className="text-2xl font-black">{currentDayLog.overall || '0'}</span>
+                                    </div>
+                                    <div className="bg-slate-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-slate-900/10">
                                         <div className="flex items-center gap-3"><Wind size={18} className="text-blue-400"/><span className="font-black text-xs uppercase tracking-wider">Overall Ventilators</span></div>
                                         <span className="text-2xl font-black">{currentDayLog.overallVent || '0'}</span>
                                     </div>
-                                    <div className="bg-slate-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-slate-900/10 transition-all hover:scale-[1.02]">
+                                    <div className="bg-slate-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-slate-900/10">
                                         <div className="flex items-center gap-3"><Droplets size={18} className="text-amber-400"/><span className="font-black text-xs uppercase tracking-wider">Overall IFC</span></div>
                                         <span className="text-2xl font-black">{currentDayLog.overallIfc || '0'}</span>
                                     </div>
-                                    <div className="bg-slate-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-slate-900/10 transition-all hover:scale-[1.02]">
+                                    <div className="bg-slate-900 text-white p-4 rounded-2xl flex items-center justify-between shadow-lg shadow-slate-900/10">
                                         <div className="flex items-center gap-3"><Syringe size={18} className="text-rose-400"/><span className="font-black text-xs uppercase tracking-wider">Overall Central Lines</span></div>
                                         <span className="text-2xl font-black">{currentDayLog.overallCentral || '0'}</span>
                                     </div>
@@ -265,13 +317,13 @@ const HAIDataDashboard: React.FC = () => {
                                     <div className="mt-4 flex flex-col gap-2">
                                         <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] px-1">Breakdown per Ward</h3>
                                         <div className="grid grid-cols-1 gap-2">
-                                            {CENSUS_LOG_AREAS.filter(a => a.prefix !== 'overall').map(area => (
-                                                <button key={area.prefix} onClick={() => setFormData(prev => ({...prev, areaPrefix: area.prefix}))} className={`group p-3 rounded-xl border transition-all flex items-center justify-between ${formData.areaPrefix === area.prefix ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-slate-100 hover:border-slate-300'}`}>
-                                                    <span className={`text-[10px] font-black uppercase ${formData.areaPrefix === area.prefix ? 'text-indigo-600' : 'text-slate-600'}`}>{area.label}</span>
-                                                    <div className="flex items-center gap-4 text-[10px] font-bold text-slate-400 group-hover:text-slate-600">
+                                            {ANALYTICAL_WARDS.filter(a => a.prefix !== 'overall').map(area => (
+                                                <button key={area.prefix} onClick={() => setFormData(prev => ({...prev, areaName: area.label}))} className={`group p-3 rounded-xl border transition-all flex items-center justify-between ${formData.areaName === area.label ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-slate-100 hover:border-slate-300'}`}>
+                                                    <span className={`text-[10px] font-black uppercase ${formData.areaName === area.label ? 'text-indigo-600' : 'text-slate-600'}`}>{area.label}</span>
+                                                    <div className="flex items-center gap-4 text-[10px] font-bold text-slate-400">
+                                                        <div className="flex items-center gap-1"><span>C:</span><span className="font-black text-slate-900">{currentDayLog[area.prefix] || '0'}</span></div>
                                                         <div className="flex items-center gap-1"><span>V:</span><span className="font-black text-slate-900">{currentDayLog[`${area.prefix}Vent`] || '0'}</span></div>
                                                         <div className="flex items-center gap-1"><span>I:</span><span className="font-black text-slate-900">{currentDayLog[`${area.prefix}Ifc`] || '0'}</span></div>
-                                                        <div className="flex items-center gap-1"><span>C:</span><span className="font-black text-slate-900">{currentDayLog[`${area.prefix}Central`] || '0'}</span></div>
                                                     </div>
                                                 </button>
                                             ))}
@@ -280,33 +332,66 @@ const HAIDataDashboard: React.FC = () => {
                                 </div>
                             )}
 
-                            {/* Missing dates in current month section */}
                             <div className="mt-4 pt-6 border-t border-slate-100 flex flex-col gap-4">
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <CalendarX size={18} className="text-rose-500" />
-                                        <h3 className="text-xs font-black uppercase text-slate-900 tracking-tight">Missing Log Dates</h3>
+                                        <h3 className="text-xs font-black uppercase text-slate-900 tracking-tight">Missing Dates</h3>
                                     </div>
                                     <span className="text-[9px] font-black uppercase text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">{missingDates.length} pending</span>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
-                                    {missingDates.length === 0 ? (
-                                        <p className="text-[10px] font-bold text-emerald-600 bg-emerald-50 px-3 py-2 rounded-xl border border-emerald-100 w-full text-center">🎉 All dates in current month are logged!</p>
-                                    ) : (
-                                        missingDates.map(d => (
-                                            <button 
-                                                key={d} 
-                                                onClick={() => setFormData(prev => ({...prev, date: d}))}
-                                                className="px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-100 text-rose-600 text-[10px] font-black uppercase hover:bg-rose-100 transition-all active:scale-95"
-                                            >
-                                                {new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                            </button>
-                                        ))
-                                    )}
+                                    {missingDates.map(d => (
+                                        <button key={d} onClick={() => setFormData(prev => ({...prev, date: d}))} className="px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-100 text-rose-600 text-[10px] font-black uppercase hover:bg-rose-100 transition-all active:scale-95">
+                                            {new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                                        </button>
+                                    ))}
                                 </div>
-                                {missingDates.length > 0 && <p className="text-[9px] text-slate-400 font-bold italic">* Click a date above to quickly jump and log data.</p>}
                             </div>
                         </div>
+                    </div>
+                </div>
+            ) : view === 'list' ? (
+                <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col animate-in fade-in duration-500">
+                    <div className="p-8 border-b border-slate-100 flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl"><List size={24}/></div>
+                            <div>
+                                <h2 className="text-xl font-black text-slate-900 uppercase">Census History</h2>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Manage recorded daily data</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="bg-slate-50 text-slate-400 font-black text-[10px] uppercase border-b border-slate-100">
+                                <tr>
+                                    <th className="p-6">Date</th>
+                                    <th className="p-6">Census</th>
+                                    <th className="p-6">Overall Vent</th>
+                                    <th className="p-6">Overall IFC</th>
+                                    <th className="p-6">Overall Central</th>
+                                    <th className="p-6 text-center">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50">
+                                {logs.map(log => (
+                                    <tr key={log.date} className="hover:bg-slate-50 transition-colors group">
+                                        <td className="p-6 font-black text-slate-900">{log.date}</td>
+                                        <td className="p-6 font-bold text-emerald-600">{log.overall || 0}</td>
+                                        <td className="p-6 font-bold text-blue-600">{log.overallVent || 0}</td>
+                                        <td className="p-6 font-bold text-amber-600">{log.overallIfc || 0}</td>
+                                        <td className="p-6 font-bold text-rose-600">{log.overallCentral || 0}</td>
+                                        <td className="p-6">
+                                            <div className="flex items-center justify-center gap-2">
+                                                <button onClick={() => handleEditLog(log)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"><Edit3 size={18}/></button>
+                                                <button onClick={() => handleDeleteClick(log.date)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={18}/></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             ) : (
@@ -344,12 +429,6 @@ const HAIDataDashboard: React.FC = () => {
                     <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col gap-6">
                         <div className="flex items-center gap-3">
                             <div className="p-3 bg-blue-50 rounded-2xl text-blue-600"><BarChart2 className="text-primary"/> Ward-Wise Comparison</div>
-                            <div className="flex items-center gap-4 hidden sm:flex">
-                                <div className="flex items-center gap-2"><div className="size-3 rounded bg-emerald-500"></div><span className="text-[10px] font-black uppercase text-slate-400">HAP</span></div>
-                                <div className="flex items-center gap-2"><div className="size-3 rounded bg-blue-500"></div><span className="text-[10px] font-black uppercase text-slate-400">VAP</span></div>
-                                <div className="flex items-center gap-2"><div className="size-3 rounded bg-amber-500"></div><span className="text-[10px] font-black uppercase text-slate-400">CAUTI</span></div>
-                                <div className="flex items-center gap-2"><div className="size-3 rounded bg-red-500"></div><span className="text-[10px] font-black uppercase text-slate-400">CLABSI</span></div>
-                            </div>
                         </div>
                         <div className="h-96">
                             <ResponsiveContainer width="100%" height="100%">
@@ -374,6 +453,42 @@ const HAIDataDashboard: React.FC = () => {
                     </div>
                 </div>
             )}
+
+            {/* Edit Modal */}
+            {editingLog && (
+                <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95">
+                        <div className="bg-indigo-600 p-8 text-white flex justify-between items-center">
+                            <div>
+                                <h3 className="text-2xl font-black uppercase tracking-tight">Edit Daily Census</h3>
+                                <p className="text-xs opacity-80 font-bold uppercase tracking-widest">{editingLog.date}</p>
+                            </div>
+                            <button onClick={() => setEditingLog(null)} className="p-2 hover:bg-white/20 rounded-full transition-colors"><ChevronLeft className="rotate-180" size={24}/></button>
+                        </div>
+                        <div className="p-10 flex flex-col gap-6">
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                                <Input label="Overall Census" type="number" value={editingLog.overall} onChange={e => setEditingLog({...editingLog, overall: e.target.value})} />
+                                <Input label="Overall Vent" type="number" value={editingLog.overallVent} onChange={e => setEditingLog({...editingLog, overallVent: e.target.value})} />
+                                <Input label="Overall IFC" type="number" value={editingLog.overallIfc} onChange={e => setEditingLog({...editingLog, overallIfc: e.target.value})} />
+                                <Input label="Overall Central" type="number" value={editingLog.overallCentral} onChange={e => setEditingLog({...editingLog, overallCentral: e.target.value})} />
+                            </div>
+                            <div className="flex gap-4 mt-4">
+                                <button onClick={() => setEditingLog(null)} className="flex-1 py-4 text-slate-400 font-black uppercase text-xs hover:bg-slate-50 rounded-2xl transition-all">Cancel</button>
+                                <button onClick={handleUpdateLog} className="flex-1 py-4 bg-indigo-600 text-white font-black uppercase text-xs rounded-2xl shadow-xl hover:bg-indigo-700 transition-all">Save Changes</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            <PasswordConfirmModal
+                show={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={handleConfirmDelete}
+                loading={passwordConfirmLoading}
+                title="Confirm Census Deletion"
+                description={`Permanently delete the daily census for ${logToDelete}?`}
+            />
         </div>
     );
 };
