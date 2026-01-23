@@ -16,11 +16,12 @@ import HAIForm from './components/forms/HAIForm';
 import IsolationForm from './components/forms/IsolationForm';
 import NeedlestickForm from './components/forms/NeedlestickForm';
 import PTBForm from './components/forms/PTBForm';
+import TBResultForm from './components/forms/TBResultForm';
 import NTPForm from './components/forms/NTPForm';
 import CultureReportForm from './components/forms/CultureReportForm';
 import Resources from './components/Resources';
 import ReporterAnalytics from './components/dashboards/ReporterAnalytics';
-import PlaceholderPage from './components/PlaceholderPage';
+import PlaceholderPage from './PlaceholderPage';
 
 const App: React.FC = () => {
   return (
@@ -47,6 +48,7 @@ const App: React.FC = () => {
           {/* Form Routes */}
           <Route path="/report-disease" element={<NotifiableDiseaseForm />} />
           <Route path="/report-ptb" element={<PTBForm />} />
+          <Route path="/report-tb-result" element={<TBResultForm />} />
           {/* Fix: Route updated to implement existing NTP Form */}
           <Route path="/report-ntp" element={<NTPForm />} />
           <Route path="/report-hai" element={<HAIForm />} />

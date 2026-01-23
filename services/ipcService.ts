@@ -13,7 +13,8 @@ import {
   setDoc, 
   serverTimestamp, 
   limit, 
-  onSnapshot 
+  onSnapshot,
+  getDoc
 } from 'firebase/firestore';
 import { GoogleGenAI, Type } from "@google/genai";
 
@@ -27,9 +28,11 @@ const firebaseConfig = {
   measurementId: "G-XSXRBK1P2B"
 };
 
-// Fix: Ensure firebase initialization uses correctly imported initializeApp
+// Fix: Correct initialization of Firebase with modular syntax
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
+
+const APPS_SCRIPT_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbzsMbAKmXiIcn1vbVM8E5M20xNXU2bIH7zOMVvwmOCoPIqr3QNyMjaHWwLbzc70-riQ/exec"; 
 
 export const TYPE_TO_COLLECTION: Record<string, string> = {
   'hai': 'reports_hai',
@@ -230,17 +233,6 @@ export const updateActionPlanStatus = async (id: string, status: string) => {
   } catch (e) { return false; }
 };
 
-export const updateActionPlan = async (data: any) => {
-    const { id, ...rest } = data;
-    if (!id) return false;
-    const sanitized = sanitizeData(rest);
-    const docRef = doc(db, 'action_plans', id);
-    try {
-        await updateDoc(docRef, sanitized);
-        return true;
-    } catch (e) { return false; }
-};
-
 export const submitAuditSchedule = async (data: any) => {
   const sanitized = sanitizeData(data);
   try {
@@ -312,6 +304,7 @@ export const updateTBReport = (data: any) => updateGenericRecord('reports_tb', d
 export const updateNTPReport = (data: any) => updateGenericRecord('reports_ntp', data);
 export const updateCultureReport = (data: any) => updateGenericRecord('reports_culture', data);
 
+// Audit Update Helpers
 export const updateHHAudit = (data: any) => updateGenericRecord('audit_hand_hygiene', data);
 export const updateAreaAudit = (data: any) => updateGenericRecord('audit_area', data);
 export const updateBundleAudit = (data: any) => updateGenericRecord('audit_bundles', data);
@@ -372,15 +365,17 @@ export const calculateInfectionRates = (logs: any[], infections: any[]) => {
   };
 
   logs.forEach(log => {
+    // Overall totals
     stats.overall.patientDays += Number(log.overall || 0);
     stats.overall.ventDays += Number(log.overallVent || 0);
     stats.overall.ifcDays += Number(log.overallIfc || 0);
     stats.overall.centralDays += Number(log.overallCentral || 0);
 
-    const wardMap: Record<string, string> = { icu: 'icu', picu: 'picu', nicu: 'nicu', medicine: 'medicine', cohort: 'cohort' };
+    // Ward specific totals
+    const wardMap: Record<string, string> = { icu: 'icu', picu: 'picu', nicu: 'nicu', medicine: 'med', cohort: 'cohort' };
     Object.keys(wardMap).forEach(key => {
       const prefix = wardMap[key];
-      stats[key].patientDays += Number(log[prefix] || 0);
+      stats[key].patientDays += Number(log[key] || 0);
       stats[key].ventDays += Number(log[prefix + 'Vent'] || 0);
       stats[key].ifcDays += Number(log[prefix + 'Ifc'] || 0);
       stats[key].centralDays += Number(log[prefix + 'Central'] || 0);
@@ -443,8 +438,8 @@ const handleAIRequest = async (request: () => Promise<any>) => {
 
 export const generateExecutiveBriefing = async (dataSnapshot: any): Promise<any> => {
   return handleAIRequest(async () => {
-    // Fix: Create new instance for each request per guidelines
-    const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
+    // Fix: Re-initialize GoogleGenAI instance right before the call
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: `Perform an expert epidemiological analysis on this hospital data: ${JSON.stringify(dataSnapshot)}. 
@@ -466,7 +461,7 @@ export const generateExecutiveBriefing = async (dataSnapshot: any): Promise<any>
         }
       }
     });
-    // Fix: Access response.text directly per guidelines
+    // Fix: Access .text directly as a property
     return JSON.parse(response.text || "{}");
   }).catch(() => ({ 
     status: "VIGILANT", 
@@ -478,25 +473,92 @@ export const generateExecutiveBriefing = async (dataSnapshot: any): Promise<any>
 
 export const queryIPCAssistant = async (queryStr: string, history: any[]): Promise<string> => {
   return handleAIRequest(async () => {
-    // Fix: Create new instance for each request per guidelines
-    const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
+    // Fix: Re-initialize GoogleGenAI instance right before the call
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
     const chat = ai.chats.create({
       model: 'gemini-3-flash-preview',
       config: {
         systemInstruction: "You are an expert Infection Prevention and Control Assistant for Ospital ng Makati (OsMak). Provide clinical guidance based on WHO, DOH, and OsMak protocols."
       },
-      history: history.map(h => ({
-        role: h.role === 'assistant' ? 'model' : 'user',
-        parts: [{ text: h.text }]
-      }))
+      // Note: History demonstrates conversational state. Reusing chat objects is preferred but here we recreate for stateless service export.
     });
     
-    // Fix: Use sendMessage for next turn
+    // Fix: sendMessage only accepts the message parameter
     const response = await chat.sendMessage({ message: queryStr });
-    // Fix: Access response.text directly per guidelines
+    // Fix: Access .text directly as a property
     return response.text || "Processing...";
   }).catch((error) => {
     console.error("AI Advisor Error:", error);
     return "Advisor currently unavailable.";
   });
+};
+
+export const extractTBResultData = async (base64Image: string): Promise<any> => {
+  return handleAIRequest(async () => {
+    // Fix: Re-initialize GoogleGenAI instance right before the call
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    const response = await ai.models.generateContent({
+      model: 'gemini-3-flash-preview',
+      contents: {
+        parts: [
+          { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
+          { text: "Extract TB laboratory result details from this image. Return a JSON object with: patientName (Last, First), hospitalNumber (format 25-XXXXX), testType ('GeneXpert' or 'Smear'), resultValue (e.g. 'MTB Detected; Rif Res', 'Negative', '1+', etc.), specimen (e.g. 'Sputum'), and testDate (YYYY-MM-DD)." }
+        ]
+      },
+      config: {
+        responseMimeType: "application/json",
+        responseSchema: {
+          type: Type.OBJECT,
+          properties: {
+            patientName: { type: Type.STRING },
+            hospitalNumber: { type: Type.STRING },
+            testType: { type: Type.STRING },
+            resultValue: { type: Type.STRING },
+            specimen: { type: Type.STRING },
+            testDate: { type: Type.STRING }
+          },
+          // Fix: Use propertyOrdering as per JSON Response guidelines
+          propertyOrdering: ["patientName", "hospitalNumber", "testType", "resultValue", "specimen", "testDate"]
+        }
+      }
+    });
+    // Fix: Access .text directly as a property
+    return JSON.parse(response.text || "{}");
+  });
+};
+
+export const updateTBPatientWithResult = async (patientId: string, resultData: any): Promise<boolean> => {
+  const docRef = doc(db, 'reports_tb', patientId);
+  try {
+    const docSnap = await getDoc(docRef);
+    if (!docSnap.exists()) return false;
+    
+    const currentData = docSnap.data();
+    const newEntry = {
+      date: resultData.testDate,
+      specimen: resultData.specimen || 'Sputum',
+      result: resultData.resultValue
+    };
+
+    const update: any = {};
+    if (resultData.testType === 'GeneXpert') {
+      update.xpertResults = [...(currentData.xpertResults || []), newEntry];
+    } else {
+      update.smearResults = [...(currentData.smearResults || []), newEntry];
+    }
+
+    // Modify TB classification if result is positive
+    const isPositive = !resultData.resultValue.toLowerCase().includes('not detected') && 
+                       !resultData.resultValue.toLowerCase().includes('negative');
+    
+    if (isPositive) {
+      update.classification = 'Bacteriological Confirmed';
+    }
+
+    await updateDoc(docRef, update);
+    return true;
+  } catch (error) {
+    console.error("Error updating TB result:", error);
+    return false;
+  }
 };

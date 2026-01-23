@@ -42,7 +42,8 @@ import {
   AlertCircle,
   Edit3,
   Download,
-  Loader2
+  Loader2,
+  FileSearch
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, Legend, 
@@ -327,6 +328,9 @@ const PTBDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
                 >
                   <Download size={18} /> Export Full CSV
                 </button>
+                <button onClick={() => navigate('/report-tb-result')} className="bg-emerald-600 text-white px-4 py-2 rounded-lg font-black uppercase tracking-widest shadow hover:bg-emerald-700 flex items-center gap-2 transition-all active:scale-95 text-xs">
+                  <FileSearch size={18} /> Register TB Result
+                </button>
                 <button onClick={() => navigate('/report-ptb')} className="bg-amber-700 text-white px-4 py-2 rounded-lg font-black uppercase tracking-widest shadow hover:bg-amber-800 flex items-center gap-2 transition-all active:scale-95 text-xs">
                   <PlusCircle size={18} /> Register Case
                 </button>
@@ -410,14 +414,14 @@ const PTBDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
                                   </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-100">
-                                    {loading ? (<tr><td colSpan={6} className="p-8 text-center text-gray-500">Loading...</td></tr>) : filteredData.map((report) => (
+                                    {loading ? (<tr><td colSpan={6} className="p-8 text-center text-gray-500 uppercase font-black text-xs">Loading TB Registry...</td></tr>) : filteredData.map((report) => (
                                         <tr key={report.id} onClick={() => handleRowClick(report)} className="hover:bg-amber-50/50 transition-colors cursor-pointer group">
                                           <td className="px-6 py-3">{report.dateReported}</td>
                                           <td className="px-6 py-3 font-bold text-amber-700">{formatName(report.lastName, report.firstName)}</td>
                                           <td className="px-6 py-3 text-slate-500 font-medium">{report.hospitalNumber}</td>
                                           <td className="px-6 py-3">{report.area}</td>
                                           <td className="px-6 py-3 text-xs">{report.classification || "N/A"}</td>
-                                          <td className="px-6 py-3 text-center"><span className={`px-3 py-1 rounded-full text-xs font-bold border ${!report.outcome || report.outcome === 'Admitted' ? "bg-green-100 text-green-700 border-green-200" : report.outcome === 'Expired' ? "bg-red-100 text-red-700 border-red-200" : "bg-blue-100 text-blue-700 border-blue-200"}`}>{report.outcome || "Admitted"}</span></td>
+                                          <td className="px-6 py-3 text-center"><span className={`px-3 py-1 rounded-full text-[10px] font-black border uppercase ${!report.outcome || report.outcome === 'Admitted' ? "bg-green-100 text-green-700 border-green-200" : report.outcome === 'Expired' ? "bg-red-100 text-red-700 border-red-200" : "bg-blue-100 text-blue-700 border-blue-200"}`}>{report.outcome || "Admitted"}</span></td>
                                         </tr>
                                     ))}
                                 </tbody>
