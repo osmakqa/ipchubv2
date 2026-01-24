@@ -1,7 +1,10 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
 import Layout from './ui/Layout';
+import Input from './ui/Input';
+import Select from './ui/Select';
+import { useAuth } from '../AuthContext';
 import { 
     ChevronLeft, 
     FileText, 
@@ -16,9 +19,15 @@ import {
     ScrollText,
     BadgeInfo,
     Library,
-    ArrowLeft
+    ArrowLeft,
+    Plus,
+    X,
+    Loader2,
+    Save,
+    Link as LinkIcon
 } from 'lucide-react';
 import { HAND_HYGIENE_MD, ISOLATION_PRECAUTIONS_MD } from '../constants/guidelines';
+import { getReferences, submitReference } from '../services/ipcService';
 
 interface Resource {
     id: string;
@@ -28,14 +37,21 @@ interface Resource {
     description: string;
     type: 'pdf' | 'link' | 'text';
     content?: string;
+    link?: string;
 }
 
-const SAMPLE_MANUAL_CONTENT: Resource[] = [
-    { id: '1', title: 'Hand Hygiene Practices', category: 'General Precautions', updated: 'May 2023', description: 'Institutional guidelines for timely and effectively hand hygiene to protect patients and staff.', type: 'text', content: HAND_HYGIENE_MD },
-    { id: '2', title: 'Isolation Precautions', category: 'Isolation & Transmission', updated: 'May 2023', description: 'Standardized implementation of isolation precautions (Contact, Droplet, Airborne) to prevent transmission.', type: 'text', content: ISOLATION_PRECAUTIONS_MD }
+const STATIC_POLICIES: Resource[] = [
+    { id: 'policy_1', title: 'Hand Hygiene Practices', category: 'General Precautions', updated: 'May 2023', description: 'Institutional guidelines for timely and effectively hand hygiene to protect patients and staff.', type: 'text', content: HAND_HYGIENE_MD },
+    { id: 'policy_2', title: 'Isolation Precautions', category: 'Isolation & Transmission', updated: 'May 2023', description: 'Standardized implementation of isolation precautions (Contact, Droplet, Airborne) to prevent transmission.', type: 'text', content: ISOLATION_PRECAUTIONS_MD }
 ];
 
-const SAMPLE_REFERENCES_CONTENT: Resource[] = [];
+const REFERENCE_CATEGORIES = [
+    "Healthcare-Associated Infections",
+    "Notifiable Diseases",
+    "Pulmonary Tuberculosis",
+    "Infection Prevention and Control",
+    "Others (Specify)"
+];
 
 interface Props {
     title?: string;
@@ -45,11 +61,55 @@ interface Props {
 
 const Resources: React.FC<Props> = ({ title, type, isNested }) => {
     const navigate = useNavigate();
+    const { isAuthenticated } = useAuth();
     const [search, setSearch] = useState('');
     const [selectedDoc, setSelectedDoc] = useState<Resource | null>(null);
-    
+    const [dbItems, setDbItems] = useState<Resource[]>([]);
+    const [loading, setLoading] = useState(false);
+    const [showAddModal, setShowAddModal] = useState(false);
+
+    // Form state for adding new reference
+    const [newRef, setNewRef] = useState({
+        title: '',
+        link: '',
+        description: '',
+        category: '',
+        categoryOther: ''
+    });
+
     const resourceType = type || 'policies';
-    const items = resourceType === 'policies' ? SAMPLE_MANUAL_CONTENT : SAMPLE_REFERENCES_CONTENT;
+
+    useEffect(() => {
+        loadData();
+    }, [resourceType]);
+
+    const loadData = async () => {
+        if (resourceType === 'pathways') {
+            setLoading(true);
+            try {
+                const refs = await getReferences();
+                const mappedRefs: Resource[] = refs.map((r: any) => ({
+                    id: r.id,
+                    title: r.title,
+                    category: r.category,
+                    updated: r.created_at?.toDate ? r.created_at.toDate().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Recently',
+                    description: r.description,
+                    type: 'link',
+                    link: r.link
+                }));
+                setDbItems(mappedRefs);
+            } catch (e) {
+                console.error("Error loading references:", e);
+            } finally {
+                setLoading(false);
+            }
+        }
+    };
+
+    const items = useMemo(() => {
+        if (resourceType === 'policies') return STATIC_POLICIES;
+        return dbItems;
+    }, [resourceType, dbItems]);
     
     const filteredItems = items.filter(i => 
         i.title.toLowerCase().includes(search.toLowerCase()) || 
@@ -61,11 +121,33 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
         if (item.type === 'text' && item.content) {
             setSelectedDoc(item);
             window.scrollTo({ top: 0, behavior: 'smooth' });
-        } else if (item.type === 'link') {
-            alert('Opening external clinical reference...');
+        } else if (item.type === 'link' && item.link) {
+            window.open(item.link, '_blank');
         } else {
-            alert('Downloading PDF documentation...');
+            alert('Downloading documentation...');
         }
+    };
+
+    const handleAddSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        const category = newRef.category === 'Others (Specify)' ? newRef.categoryOther : newRef.category;
+        
+        const success = await submitReference({
+            title: newRef.title,
+            link: newRef.link,
+            description: newRef.description,
+            category
+        });
+
+        if (success) {
+            setShowAddModal(false);
+            setNewRef({ title: '', link: '', description: '', category: '', categoryOther: '' });
+            loadData();
+        } else {
+            alert("Failed to save reference.");
+        }
+        setLoading(false);
     };
 
     if (selectedDoc) {
@@ -145,6 +227,14 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                             {filteredItems.length} documents found
                         </span>
                     </div>
+                    {isAuthenticated && resourceType === 'pathways' && (
+                        <button 
+                            onClick={() => setShowAddModal(true)}
+                            className="h-10 px-6 bg-slate-900 text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-xl hover:bg-black transition-all flex items-center gap-2"
+                        >
+                            <Plus size={14}/> Add Reference
+                        </button>
+                    )}
                 </div>
                 <div className="relative w-full md:w-96">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
@@ -159,47 +249,51 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                {filteredItems.map((item) => (
-                    <div 
-                        key={item.id} 
-                        onClick={() => handleRead(item)}
-                        className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-primary transition-all group flex flex-col gap-4 relative overflow-hidden cursor-pointer"
-                    >
-                        <div className="flex justify-between items-start">
-                            <div className="flex flex-col">
-                                <span className="text-[10px] font-black uppercase text-[var(--osmak-green)] tracking-widest">{item.category}</span>
-                                <h3 className="font-black text-xl text-slate-900 mt-1 group-hover:text-primary transition-colors">{item.title}</h3>
+                {loading ? (
+                    <div className="col-span-full py-20 text-center"><Loader2 className="animate-spin mx-auto text-slate-200" size={48} /></div>
+                ) : (
+                    filteredItems.map((item) => (
+                        <div 
+                            key={item.id} 
+                            onClick={() => handleRead(item)}
+                            className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-primary transition-all group flex flex-col gap-4 relative overflow-hidden cursor-pointer"
+                        >
+                            <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                    <span className="text-[10px] font-black uppercase text-[var(--osmak-green)] tracking-widest">{item.category}</span>
+                                    <h3 className="font-black text-xl text-slate-900 mt-1 group-hover:text-primary transition-colors leading-tight">{item.title}</h3>
+                                </div>
+                                <div className="p-3 bg-slate-50 rounded-2xl group-hover:bg-green-50 text-gray-400 group-hover:text-primary transition-colors shrink-0 ml-4">
+                                    {item.type === 'pdf' ? <ScrollText size={24} /> : item.type === 'link' ? <ExternalLink size={24} /> : <FileText size={24} />}
+                                </div>
                             </div>
-                            <div className="p-3 bg-slate-50 rounded-2xl group-hover:bg-green-50 text-gray-400 group-hover:text-primary transition-colors">
-                                {item.type === 'pdf' ? <ScrollText size={24} /> : item.type === 'link' ? <ExternalLink size={24} /> : <FileText size={24} />}
+                            
+                            <p className="text-sm text-slate-500 font-medium leading-relaxed line-clamp-2">{item.description}</p>
+                            
+                            <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-50">
+                                <span className="text-[9px] font-black text-slate-300 flex items-center gap-1 uppercase tracking-widest">
+                                    <Clock size={10}/> Updated {item.updated}
+                                </span>
+                                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[var(--osmak-green-dark)]">
+                                    {item.type === 'pdf' ? (
+                                        <><Download size={14} /> Download</>
+                                    ) : item.type === 'link' ? (
+                                        <><ExternalLink size={14} /> Access Resource</>
+                                    ) : (
+                                        <><BookOpen size={14} /> Read Document</>
+                                    )}
+                                    <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform"/>
+                                </div>
+                            </div>
+                            <div className="absolute bottom-[-20px] right-[-20px] opacity-0 group-hover:opacity-5 transition-opacity">
+                                <Library size={120} className="text-primary rotate-12" />
                             </div>
                         </div>
-                        
-                        <p className="text-sm text-slate-500 font-medium leading-relaxed line-clamp-2">{item.description}</p>
-                        
-                        <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-50">
-                            <span className="text-[9px] font-black text-slate-300 flex items-center gap-1 uppercase tracking-widest">
-                                <Clock size={10}/> Updated {item.updated}
-                            </span>
-                            <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[var(--osmak-green-dark)]">
-                                {item.type === 'pdf' ? (
-                                    <><Download size={14} /> Download</>
-                                ) : item.type === 'link' ? (
-                                    <><ExternalLink size={14} /> Access</>
-                                ) : (
-                                    <><BookOpen size={14} /> Read Document</>
-                                )}
-                                <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform"/>
-                            </div>
-                        </div>
-                        <div className="absolute bottom-[-20px] right-[-20px] opacity-0 group-hover:opacity-5 transition-opacity">
-                            <Library size={120} className="text-primary rotate-12" />
-                        </div>
-                    </div>
-                ))}
+                    ))
+                )}
             </div>
 
-            {filteredItems.length === 0 && (
+            {filteredItems.length === 0 && !loading && (
                 <div className="bg-white p-20 rounded-[3rem] border-2 border-dashed border-slate-200 text-center flex flex-col items-center gap-4 animate-in fade-in">
                     <div className="size-20 bg-slate-50 rounded-full flex items-center justify-center text-slate-200 mb-2">
                         <Search size={40}/>
@@ -214,6 +308,93 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                     >
                         Clear Search Filter
                     </button>
+                </div>
+            )}
+
+            {/* Add Reference Modal */}
+            {showAddModal && (
+                <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95">
+                        <div className="bg-slate-900 p-8 text-white relative">
+                            <button onClick={() => setShowAddModal(false)} className="absolute top-6 right-6 p-2 hover:bg-white/20 rounded-full transition-colors"><X size={24}/></button>
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-indigo-500 rounded-2xl">
+                                    <Plus size={32} />
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-black uppercase tracking-tight">Add Reference</h3>
+                                    <p className="text-xs opacity-80 font-bold uppercase tracking-widest">New Clinical Resource</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <form onSubmit={handleAddSubmit} className="p-10 flex flex-col gap-6">
+                            <Input 
+                                label="Resource Title" 
+                                value={newRef.title} 
+                                onChange={e => setNewRef({...newRef, title: e.target.value})} 
+                                placeholder="e.g. WHO Hand Hygiene Guidelines 2024"
+                                required 
+                            />
+                            
+                            <Input 
+                                label="Resource Link (URL)" 
+                                type="url"
+                                value={newRef.link} 
+                                onChange={e => setNewRef({...newRef, link: e.target.value})} 
+                                placeholder="https://..."
+                                required 
+                            />
+
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-sm font-bold text-gray-600 uppercase tracking-tight ml-0.5">Short Description</label>
+                                <textarea 
+                                    className="px-4 py-3 text-base rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary transition-all bg-white placeholder:text-gray-300"
+                                    value={newRef.description}
+                                    onChange={e => setNewRef({...newRef, description: e.target.value})}
+                                    placeholder="Briefly explain what this resource covers..."
+                                    rows={3}
+                                    required
+                                />
+                            </div>
+
+                            <div className="flex flex-col gap-4">
+                                <Select 
+                                    label="Category" 
+                                    options={REFERENCE_CATEGORIES} 
+                                    value={newRef.category} 
+                                    onChange={e => setNewRef({...newRef, category: e.target.value})} 
+                                    required 
+                                />
+                                {newRef.category === 'Others (Specify)' && (
+                                    <Input 
+                                        label="Specify Category" 
+                                        value={newRef.categoryOther} 
+                                        onChange={e => setNewRef({...newRef, categoryOther: e.target.value})} 
+                                        placeholder="e.g. Antibiotic Stewardship"
+                                        required
+                                    />
+                                )}
+                            </div>
+
+                            <div className="flex gap-4 mt-4">
+                                <button 
+                                    type="button" 
+                                    onClick={() => setShowAddModal(false)} 
+                                    className="flex-1 py-4 text-slate-400 font-black uppercase text-xs tracking-widest hover:bg-slate-50 rounded-2xl transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    disabled={loading}
+                                    className="flex-1 py-4 bg-primary text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-xl shadow-primary/20 hover:bg-osmak-green-dark transition-all active:scale-95 flex items-center justify-center gap-2"
+                                >
+                                    {loading ? <Loader2 size={18} className="animate-spin" /> : <><Save size={18} /> Save Resource</>}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             )}
         </div>
