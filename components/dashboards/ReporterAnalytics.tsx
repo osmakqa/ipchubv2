@@ -125,7 +125,7 @@ const ReporterAnalytics: React.FC = () => {
         </div>
         <div className="flex items-center gap-3 w-full md:w-auto">
           <select 
-            className="bg-slate-50 border-none rounded-xl px-4 py-2.5 text-xs font-black uppercase text-slate-600 focus:ring-2 focus:ring-primary outline-none"
+            className="w-24 bg-slate-50 border-none rounded-xl px-4 py-2.5 text-xs font-black uppercase text-slate-600 focus:ring-2 focus:ring-primary outline-none"
             value={selectedYear}
             onChange={(e) => setSelectedYear(e.target.value)}
           >
@@ -135,11 +135,11 @@ const ReporterAnalytics: React.FC = () => {
             <option value="2026">2026</option>
           </select>
           <select 
-            className="bg-slate-50 border-none rounded-xl px-4 py-2.5 text-xs font-black uppercase text-slate-600 focus:ring-2 focus:ring-primary outline-none"
+            className="w-24 bg-slate-50 border-none rounded-xl px-4 py-2.5 text-xs font-black uppercase text-slate-600 focus:ring-2 focus:ring-primary outline-none"
             value={selectedQuarter}
             onChange={(e) => setSelectedQuarter(e.target.value)}
           >
-            <option value="">All Quarters</option>
+            <option value="">Quart.</option>
             <option value="Q1">Q1</option>
             <option value="Q2">Q2</option>
             <option value="Q3">Q3</option>
@@ -177,7 +177,7 @@ const ReporterAnalytics: React.FC = () => {
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
             {/* Module Champions */}
-            <div className="lg:col-span-1 bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col gap-6">
+            <div className="lg:col-span-1 bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col gap-4">
               <h3 className="text-sm font-black uppercase text-slate-900 tracking-widest flex items-center gap-3">
                 <Medal size={20} className="text-primary" /> Module Champions
               </h3>

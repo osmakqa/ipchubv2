@@ -28,7 +28,7 @@ const firebaseConfig = {
   measurementId: "G-XSXRBK1P2B"
 };
 
-// Fix: Correct initialization of Firebase with modular syntax
+// Fix: Use named import for firebase/app
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
@@ -438,8 +438,8 @@ const handleAIRequest = async (request: () => Promise<any>) => {
 
 export const generateExecutiveBriefing = async (dataSnapshot: any): Promise<any> => {
   return handleAIRequest(async () => {
-    // Fix: Re-initialize GoogleGenAI instance right before the call
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // Fix: Standardize GoogleGenAI initialization
+    const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
       contents: `Perform an expert epidemiological analysis on this hospital data: ${JSON.stringify(dataSnapshot)}. 
@@ -461,7 +461,6 @@ export const generateExecutiveBriefing = async (dataSnapshot: any): Promise<any>
         }
       }
     });
-    // Fix: Access .text directly as a property
     return JSON.parse(response.text || "{}");
   }).catch(() => ({ 
     status: "VIGILANT", 
@@ -473,19 +472,20 @@ export const generateExecutiveBriefing = async (dataSnapshot: any): Promise<any>
 
 export const queryIPCAssistant = async (queryStr: string, history: any[]): Promise<string> => {
   return handleAIRequest(async () => {
-    // Fix: Re-initialize GoogleGenAI instance right before the call
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // Fix: Standardize GoogleGenAI initialization
+    const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
     const chat = ai.chats.create({
       model: 'gemini-3-flash-preview',
       config: {
         systemInstruction: "You are an expert Infection Prevention and Control Assistant for Ospital ng Makati (OsMak). Provide clinical guidance based on WHO, DOH, and OsMak protocols."
       },
-      // Note: History demonstrates conversational state. Reusing chat objects is preferred but here we recreate for stateless service export.
+      history: history.map(h => ({
+        role: h.role === 'assistant' ? 'model' : 'user',
+        parts: [{ text: h.text }]
+      }))
     });
     
-    // Fix: sendMessage only accepts the message parameter
     const response = await chat.sendMessage({ message: queryStr });
-    // Fix: Access .text directly as a property
     return response.text || "Processing...";
   }).catch((error) => {
     console.error("AI Advisor Error:", error);
@@ -495,17 +495,18 @@ export const queryIPCAssistant = async (queryStr: string, history: any[]): Promi
 
 export const extractTBResultData = async (base64Image: string): Promise<any> => {
   return handleAIRequest(async () => {
-    // Fix: Re-initialize GoogleGenAI instance right before the call
-    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+    // Fix: Standardize GoogleGenAI initialization
+    const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
       contents: {
         parts: [
           { inlineData: { mimeType: 'image/jpeg', data: base64Image } },
-          { text: "Extract TB laboratory result details from this image. Return a JSON object with: patientName (Last, First), hospitalNumber (format 25-XXXXX), testType ('GeneXpert' or 'Smear'), resultValue (e.g. 'MTB Detected; Rif Res', 'Negative', '1+', etc.), specimen (e.g. 'Sputum'), and testDate (YYYY-MM-DD)." }
+          { text: "Extract TB laboratory result details from this image. Return a JSON object with: patientName (Last, First), hospitalNumber (format 25-XXXXX), testType ('GeneXpert' or 'Smear'), resultValue (e.g. 'MTB Detected; Rif Res', 'Negative', '1+', etc.), and testDate (YYYY-MM-DD)." }
         ]
       },
       config: {
+        // Fix: Standardize GoogleGenAI config
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -514,15 +515,12 @@ export const extractTBResultData = async (base64Image: string): Promise<any> => 
             hospitalNumber: { type: Type.STRING },
             testType: { type: Type.STRING },
             resultValue: { type: Type.STRING },
-            specimen: { type: Type.STRING },
             testDate: { type: Type.STRING }
           },
-          // Fix: Use propertyOrdering as per JSON Response guidelines
-          propertyOrdering: ["patientName", "hospitalNumber", "testType", "resultValue", "specimen", "testDate"]
+          required: ["patientName", "testType", "resultValue", "testDate"]
         }
       }
     });
-    // Fix: Access .text directly as a property
     return JSON.parse(response.text || "{}");
   });
 };
