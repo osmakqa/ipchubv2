@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth, AppMode } from '../AuthContext';
-import { LogOut, Key, Loader2, Bell, Zap, Activity, ShieldCheck, MonitorPlay, ChevronDown, Radio } from 'lucide-react';
+import { LogOut, Key, Loader2, Bell, Activity, ShieldCheck, MonitorPlay, ChevronRight } from 'lucide-react';
 import Input from './ui/Input';
 import Select from './ui/Select';
 import { getPendingReports } from '../services/ipcService';
@@ -31,10 +31,8 @@ const Header: React.FC = () => {
 
   const handleModeSwitch = (mode: AppMode) => {
     setAppMode(mode);
-    setSearchParams({ module: 'overview' });
-    if (!location.pathname.includes('/surveillance')) {
-      navigate('/surveillance?module=overview');
-    }
+    // Explicitly navigate to the hub and set the overview module when switching perspectives
+    navigate(`/surveillance?module=overview`);
   };
 
   const handleLogin = (e?: React.FormEvent) => {
@@ -51,114 +49,149 @@ const Header: React.FC = () => {
     }, 800);
   };
 
-  const themeColor = appMode === 'report' ? 'bg-[#009a3e]' : appMode === 'audit' ? 'bg-[#0d9488]' : 'bg-[#1e293b]';
+  const getThemeColors = () => {
+    switch(appMode) {
+        case 'report': return 'bg-osmak-green text-white';
+        case 'audit': return 'bg-teal-600 text-white';
+        case 'present': return 'bg-slate-800 text-white';
+        default: return 'bg-osmak-green text-white';
+    }
+  };
 
   return (
     <>
-      <header className={`sticky top-0 z-[100] flex items-center justify-between gap-4 ${themeColor} text-white px-6 py-4 shadow-xl transition-colors duration-500`}>
-        <div className="flex items-center gap-4 cursor-pointer group" onClick={() => navigate('/')}>
-          <div className="transition-transform group-hover:scale-105">
-            <img src="https://maxterrenal-hash.github.io/justculture/osmak-logo.png" alt="OsMak" className="h-11 w-auto" />
+      <header className={`sticky top-0 z-[100] flex items-center justify-between gap-4 ${getThemeColors()} px-4 md:px-8 py-3 shadow-xl transition-all duration-500 h-16`}>
+        <div className="flex items-center gap-3 cursor-pointer group shrink-0" onClick={() => navigate('/')}>
+          <div className="transition-transform group-hover:scale-110 shrink-0">
+            <img src="https://maxterrenal-hash.github.io/justculture/osmak-logo.png" alt="OsMak" className="h-9 md:h-10 w-auto" />
           </div>
-          <div className="flex flex-col hidden sm:flex">
-            <div className="flex items-center gap-2">
-                <h1 className="text-sm font-black tracking-tighter uppercase leading-none">Ospital ng Makati</h1>
-                <div className="flex items-center gap-1 bg-white/10 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-tighter">
-                    Hub Online
-                </div>
-            </div>
-            <span className="text-[10px] opacity-70 font-bold uppercase tracking-widest mt-1">IPC Unified Hub</span>
+          <div className="flex flex-col">
+            <h1 className="text-sm md:text-lg font-black tracking-tighter uppercase leading-none">Ospital ng Makati</h1>
+            <span className="text-[8px] md:text-[10px] opacity-70 font-black uppercase tracking-widest mt-0.5">IPC Unified Platform</span>
           </div>
         </div>
 
-        {/* PERSPECTIVE SWITCHER */}
+        {/* PERSPECTIVE SWITCHER - Centered pill with clear labels for Web */}
         {isAuthenticated && (
-          <div className="absolute left-1/2 -translate-x-1/2 hidden md:flex items-center bg-black/20 rounded-2xl p-1 backdrop-blur-md border border-white/10">
+          <div className="hidden lg:flex items-center bg-black/20 rounded-full p-1.5 backdrop-blur-xl border border-white/10 shadow-inner">
             <button 
               onClick={() => handleModeSwitch('report')}
-              className={`flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${appMode === 'report' ? 'bg-white text-[#009a3e] shadow-lg' : 'text-white/60 hover:text-white'}`}
+              className={`flex items-center gap-2 px-6 py-2 rounded-full text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${appMode === 'report' ? 'bg-white text-osmak-green shadow-xl scale-105' : 'text-white/60 hover:text-white'}`}
             >
               <Activity size={14} /> Surveillance
             </button>
             <button 
               onClick={() => handleModeSwitch('audit')}
-              className={`flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${appMode === 'audit' ? 'bg-white text-[#0d9488] shadow-lg' : 'text-white/60 hover:text-white'}`}
+              className={`flex items-center gap-2 px-6 py-2 rounded-full text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${appMode === 'audit' ? 'bg-white text-teal-600 shadow-xl scale-105' : 'text-white/60 hover:text-white'}`}
             >
-              <ShieldCheck size={14} /> Auditing
+              <ShieldCheck size={14} /> Audit
             </button>
             <button 
               onClick={() => handleModeSwitch('present')}
-              className={`flex items-center gap-2 px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${appMode === 'present' ? 'bg-white text-[#1e293b] shadow-lg' : 'text-white/60 hover:text-white'}`}
+              className={`flex items-center gap-2 px-6 py-2 rounded-full text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${appMode === 'present' ? 'bg-white text-slate-800 shadow-xl scale-105' : 'text-white/60 hover:text-white'}`}
             >
-              <MonitorPlay size={14} /> Analysis
+              <MonitorPlay size={14} /> Present
             </button>
           </div>
         )}
 
-        <div className="flex items-center gap-3">
+        {/* MOBILE PERSPECTIVE SWITCHER - Truncated but stylish */}
+        {isAuthenticated && (
+            <div className="lg:hidden flex items-center bg-black/20 rounded-2xl p-1 backdrop-blur-md border border-white/10">
+                <button 
+                    onClick={() => handleModeSwitch('report')}
+                    className={`p-2.5 rounded-xl transition-all ${appMode === 'report' ? 'bg-white text-osmak-green shadow-lg' : 'text-white/60'}`}
+                    title="Surveillance"
+                >
+                    <Activity size={18} />
+                </button>
+                <button 
+                    onClick={() => handleModeSwitch('audit')}
+                    className={`p-2.5 rounded-xl transition-all ${appMode === 'audit' ? 'bg-white text-teal-600 shadow-lg' : 'text-white/60'}`}
+                    title="Audit"
+                >
+                    <ShieldCheck size={18} />
+                </button>
+                <button 
+                    onClick={() => handleModeSwitch('present')}
+                    className={`p-2.5 rounded-xl transition-all ${appMode === 'present' ? 'bg-white text-slate-800 shadow-lg' : 'text-white/60'}`}
+                    title="Present"
+                >
+                    <MonitorPlay size={18} />
+                </button>
+            </div>
+        )}
+
+        <div className="flex items-center gap-2 md:gap-4 shrink-0">
           {isAuthenticated ? (
             <>
               <button 
                 onClick={() => navigate('/pending')}
-                className="relative p-2.5 bg-white/10 rounded-xl hover:bg-white/20 transition-all"
+                className="relative p-2.5 bg-white/10 rounded-xl hover:bg-white/20 transition-all border border-white/5"
+                title="Pending Validations"
               >
-                <Bell size={18} />
+                <Bell size={20} />
                 {pendingCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center border-2 border-[#009a3e]">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-current shadow-lg animate-bounce">
                     {pendingCount}
                   </span>
                 )}
               </button>
-              <div className="h-8 w-px bg-white/20 mx-1 hidden sm:block"></div>
-              <div className="flex items-center gap-3 bg-white/10 pl-3 pr-1 py-1 rounded-xl border border-white/5">
-                <span className="text-xs font-black hidden sm:inline">{user}</span>
-                <button onClick={logout} className="p-2 bg-white/20 hover:bg-white/30 rounded-lg transition-colors"><LogOut size={16} /></button>
+              <div className="hidden sm:flex items-center gap-3 bg-white/10 pl-3 pr-1 py-1 rounded-xl border border-white/5">
+                <div className="flex flex-col items-end">
+                    <span className="text-[10px] font-black uppercase leading-none">{user}</span>
+                    <span className="text-[8px] font-bold opacity-50 uppercase tracking-tighter">Coordinator</span>
+                </div>
+                <button onClick={logout} className="p-2 bg-white/20 hover:bg-rose-500 hover:text-white rounded-lg transition-all"><LogOut size={16} /></button>
               </div>
+              {/* Mobile logout */}
+              <button onClick={logout} className="sm:hidden p-2.5 bg-white/10 rounded-xl border border-white/5"><LogOut size={18} /></button>
             </>
           ) : (
             <button 
               onClick={() => setShowLogin(true)}
-              className="bg-white text-[#009a3e] px-5 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest hover:bg-slate-50 transition-all shadow-lg"
+              className="bg-white text-osmak-green px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-[0.1em] hover:bg-slate-50 transition-all shadow-xl active:scale-95"
             >
-              Coordinator Login
+              Security Login
             </button>
           )}
         </div>
       </header>
 
       {showLogin && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
-            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95">
-                <div className="bg-slate-900 p-10 text-white text-center relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-5"><Key size={120} /></div>
-                    <div className="w-16 h-16 bg-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl">
-                        <ShieldCheck size={32} />
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/70 backdrop-blur-md p-4 animate-in fade-in duration-300">
+            <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-500">
+                <div className="bg-slate-900 p-12 text-white text-center relative overflow-hidden">
+                    <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
+                        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(255,255,255,0.1)_0%,_transparent_50%)] animate-pulse"></div>
                     </div>
-                    <h3 className="text-xl font-black uppercase tracking-tight">Security Access</h3>
-                    <p className="text-[10px] opacity-60 uppercase tracking-[0.2em] font-bold mt-1">IPC Coordinator Portal</p>
+                    <div className="w-20 h-20 bg-emerald-500 rounded-3xl flex items-center justify-center mx-auto mb-6 shadow-2xl shadow-emerald-500/30 rotate-3">
+                        <ShieldCheck size={40} className="-rotate-3" />
+                    </div>
+                    <h3 className="text-2xl font-black uppercase tracking-tight">Coordinator Portal</h3>
+                    <p className="text-[10px] opacity-60 uppercase tracking-[0.3em] font-bold mt-2">Authorization Required</p>
                 </div>
                 
-                <form onSubmit={handleLogin} className="p-10 flex flex-col gap-5">
+                <form onSubmit={handleLogin} className="p-10 flex flex-col gap-6">
                     <Select 
-                        label="Select User"
+                        label="Identity"
                         options={['Max', 'Miko', 'Micha', 'Michael', 'Bel']}
                         value={loginData.name}
                         onChange={(e) => setLoginData({...loginData, name: e.target.value})}
                         required
                     />
                     <Input 
-                        label="Secret Key" 
+                        label="Security Key" 
                         type="password"
                         placeholder="••••••••"
                         value={loginData.password}
                         onChange={(e) => setLoginData({...loginData, password: e.target.value})}
                         required
                     />
-                    
-                    <div className="flex gap-3 mt-4">
-                        <button type="button" onClick={() => setShowLogin(false)} className="flex-1 py-4 text-slate-400 font-black uppercase text-xs hover:bg-slate-50 rounded-2xl">Cancel</button>
-                        <button type="submit" disabled={loading} className="flex-1 py-4 bg-slate-900 text-white font-black uppercase text-xs rounded-2xl shadow-xl hover:bg-black transition-all flex items-center justify-center gap-2">
-                            {loading ? <Loader2 size={16} className="animate-spin" /> : "Authorize"}
+                    <div className="flex gap-4 mt-4">
+                        <button type="button" onClick={() => setShowLogin(false)} className="flex-1 py-4 text-slate-400 font-black uppercase text-[11px] tracking-widest hover:bg-slate-50 rounded-2xl transition-all">Cancel</button>
+                        <button type="submit" disabled={loading} className="flex-1 py-4 bg-slate-900 text-white font-black uppercase text-[11px] tracking-widest rounded-2xl shadow-2xl hover:bg-black transition-all flex items-center justify-center gap-3 group">
+                            {loading ? <Loader2 size={18} className="animate-spin" /> : <>Authorize <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" /></>}
                         </button>
                     </div>
                 </form>

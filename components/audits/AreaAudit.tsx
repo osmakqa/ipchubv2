@@ -134,24 +134,11 @@ const AreaAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
         if (view === 'analysis' || view === 'list') loadHistory();
     }, [view]);
 
-    const handleMagicFill = () => {
-        if (!category) {
-            alert("Select an Audit Category first.");
-            return;
-        }
-        const questions = getQuestions();
-        const autoAnswers: Record<string, string> = {};
-        questions.forEach((q, i) => {
-            autoAnswers[q] = i % 5 === 0 ? 'No' : 'Yes'; 
-        });
-        setFormData({ ...formData, area: 'Emergency Room Complex', answers: autoAnswers });
-    };
-
     const [apForm, setApForm] = useState({ 
         action: '', 
         targetDate: '', 
         personResponsible: '', 
-        category: 'Area Audit',
+        category: 'Walkrounds',
         area: '',
         areaOther: ''
     });
@@ -171,7 +158,7 @@ const AreaAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
         }
         setLoading(true);
         await submitAreaAudit({ ...formData, category });
-        alert("Area Audit Logged.");
+        alert("Audit Logged.");
         setFormData({
             date: new Date().toISOString().split('T')[0],
             area: '', areaOther: '', answers: {}
@@ -182,9 +169,9 @@ const AreaAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
     };
 
     const handleSaveActionPlan = async () => {
-        await submitActionPlan({ ...apForm, category: category ? `Area Audit: ${category}` : 'Area Audit' });
+        await submitActionPlan({ ...apForm, category: category ? `Walkround: ${category}` : 'Walkrounds' });
         setShowActionPlanModal(false);
-        setApForm({ action: '', targetDate: '', personResponsible: '', category: 'Area Audit', area: '', areaOther: '' });
+        setApForm({ action: '', targetDate: '', personResponsible: '', category: 'Walkrounds', area: '', areaOther: '' });
         alert("Action Plan Added.");
     };
 
@@ -262,15 +249,7 @@ const AreaAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                     <div className="flex items-center justify-between border-b border-slate-100 pb-5">
                         <div className="flex items-center gap-3">
                             <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl"><SearchCode size={24} /></div>
-                            <div><h2 className="text-xl font-black text-slate-900 uppercase">Area Audit</h2><p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Compliance & Safety Checklist</p></div>
-                        </div>
-                        <div className="flex items-center gap-3">
-                            <button type="button" onClick={handleMagicFill} className="text-[10px] font-black uppercase text-amber-600 bg-amber-50 px-4 py-2 rounded-xl border border-amber-100 flex items-center gap-2 hover:bg-amber-100 transition-all shadow-sm">
-                                <Sparkles size={14}/> Magic Fill
-                            </button>
-                            <button type="button" onClick={() => setShowActionPlanModal(true)} className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 flex items-center gap-2 hover:bg-emerald-100 transition-all shadow-sm">
-                                <Zap size={14}/> Add Action Plan
-                            </button>
+                            <div><h2 className="text-xl font-black text-slate-900 uppercase">Audit Walkround</h2><p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Compliance & Safety Checklist</p></div>
                         </div>
                     </div>
 
@@ -324,9 +303,13 @@ const AreaAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                         </div>
                     )}
 
-                    <div className="border-t border-slate-100 pt-6 flex justify-end">
-                        <button type="submit" disabled={loading || !category} className="w-full md:w-fit h-14 bg-slate-900 text-white rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-xl shadow-slate-900/20 hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50">
-                            {loading ? <Clock size={24} className="animate-spin" /> : <Save size={24} />} Publish Area Audit
+                    <div className="border-t border-slate-100 pt-6 flex flex-col items-center gap-4">
+                        <button type="submit" disabled={loading || !category} className="w-full h-16 bg-slate-900 text-white rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-xl shadow-slate-900/20 hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50">
+                            {loading ? <Clock size={24} className="animate-spin" /> : <Save size={24} />} Publish Walkround Audit
+                        </button>
+                        
+                        <button type="button" onClick={() => setShowActionPlanModal(true)} className="w-full h-14 bg-white border-2 border-amber-100 text-amber-600 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-amber-50 hover:border-amber-500 transition-all flex items-center justify-center gap-3 active:scale-[0.98]">
+                            <Zap size={20} className="fill-amber-600 text-amber-600" /> Create Walkround Action Plan
                         </button>
                     </div>
                 </form>
@@ -337,7 +320,7 @@ const AreaAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                             <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl"><List size={24}/></div>
                             <div>
                                 <h2 className="text-xl font-black text-slate-900 uppercase">Historical Logs</h2>
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Manage area safety audits</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Manage walkround safety audits</p>
                             </div>
                         </div>
                     </div>
@@ -469,7 +452,7 @@ const AreaAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                     <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95">
                         <div className="bg-amber-600 p-8 text-white flex justify-between items-center">
                             <div>
-                                <h3 className="text-2xl font-black uppercase tracking-tight">Edit Area Audit</h3>
+                                <h3 className="text-2xl font-black uppercase tracking-tight">Edit Audit Walkround</h3>
                                 <p className="text-xs opacity-80 font-bold uppercase tracking-widest">{editingItem.area}</p>
                             </div>
                             <button onClick={() => setEditingItem(null)} className="p-2 hover:bg-white/20 rounded-full transition-colors"><ChevronLeft className="rotate-180" size={24}/></button>
@@ -492,7 +475,7 @@ const AreaAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                 onConfirm={handleConfirmDelete}
                 loading={passwordConfirmLoading}
                 title="Confirm Audit Deletion"
-                description={`Permanently delete the area audit record for ${itemToDelete?.area}?`}
+                description={`Permanently delete the walkround audit record for ${itemToDelete?.area}?`}
             />
 
             {showActionPlanModal && (
@@ -501,7 +484,7 @@ const AreaAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                         <div className="bg-amber-600 p-6 text-white text-center">
                             <Zap size={40} className="mx-auto mb-2" fill="currentColor" />
                             <h3 className="text-xl font-black uppercase">Create Action Plan</h3>
-                            <p className="text-xs opacity-80 font-bold">Correction for Area Audit findings</p>
+                            <p className="text-xs opacity-80 font-bold">Correction for Walkround findings</p>
                         </div>
                         <div className="p-8 flex flex-col gap-4">
                             <div className="flex flex-col gap-2">

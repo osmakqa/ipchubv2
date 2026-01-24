@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../AuthContext';
 import Layout from '../ui/Layout';
 import Input from '../ui/Input';
@@ -12,11 +12,12 @@ import { submitReport, calculateAge } from '../../services/ipcService';
 import { 
   ChevronLeft, Send, Loader2, Activity, MapPin, 
   Beaker, FileText, Plus, Trash2, Users, Pill, Clock, Heart, 
-  Sparkles
+  Sparkles, AlertCircle
 } from 'lucide-react';
 
 const PTBForm: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [showThankYou, setShowThankYou] = useState(false);
@@ -40,6 +41,28 @@ const PTBForm: React.FC = () => {
   };
 
   const [formData, setFormData] = useState<any>(initialFormData);
+
+  // Pre-population logic from Lab Registry
+  useEffect(() => {
+    if (location.state?.prefill) {
+      const { lastName, firstName, hospitalNumber, initialLab } = location.state.prefill;
+      
+      const newXpert = initialLab?.type === 'GeneXpert' ? [{ date: initialLab.date, specimen: initialLab.specimen, result: initialLab.result }] : [];
+      const newSmear = initialLab?.type === 'Smear' ? [{ date: initialLab.date, specimen: initialLab.specimen, result: initialLab.result }] : [];
+      
+      setFormData(prev => ({
+        ...prev,
+        lastName: lastName || '',
+        firstName: firstName || '',
+        hospitalNumber: hospitalNumber || '',
+        xpertResults: newXpert,
+        smearResults: newSmear,
+        classification: (initialLab?.result.includes('+') || initialLab?.result.toLowerCase().includes('detected')) 
+          ? 'Bacteriological Confirmed' 
+          : 'Presumptive TB'
+      }));
+    }
+  }, [location.state]);
 
   useEffect(() => { 
     if (formData.dob) {
@@ -177,18 +200,26 @@ const PTBForm: React.FC = () => {
   return (
     <Layout title="TB Case Registration">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 max-w-5xl mx-auto px-4">
-        <button onClick={() => navigate('/')} className="flex items-center text-xs font-bold text-gray-500 hover:text-primary transition-colors">
+        <button onClick={() => navigate('/surveillance?module=tb')} className="flex items-center text-xs font-bold text-gray-500 hover:text-primary transition-colors">
           <ChevronLeft size={14} /> Back
         </button>
-        {user === 'Max' && (
-          <button 
-            type="button" 
-            onClick={handleMagicFill}
-            className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 rounded-xl border border-amber-200 text-[10px] font-black uppercase tracking-widest hover:bg-amber-100 transition-all shadow-sm"
-          >
-            <Sparkles size={14} className="text-amber-500" /> Magic Fill (Sample TB Case)
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {location.state?.prefill && (
+             <div className="flex items-center gap-2 bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 animate-in slide-in-from-right-2">
+               <AlertCircle size={14} className="text-indigo-600" />
+               <span className="text-[10px] font-black text-indigo-700 uppercase">Pre-filled from Lab Registry</span>
+             </div>
+          )}
+          {user === 'Max' && (
+            <button 
+              type="button" 
+              onClick={handleMagicFill}
+              className="flex items-center gap-2 px-4 py-2 bg-amber-50 text-amber-700 rounded-xl border border-amber-200 text-[10px] font-black uppercase tracking-widest hover:bg-amber-100 transition-all shadow-sm"
+            >
+              <Sparkles size={14} className="text-amber-500" /> Magic Fill
+            </button>
+          )}
+        </div>
       </div>
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-6 max-w-5xl mx-auto px-4 pb-20">
@@ -312,7 +343,7 @@ const PTBForm: React.FC = () => {
             </div>
         </section>
 
-        {/* Treatment & Risk */}
+        {/* Management */}
         <section className="bg-white p-6 rounded-[2rem] shadow-sm border border-slate-200 flex flex-col gap-6">
             <h3 className="font-black text-sm text-slate-900 flex items-center gap-2 border-b border-slate-100 pb-3 uppercase tracking-wide">
                 <Pill size={18} className="text-primary"/> Management & Risk Factors

@@ -114,10 +114,10 @@ const HAIDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode }) 
                     <option value="">Hospital Area</option>
                     {AREAS.map(a => <option key={a} value={a}>{a}</option>)}
                 </select>
-                <select className="w-24 text-[10px] border border-slate-200 rounded-lg px-2 py-2 focus:ring-1 focus:ring-primary outline-none font-black uppercase bg-slate-50/50" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
+                <select className="w-20 text-[10px] border border-slate-200 rounded-lg px-2 py-2 focus:ring-1 focus:ring-primary outline-none font-black uppercase bg-slate-50/50" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
                     <option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option>
                 </select>
-                <select className="w-24 text-[10px] border border-slate-200 rounded-lg px-2 py-2 focus:ring-1 focus:ring-primary outline-none font-black uppercase bg-slate-50/50" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
+                <select className="w-20 text-[10px] border border-slate-200 rounded-lg px-2 py-2 focus:ring-1 focus:ring-primary outline-none font-black uppercase bg-slate-50/50" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
                     <option value="">Month</option>
                     {Array.from({length: 12}, (_, i) => <option key={i} value={(i+1).toString().padStart(2, '0')}>{new Date(0, i).toLocaleString('en', {month:'short'})}</option>)}
                 </select>

@@ -28,7 +28,6 @@ const firebaseConfig = {
   measurementId: "G-XSXRBK1P2B"
 };
 
-// Fix: Use named import for firebase/app
 const app = initializeApp(firebaseConfig);
 export const db = getFirestore(app);
 
@@ -78,6 +77,22 @@ const snapshotToArray = (snapshot: any) => {
     id: doc.id,
     ...doc.data()
   }));
+};
+
+// Helper to safely stringify objects that might contain circular references (like Firestore refs)
+const safeStringify = (obj: any) => {
+  const cache = new Set();
+  return JSON.stringify(obj, (key, value) => {
+    if (typeof value === 'object' && value !== null) {
+      if (cache.has(value)) return;
+      cache.add(value);
+    }
+    // Convert Timestamps to ISO strings for the AI
+    if (value && typeof value.toDate === 'function') {
+      return value.toDate().toISOString();
+    }
+    return value;
+  });
 };
 
 export const subscribeToReports = (collectionName: string, status: string, callback: (data: any[]) => void) => {
@@ -304,7 +319,6 @@ export const updateTBReport = (data: any) => updateGenericRecord('reports_tb', d
 export const updateNTPReport = (data: any) => updateGenericRecord('reports_ntp', data);
 export const updateCultureReport = (data: any) => updateGenericRecord('reports_culture', data);
 
-// Audit Update Helpers
 export const updateHHAudit = (data: any) => updateGenericRecord('audit_hand_hygiene', data);
 export const updateAreaAudit = (data: any) => updateGenericRecord('audit_area', data);
 export const updateBundleAudit = (data: any) => updateGenericRecord('audit_bundles', data);
@@ -365,13 +379,11 @@ export const calculateInfectionRates = (logs: any[], infections: any[]) => {
   };
 
   logs.forEach(log => {
-    // Overall totals
     stats.overall.patientDays += Number(log.overall || 0);
     stats.overall.ventDays += Number(log.overallVent || 0);
     stats.overall.ifcDays += Number(log.overallIfc || 0);
     stats.overall.centralDays += Number(log.overallCentral || 0);
 
-    // Ward specific totals
     const wardMap: Record<string, string> = { icu: 'icu', picu: 'picu', nicu: 'nicu', medicine: 'med', cohort: 'cohort' };
     Object.keys(wardMap).forEach(key => {
       const prefix = wardMap[key];
@@ -438,11 +450,11 @@ const handleAIRequest = async (request: () => Promise<any>) => {
 
 export const generateExecutiveBriefing = async (dataSnapshot: any): Promise<any> => {
   return handleAIRequest(async () => {
-    // Fix: Standardize GoogleGenAI initialization
     const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
     const response = await ai.models.generateContent({
       model: 'gemini-3-pro-preview',
-      contents: `Perform an expert epidemiological analysis on this hospital data: ${JSON.stringify(dataSnapshot)}. 
+      // Fix: Use safeStringify to prevent circular structure errors
+      contents: `Perform an expert epidemiological analysis on this hospital data: ${safeStringify(dataSnapshot)}. 
       Return a strategic executive briefing with a status summary, risk assessment, and 3 specific actionable recommendations.`,
       config: {
         responseMimeType: "application/json",
@@ -472,7 +484,6 @@ export const generateExecutiveBriefing = async (dataSnapshot: any): Promise<any>
 
 export const queryIPCAssistant = async (queryStr: string, history: any[]): Promise<string> => {
   return handleAIRequest(async () => {
-    // Fix: Standardize GoogleGenAI initialization
     const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
     const chat = ai.chats.create({
       model: 'gemini-3-flash-preview',
@@ -495,7 +506,6 @@ export const queryIPCAssistant = async (queryStr: string, history: any[]): Promi
 
 export const extractTBResultData = async (base64Image: string): Promise<any> => {
   return handleAIRequest(async () => {
-    // Fix: Standardize GoogleGenAI initialization
     const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
     const response = await ai.models.generateContent({
       model: 'gemini-3-flash-preview',
@@ -506,7 +516,6 @@ export const extractTBResultData = async (base64Image: string): Promise<any> => 
         ]
       },
       config: {
-        // Fix: Standardize GoogleGenAI config
         responseMimeType: "application/json",
         responseSchema: {
           type: Type.OBJECT,
@@ -545,7 +554,6 @@ export const updateTBPatientWithResult = async (patientId: string, resultData: a
       update.smearResults = [...(currentData.smearResults || []), newEntry];
     }
 
-    // Modify TB classification if result is positive
     const isPositive = !resultData.resultValue.toLowerCase().includes('not detected') && 
                        !resultData.resultValue.toLowerCase().includes('negative');
     

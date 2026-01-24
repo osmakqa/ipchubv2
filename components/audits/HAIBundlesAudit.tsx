@@ -76,27 +76,6 @@ const HAIBundlesAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
         clabsi_dressingClean: ''
     });
 
-    const handleMagicFill = () => {
-        if (!bundleType) {
-            alert("Select a Bundle Type first.");
-            return;
-        }
-        const sampleBase = {
-            date: new Date().toISOString().split('T')[0],
-            area: 'ICU',
-            patientName: 'Patient Sample-001',
-            nurseInCharge: 'N. Reyes'
-        };
-
-        if (bundleType === 'VAP') {
-            setFormData({ ...formData, ...sampleBase, vap_headElevated: 'Yes', vap_oralCare: 'Yes', vap_pepticProphylaxis: 'Yes', vap_dvtProphylaxis: 'Yes' });
-        } else if (bundleType === 'CAUTI') {
-            setFormData({ ...formData, ...sampleBase, cauti_drainageIntact: 'Yes', cauti_catheterSecured: 'Yes', cauti_urineBagPosition: 'Below bladder level', cauti_meatalCare: 'Daily with soap & water' });
-        } else if (bundleType === 'CLABSI') {
-            setFormData({ ...formData, ...sampleBase, clabsi_handHygiene: 'Yes', clabsi_scrubConnector: 'Yes', clabsi_dressingClean: 'Yes' });
-        }
-    };
-
     const [apForm, setApForm] = useState({ 
         action: '', 
         targetDate: '', 
@@ -252,23 +231,13 @@ const HAIBundlesAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                             <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl"><ClipboardCheck size={24} /></div>
                             <div><h2 className="text-xl font-black text-slate-900 uppercase">HAI Bundle Audit</h2><p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Clinical Care Pathway Adherence</p></div>
                         </div>
-                        <div className="flex items-center gap-3">
-                            <button type="button" onClick={handleMagicFill} className="text-[10px] font-black uppercase text-amber-600 bg-amber-50 px-4 py-2 rounded-xl border border-amber-100 flex items-center gap-2 hover:bg-amber-100 transition-all shadow-sm">
-                                <Sparkles size={14}/> Magic Fill
-                            </button>
-                            <button type="button" onClick={() => setShowActionPlanModal(true)} className="text-[10px] font-black uppercase text-blue-600 bg-blue-50 px-4 py-2 rounded-xl border border-blue-100 flex items-center gap-2 hover:bg-blue-100 transition-all shadow-sm">
-                                <Zap size={14}/> Add Action Plan
-                            </button>
-                            <div className="w-48">
-                                <Select label="Select Bundle" options={BUNDLE_TYPES} value={bundleType} onChange={(e) => setBundleType(e.target.value)} required />
-                            </div>
-                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         <Input label="Audit Date" type="date" value={formData.date} onChange={e => handleInputChange('date', e.target.value)} required />
                         <div className="flex flex-col gap-2">
                             <Select label="Ward" options={AREAS} value={formData.area} onChange={e => handleInputChange('area', e.target.value)} required />
+                            <Select label="Select Bundle" options={BUNDLE_TYPES} value={bundleType} onChange={(e) => setBundleType(e.target.value)} required />
                         </div>
                         <Input label="Patient Name" value={formData.patientName} onChange={e => handleInputChange('patientName', e.target.value)} required placeholder="Last, First" />
                         <Input label="Nurse in Charge" value={formData.nurseInCharge} onChange={e => handleInputChange('nurseInCharge', e.target.value)} placeholder="Full Name" />
@@ -352,9 +321,13 @@ const HAIBundlesAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                         </div>
                     )}
 
-                    <div className="border-t border-slate-100 pt-6 flex justify-end">
-                        <button type="submit" disabled={loading || !bundleType} className="w-full md:w-fit h-14 bg-slate-900 text-white rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-xl hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50">
+                    <div className="border-t border-slate-100 pt-6 flex flex-col items-center gap-4">
+                        <button type="submit" disabled={loading || !bundleType} className="w-full h-16 bg-slate-900 text-white rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-xl hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50">
                             {loading ? <Clock size={24} className="animate-spin" /> : <Save size={24} />} Publish Bundle Audit
+                        </button>
+                        
+                        <button type="button" onClick={() => setShowActionPlanModal(true)} className="w-full h-14 bg-white border-2 border-blue-100 text-blue-600 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-50 hover:border-blue-500 transition-all flex items-center justify-center gap-3 active:scale-[0.98]">
+                            <Zap size={20} className="fill-blue-600 text-blue-600" /> Create Correction Action Plan
                         </button>
                     </div>
                 </form>

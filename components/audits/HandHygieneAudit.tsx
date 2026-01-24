@@ -77,24 +77,6 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
 
     const [form, setForm] = useState(initialForm);
 
-    const handleMagicFill = () => {
-        setForm({
-            date: new Date().toISOString().split('T')[0],
-            area: 'ICU',
-            areaOther: '',
-            auditeeName: 'Dr. Emily Watson',
-            auditeeRole: 'Doctor',
-            auditeeRoleOther: '',
-            moments: [
-                { moment: MOMENTS[0], action: 'Hand Rub', usedGloves: false, remarks: 'Promptly sanitized upon entry' },
-                { moment: MOMENTS[1], action: 'Hand Wash', usedGloves: false, remarks: 'Thorough scrub' },
-                { moment: MOMENTS[3], action: 'Hand Rub', usedGloves: false, remarks: '' },
-                { moment: MOMENTS[4], action: 'Missed', usedGloves: true, remarks: 'Staff was distracted by alarm' },
-                { moment: MOMENTS[0], action: 'Hand Rub', usedGloves: false, remarks: '' }
-            ]
-        });
-    };
-
     const [apForm, setApForm] = useState({ 
         action: '', 
         targetDate: '', 
@@ -275,14 +257,6 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                             <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl"><Hand size={24} /></div>
                             <div><h2 className="text-xl font-black text-slate-900 uppercase">Direct Observation Audit</h2><p className="text-xs font-bold text-slate-400 uppercase tracking-widest">WHO 5 Moments Recording</p></div>
                         </div>
-                        <div className="flex items-center gap-3">
-                            <button onClick={handleMagicFill} className="text-[10px] font-black uppercase text-amber-600 bg-amber-50 px-4 py-2 rounded-xl border border-amber-100 flex items-center gap-2 hover:bg-amber-100 transition-all">
-                                <Sparkles size={14}/> Magic Fill
-                            </button>
-                            <button onClick={() => setShowActionPlanModal(true)} className="text-[10px] font-black uppercase text-emerald-600 bg-emerald-50 px-4 py-2 rounded-xl border border-emerald-100 flex items-center gap-2 hover:bg-emerald-100 transition-all">
-                                <Zap size={14}/> Add Action Plan
-                            </button>
-                        </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -349,9 +323,13 @@ const HandHygieneAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                         </button>
                     </div>
 
-                    <div className="border-t border-slate-100 pt-6 flex justify-end">
-                        <button onClick={handleSubmit} disabled={loading || !form.area || !form.auditeeRole || !form.auditeeName} className="w-full md:w-fit h-14 bg-emerald-600 text-white rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-xl shadow-emerald-500/20 hover:bg-emerald-700 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50">
+                    <div className="border-t border-slate-100 pt-6 flex flex-col items-center gap-4">
+                        <button onClick={handleSubmit} disabled={loading || !form.area || !form.auditeeRole || !form.auditeeName} className="w-full h-16 bg-emerald-600 text-white rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-xl shadow-emerald-500/20 hover:bg-emerald-700 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50">
                             {loading ? <Clock size={24} className="animate-spin" /> : <Save size={24} />} Publish Audit Results
+                        </button>
+                        
+                        <button type="button" onClick={() => setShowActionPlanModal(true)} className="w-full h-14 bg-white border-2 border-emerald-100 text-emerald-600 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-emerald-50 hover:border-emerald-500 transition-all flex items-center justify-center gap-3 active:scale-[0.98]">
+                            <Zap size={20} className="fill-emerald-600 text-emerald-600" /> Create Correction Action Plan
                         </button>
                     </div>
                 </div>

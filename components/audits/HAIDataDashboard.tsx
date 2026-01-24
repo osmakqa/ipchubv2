@@ -40,9 +40,16 @@ const ANALYTICAL_WARDS = [
     { label: 'Cohort', prefix: 'cohort' }
 ];
 
-const HAIDataDashboard: React.FC = () => {
+// Add Props interface to handle initialViewMode
+interface Props {
+  viewMode?: 'log' | 'list' | 'analysis';
+}
+
+// Update component signature to accept Props and destructure viewMode
+const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
     const { user, isAuthenticated, validatePassword } = useAuth();
-    const [view, setView] = useState<'log' | 'list' | 'analysis'>('log');
+    // Fix: initialViewMode is now correctly passed from props
+    const [view, setView] = useState<'log' | 'list' | 'analysis'>(initialViewMode || 'log');
     const [loading, setLoading] = useState(false);
     const [logs, setLogs] = useState<any[]>([]);
     const [infections, setInfections] = useState<any[]>([]);
@@ -60,6 +67,11 @@ const HAIDataDashboard: React.FC = () => {
         ifcCount: '',
         centralCount: ''
     });
+
+    // Add useEffect to sync view with initialViewMode prop updates
+    useEffect(() => { 
+        if (initialViewMode) setView(initialViewMode); 
+    }, [initialViewMode]);
 
     const areaOptions = useMemo(() => ["Overall Hospital", ...AREAS], []);
 
@@ -105,21 +117,6 @@ const HAIDataDashboard: React.FC = () => {
         setLogs(cLogs);
         setInfections(hReports);
         setLoading(false);
-    };
-
-    const handleMagicFill = () => {
-        const randomCensus = Math.floor(Math.random() * 200) + 50;
-        const randomVent = Math.floor(Math.random() * 50) + 10;
-        const randomIfc = Math.floor(Math.random() * 100) + 30;
-        const randomCentral = Math.floor(Math.random() * 60) + 20;
-
-        setFormData(prev => ({
-            ...prev,
-            patientDays: randomCensus.toString(),
-            ventCount: randomVent.toString(),
-            ifcCount: randomIfc.toString(),
-            centralCount: randomCentral.toString()
-        }));
     };
 
     const handleLogSubmit = async (e: React.FormEvent) => {
@@ -246,9 +243,6 @@ const HAIDataDashboard: React.FC = () => {
                                         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Registry Entry</p>
                                     </div>
                                 </div>
-                                <button type="button" onClick={handleMagicFill} className="text-[10px] font-black uppercase text-amber-600 bg-amber-50 px-4 py-2 rounded-xl border border-amber-100 flex items-center gap-2 hover:bg-amber-100 transition-all shadow-sm">
-                                    <Sparkles size={14}/> Magic Fill
-                                </button>
                             </div>
 
                             <div className="flex flex-col gap-6">

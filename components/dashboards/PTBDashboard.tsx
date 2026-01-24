@@ -4,8 +4,9 @@ import { useAuth } from '../../AuthContext';
 import Layout from '../ui/Layout';
 import { getTBReports, getCensusLogs } from '../../services/ipcService';
 import { AREAS } from '../../constants';
+// Added CheckCircle2 to imports
 import { 
-  ChevronLeft, List, BarChart2, Filter, RotateCcw, PlusCircle, Download, Activity, Stethoscope, ChevronRight, Search, AlertCircle, TrendingUp, PieChart as PieIcon, Beaker, FileText, UserPlus, Users
+  ChevronLeft, List, BarChart2, Filter, RotateCcw, PlusCircle, Download, Activity, Stethoscope, ChevronRight, Search, AlertCircle, TrendingUp, PieChart as PieIcon, Beaker, FileText, UserPlus, Users, X, ArrowRight, CheckCircle2
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, 
@@ -23,6 +24,7 @@ const PTBDashboard: React.FC<Props> = ({ isNested }) => {
   const [census, setCensus] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'labs' | 'analysis'>('list');
+  const [selectedLab, setSelectedLab] = useState<any | null>(null);
 
   // Standardized Unified Filters
   const [filterType, setFilterType] = useState('');
@@ -62,8 +64,8 @@ const PTBDashboard: React.FC<Props> = ({ isNested }) => {
   const labData = useMemo(() => {
     const results: any[] = [];
     filteredData.forEach(p => {
-      if (p.xpertResults) p.xpertResults.forEach((r: any) => results.push({ ...r, type: 'GeneXpert', patientName: `${p.lastName}, ${p.firstName}`, hosp: p.hospitalNumber }));
-      if (p.smearResults) p.smearResults.forEach((r: any) => results.push({ ...r, type: 'Smear', patientName: `${p.lastName}, ${p.firstName}`, hosp: p.hospitalNumber }));
+      if (p.xpertResults) p.xpertResults.forEach((r: any) => results.push({ ...r, type: 'GeneXpert', patientName: `${p.lastName}, ${p.firstName}`, hosp: p.hospitalNumber, patientObj: p }));
+      if (p.smearResults) p.smearResults.forEach((r: any) => results.push({ ...r, type: 'Smear', patientName: `${p.lastName}, ${p.firstName}`, hosp: p.hospitalNumber, patientObj: p }));
     });
     return results.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
   }, [filteredData]);
@@ -75,7 +77,6 @@ const PTBDashboard: React.FC<Props> = ({ isNested }) => {
     active.forEach(d => { classMap[d.classification] = (classMap[d.classification] || 0) + 1; });
     const classData = Object.entries(classMap).map(([name, value]) => ({ name, value }));
     
-    // Census trend (last 10 entries)
     const censusTrend = census.slice(0, 10).reverse().map(l => ({
       date: l.date.split('-')[2],
       days: l.overall || 0
@@ -85,6 +86,25 @@ const PTBDashboard: React.FC<Props> = ({ isNested }) => {
   }, [filteredData, census]);
 
   const COLORS = ['#b45309', '#3b82f6', '#10b981', '#ef4444'];
+
+  const handleRegisterPatient = (lab: any) => {
+    // Navigate to treatment form with pre-populated data
+    navigate('/report-ptb', { 
+      state: { 
+        prefill: {
+          lastName: lab.patientObj.lastName,
+          firstName: lab.patientObj.firstName,
+          hospitalNumber: lab.patientObj.hospitalNumber,
+          initialLab: {
+            type: lab.type,
+            date: lab.date,
+            specimen: lab.specimen,
+            result: lab.result
+          }
+        }
+      } 
+    });
+  };
 
   const content = (
     <div className="flex flex-col gap-6 animate-in fade-in duration-300">
@@ -117,10 +137,10 @@ const PTBDashboard: React.FC<Props> = ({ isNested }) => {
                     <option value="">Hospital Area</option>
                     {AREAS.map(a => <option key={a} value={a}>{a}</option>)}
                 </select>
-                <select className="w-24 text-[10px] border border-slate-200 rounded-lg px-2 py-2 focus:ring-1 focus:ring-amber-700 outline-none font-black uppercase bg-slate-50/50" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
+                <select className="w-20 text-[10px] border border-slate-200 rounded-lg px-2 py-2 focus:ring-1 focus:ring-amber-700 outline-none font-black uppercase bg-slate-50/50" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
                     <option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option>
                 </select>
-                <select className="w-24 text-[10px] border border-slate-200 rounded-lg px-2 py-2 focus:ring-1 focus:ring-amber-700 outline-none font-black uppercase bg-slate-50/50" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
+                <select className="w-20 text-[10px] border border-slate-200 rounded-lg px-2 py-2 focus:ring-1 focus:ring-amber-700 outline-none font-black uppercase bg-slate-50/50" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
                     <option value="">Month</option>
                     {Array.from({length: 12}, (_, i) => <option key={i} value={(i+1).toString().padStart(2, '0')}>{new Date(0, i).toLocaleString('en', {month:'short'})}</option>)}
                 </select>
@@ -160,16 +180,32 @@ const PTBDashboard: React.FC<Props> = ({ isNested }) => {
                             <th className="px-6 py-4">Patient Name</th>
                             <th className="px-4 py-4">Type</th>
                             <th className="px-4 py-4">Result</th>
+                            <th className="px-4 py-4 text-center">Treatment Status</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100">
-                            {labData.length === 0 ? <tr><td colSpan={5} className="p-10 text-center uppercase text-[10px] font-black text-slate-400">No laboratory records found</td></tr> : labData.map((res, idx) => (
-                                <tr key={idx} className="hover:bg-amber-50/50 transition-colors">
+                            {labData.length === 0 ? <tr><td colSpan={6} className="p-10 text-center uppercase text-[10px] font-black text-slate-400">No laboratory records found</td></tr> : labData.map((res, idx) => (
+                                <tr 
+                                  key={idx} 
+                                  onClick={() => setSelectedLab(res)}
+                                  className="hover:bg-amber-50/50 transition-colors cursor-pointer group"
+                                >
                                   <td className="px-4 py-3 text-center text-slate-300 font-black">{idx + 1}</td>
                                   <td className="px-4 py-3 font-medium text-slate-600">{res.date}</td>
                                   <td className="px-6 py-3 font-black text-amber-800 uppercase">{res.patientName}</td>
                                   <td className="px-4 py-3 font-bold text-indigo-600 text-xs">{res.type}</td>
-                                  <td className="px-4 py-3 font-black text-[10px] uppercase"><span className={`px-2 py-0.5 rounded-full border ${res.result.toLowerCase().includes('detected') || res.result.includes('+') ? 'bg-red-50 text-red-600 border-red-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>{res.result}</span></td>
+                                  <td className="px-4 py-3 font-black text-[10px] uppercase">
+                                    <span className={`px-2 py-0.5 rounded-full border ${res.result.toLowerCase().includes('detected') || res.result.includes('+') ? 'bg-red-50 text-red-600 border-red-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
+                                      {res.result}
+                                    </span>
+                                  </td>
+                                  <td className="px-4 py-3 text-center">
+                                    {res.patientObj.isLabOnly ? (
+                                      <span className="text-[9px] font-black uppercase text-amber-500 bg-amber-50 px-2 py-0.5 rounded border border-amber-100">Lab Only</span>
+                                    ) : (
+                                      <span className="text-[9px] font-black uppercase text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100">Registered</span>
+                                    )}
+                                  </td>
                                 </tr>
                             ))}
                         </tbody>
@@ -223,6 +259,68 @@ const PTBDashboard: React.FC<Props> = ({ isNested }) => {
               </div>
             </div>
         </div>
+
+        {/* Result Action Modal */}
+        {selectedLab && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300">
+              <div className="bg-amber-700 p-8 text-white relative">
+                <button onClick={() => setSelectedLab(null)} className="absolute top-6 right-6 p-2 hover:bg-white/10 rounded-full transition-all"><X size={20}/></button>
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Laboratory Profile</span>
+                <h3 className="text-2xl font-black uppercase leading-tight mt-1">{selectedLab.patientName}</h3>
+                <p className="text-xs font-bold opacity-80 mt-1">{selectedLab.hosp}</p>
+              </div>
+              
+              <div className="p-8 flex flex-col gap-6">
+                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 flex flex-col gap-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Test Summary</span>
+                    <span className="text-[10px] font-black text-indigo-600 uppercase bg-indigo-50 px-2 py-0.5 rounded">{selectedLab.type}</span>
+                  </div>
+                  <div className="flex flex-col">
+                    <span className={`text-xl font-black ${selectedLab.result.toLowerCase().includes('detected') || selectedLab.result.includes('+') ? 'text-red-600' : 'text-emerald-600'}`}>
+                      {selectedLab.result}
+                    </span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase">Released: {selectedLab.date} • {selectedLab.specimen}</span>
+                  </div>
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  {selectedLab.patientObj.isLabOnly ? (
+                    <>
+                      <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex gap-3 items-start">
+                        <AlertCircle size={18} className="text-amber-600 shrink-0 mt-0.5" />
+                        <p className="text-xs font-bold text-amber-900 leading-snug">
+                          This result is not yet linked to a treatment record. Would you like to register this patient for full TB monitoring?
+                        </p>
+                      </div>
+                      <button 
+                        onClick={() => handleRegisterPatient(selectedLab)}
+                        className="w-full h-14 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-black transition-all flex items-center justify-center gap-3 shadow-lg"
+                      >
+                        <UserPlus size={18}/> Convert to Treatment Registry
+                      </button>
+                    </>
+                  ) : (
+                    <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex gap-3 items-start">
+                      {/* Fixed: CheckCircle2 is now imported above */}
+                      <CheckCircle2 size={18} className="text-emerald-600 shrink-0 mt-0.5" />
+                      <p className="text-xs font-bold text-emerald-900 leading-snug">
+                        Linked to an active Treatment Registry entry.
+                      </p>
+                    </div>
+                  )}
+                  <button 
+                    onClick={() => setSelectedLab(null)}
+                    className="w-full h-14 bg-white border-2 border-slate-200 text-slate-600 rounded-2xl font-black uppercase text-xs tracking-widest hover:border-slate-300 transition-all"
+                  >
+                    Cancel
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
     </div>
   );
 
