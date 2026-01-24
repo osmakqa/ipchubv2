@@ -31,7 +31,8 @@ import {
     Edit3,
     Trash2,
     Search,
-    ChevronLeft
+    ChevronLeft,
+    X
 } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, Legend, PieChart, Pie, Cell, CartesianGrid } from 'recharts';
 
@@ -217,54 +218,57 @@ const HAIBundlesAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
     }, [bundleHistory]);
 
     return (
-        <div className="flex flex-col gap-6 max-w-5xl mx-auto pb-20">
-            <div className="flex bg-slate-200 p-1.5 rounded-2xl w-fit">
-                <button onClick={() => setView('log')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 ${view === 'log' ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-500 hover:text-slate-700'}`}><LayoutList size={16}/> Log</button>
-                <button onClick={() => setView('list')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 ${view === 'list' ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-500 hover:text-slate-700'}`}><List size={16}/> List</button>
-                <button onClick={() => setView('analysis')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 ${view === 'analysis' ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-500 hover:text-slate-700'}`}><TrendingUp size={16}/> Analysis</button>
+        <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
+                <div className="flex bg-gray-100 p-1 rounded-lg h-10">
+                    <button onClick={() => setView('log')} className={`px-4 rounded-md text-[10px] font-black uppercase transition-all flex items-center gap-2 ${view === 'log' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}><LayoutList size={14}/> Log</button>
+                    <button onClick={() => setView('list')} className={`px-4 rounded-md text-[10px] font-black uppercase transition-all flex items-center gap-2 ${view === 'list' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}><List size={14}/> List</button>
+                    {/* Fixed: Changed 'viewMode' to 'view' to refer to the local state */}
+                    <button onClick={() => setView('analysis')} className={`px-4 rounded-md text-[10px] font-black uppercase transition-all flex items-center gap-2 ${view === 'analysis' ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500'}`}><TrendingUp size={14}/> Analysis</button>
+                </div>
             </div>
 
             {view === 'log' ? (
-                <form onSubmit={handleSubmit} className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col gap-8 animate-in fade-in duration-500">
+                <form onSubmit={handleSubmit} className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col gap-8">
                     <div className="flex items-center justify-between border-b border-slate-100 pb-5">
                         <div className="flex items-center gap-3">
                             <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl"><ClipboardCheck size={24} /></div>
-                            <div><h2 className="text-xl font-black text-slate-900 uppercase">HAI Bundle Audit</h2><p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Clinical Care Pathway Adherence</p></div>
+                            <div><h2 className="text-xl font-black text-slate-900 uppercase leading-none">HAI Bundle Audit</h2><p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Clinical Care Pathway Adherence</p></div>
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                         <Input label="Audit Date" type="date" value={formData.date} onChange={e => handleInputChange('date', e.target.value)} required />
-                        <div className="flex flex-col gap-2">
-                            <Select label="Ward" options={AREAS} value={formData.area} onChange={e => handleInputChange('area', e.target.value)} required />
-                            <Select label="Select Bundle" options={BUNDLE_TYPES} value={bundleType} onChange={(e) => setBundleType(e.target.value)} required />
-                        </div>
+                        <Select label="Ward" options={AREAS} value={formData.area} onChange={e => handleInputChange('area', e.target.value)} required />
+                        <Select label="Bundle Type" options={BUNDLE_TYPES} value={bundleType} onChange={(e) => setBundleType(e.target.value)} required />
                         <Input label="Patient Name" value={formData.patientName} onChange={e => handleInputChange('patientName', e.target.value)} required placeholder="Last, First" />
-                        <Input label="Nurse in Charge" value={formData.nurseInCharge} onChange={e => handleInputChange('nurseInCharge', e.target.value)} placeholder="Full Name" />
+                        <div className="lg:col-span-4">
+                            <Input label="Nurse in Charge" value={formData.nurseInCharge} onChange={e => handleInputChange('nurseInCharge', e.target.value)} placeholder="Full Name" />
+                        </div>
                     </div>
 
                     {bundleType === 'CAUTI' && (
                         <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-200 flex flex-col gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
-                            <div className="flex items-center gap-2 mb-2"><Droplets className="text-blue-500"/><h3 className="text-sm font-black uppercase text-slate-900 tracking-widest">CAUTI Prevention Bundle</h3></div>
+                            <div className="flex items-center gap-2 mb-2"><Droplets className="text-blue-500" size={18}/><h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">CAUTI Prevention Bundle</h3></div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                <div className="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col gap-3">
-                                    <label className="text-xs font-bold text-slate-700">Closed Drainage System Intact?</label>
-                                    <div className="flex gap-2">
-                                        <button type="button" onClick={() => handleInputChange('cauti_drainageIntact', 'Yes')} className={`flex-1 py-3 rounded-xl border-2 font-black uppercase text-xs transition-all ${formData.cauti_drainageIntact === 'Yes' ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}>Yes</button>
-                                        <button type="button" onClick={() => handleInputChange('cauti_drainageIntact', 'No')} className={`flex-1 py-3 rounded-xl border-2 font-black uppercase text-xs transition-all ${formData.cauti_drainageIntact === 'No' ? 'bg-rose-500 border-rose-500 text-white' : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}>No</button>
+                                <div className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between gap-4">
+                                    <label className="text-[11px] font-black text-slate-600 uppercase leading-tight">Closed Drainage System Intact?</label>
+                                    <div className="flex gap-2 shrink-0">
+                                        <button type="button" onClick={() => handleInputChange('cauti_drainageIntact', 'Yes')} className={`w-16 py-2 rounded-lg border font-black uppercase text-[10px] transition-all ${formData.cauti_drainageIntact === 'Yes' ? 'bg-emerald-500 border-emerald-500 text-white shadow-md' : 'bg-slate-50 border-transparent text-slate-400'}`}>Yes</button>
+                                        <button type="button" onClick={() => handleInputChange('cauti_drainageIntact', 'No')} className={`w-16 py-2 rounded-lg border font-black uppercase text-[10px] transition-all ${formData.cauti_drainageIntact === 'No' ? 'bg-rose-500 border-rose-500 text-white shadow-md' : 'bg-slate-50 border-transparent text-slate-400'}`}>No</button>
                                     </div>
                                 </div>
-                                <div className="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col gap-3">
-                                    <label className="text-xs font-bold text-slate-700">Catheter Secured (no traction)?</label>
-                                    <div className="flex gap-2">
-                                        <button type="button" onClick={() => handleInputChange('cauti_catheterSecured', 'Yes')} className={`flex-1 py-3 rounded-xl border-2 font-black uppercase text-xs transition-all ${formData.cauti_catheterSecured === 'Yes' ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}>Yes</button>
-                                        <button type="button" onClick={() => handleInputChange('cauti_catheterSecured', 'No')} className={`flex-1 py-3 rounded-xl border-2 font-black uppercase text-xs transition-all ${formData.cauti_catheterSecured === 'No' ? 'bg-rose-500 border-rose-500 text-white' : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}>No</button>
+                                <div className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between gap-4">
+                                    <label className="text-[11px] font-black text-slate-600 uppercase leading-tight">Catheter Secured (no traction)?</label>
+                                    <div className="flex gap-2 shrink-0">
+                                        <button type="button" onClick={() => handleInputChange('cauti_catheterSecured', 'Yes')} className={`w-16 py-2 rounded-lg border font-black uppercase text-[10px] transition-all ${formData.cauti_catheterSecured === 'Yes' ? 'bg-emerald-500 border-emerald-500 text-white shadow-md' : 'bg-slate-50 border-transparent text-slate-400'}`}>Yes</button>
+                                        <button type="button" onClick={() => handleInputChange('cauti_catheterSecured', 'No')} className={`w-16 py-2 rounded-lg border font-black uppercase text-[10px] transition-all ${formData.cauti_catheterSecured === 'No' ? 'bg-rose-500 border-rose-500 text-white shadow-md' : 'bg-slate-50 border-transparent text-slate-400'}`}>No</button>
                                     </div>
                                 </div>
-                                <div className="md:col-span-2">
+                                <div className="md:col-span-1">
                                     <Select label="Urine Bag Position" options={['Below bladder level', 'Not touching floor', 'Improper positioning']} value={formData.cauti_urineBagPosition} onChange={e => handleInputChange('cauti_urineBagPosition', e.target.value)} required />
                                 </div>
-                                <div className="md:col-span-2">
+                                <div className="md:col-span-1">
                                     <Select label="Routine Meatal Care" options={['Daily with soap & water', 'No antiseptics used', 'Not documented / improper']} value={formData.cauti_meatalCare} onChange={e => handleInputChange('cauti_meatalCare', e.target.value)} required />
                                 </div>
                             </div>
@@ -273,19 +277,19 @@ const HAIBundlesAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
 
                     {bundleType === 'VAP' && (
                         <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-200 flex flex-col gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
-                            <div className="flex items-center gap-2 mb-2"><Wind className="text-blue-500"/><h3 className="text-sm font-black uppercase text-slate-900 tracking-widest">VAP Prevention Bundle</h3></div>
+                            <div className="flex items-center gap-2 mb-2"><Wind className="text-blue-500" size={18}/><h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">VAP Prevention Bundle</h3></div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {[
-                                    { id: 'vap_headElevated', label: "Is the patient's head elevated 30-45deg?" },
-                                    { id: 'vap_oralCare', label: "Did the patient receive oral care?" },
-                                    { id: 'vap_pepticProphylaxis', label: "Did the patient have peptic ulcer disease prophylaxis?" },
-                                    { id: 'vap_dvtProphylaxis', label: "Does patient have deep venous thrombosis prophylaxis?" }
+                                    { id: 'vap_headElevated', label: "Head elevated 30-45deg?" },
+                                    { id: 'vap_oralCare', label: "Oral care received?" },
+                                    { id: 'vap_pepticProphylaxis', label: "Peptic ulcer prophylaxis?" },
+                                    { id: 'vap_dvtProphylaxis', label: "DVT prophylaxis?" }
                                 ].map(q => (
-                                    <div key={q.id} className="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col gap-3">
-                                        <label className="text-xs font-bold text-slate-700 leading-tight">{q.label}</label>
-                                        <div className="flex gap-2">
-                                            <button type="button" onClick={() => handleInputChange(q.id, 'Yes')} className={`flex-1 py-3 rounded-xl border-2 font-black uppercase text-xs transition-all ${formData[q.id] === 'Yes' ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}>Yes</button>
-                                            <button type="button" onClick={() => handleInputChange(q.id, 'No')} className={`flex-1 py-3 rounded-xl border-2 font-black uppercase text-xs transition-all ${formData[q.id] === 'No' ? 'bg-rose-500 border-rose-500 text-white' : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}>No</button>
+                                    <div key={q.id} className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between gap-4">
+                                        <label className="text-[11px] font-black text-slate-600 uppercase leading-tight">{q.label}</label>
+                                        <div className="flex gap-2 shrink-0">
+                                            <button type="button" onClick={() => handleInputChange(q.id, 'Yes')} className={`w-16 py-2 rounded-lg border font-black uppercase text-[10px] transition-all ${formData[q.id] === 'Yes' ? 'bg-emerald-500 border-emerald-500 text-white shadow-md' : 'bg-slate-50 border-transparent text-slate-400'}`}>Yes</button>
+                                            <button type="button" onClick={() => handleInputChange(q.id, 'No')} className={`w-16 py-2 rounded-lg border font-black uppercase text-[10px] transition-all ${formData[q.id] === 'No' ? 'bg-rose-500 border-rose-500 text-white shadow-md' : 'bg-slate-50 border-transparent text-slate-400'}`}>No</button>
                                         </div>
                                     </div>
                                 ))}
@@ -295,18 +299,18 @@ const HAIBundlesAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
 
                     {bundleType === 'CLABSI' && (
                         <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-200 flex flex-col gap-6 animate-in fade-in slide-in-from-top-4 duration-500">
-                            <div className="flex items-center gap-2 mb-2"><Syringe className="text-blue-500"/><h3 className="text-sm font-black uppercase text-slate-900 tracking-widest">CLABSI Prevention Bundle</h3></div>
+                            <div className="flex items-center gap-2 mb-2"><Syringe className="text-blue-500" size={18}/><h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">CLABSI Prevention Bundle</h3></div>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                 {[
-                                    { id: 'clabsi_handHygiene', label: "Performs hand hygiene prior to handling the line?" },
-                                    { id: 'clabsi_scrubConnector', label: "Scrubs connector vigorously with alcohol for 15 seconds?" },
-                                    { id: 'clabsi_dressingClean', label: "Dressing is clean and not soaked?" }
+                                    { id: 'clabsi_handHygiene', label: "Hand hygiene prior to handling?" },
+                                    { id: 'clabsi_scrubConnector', label: "Scrub connector with alcohol?" },
+                                    { id: 'clabsi_dressingClean', label: "Dressing clean and intact?" }
                                 ].map(q => (
-                                    <div key={q.id} className="bg-white p-4 rounded-2xl border border-slate-100 flex flex-col gap-3">
-                                        <label className="text-xs font-bold text-slate-700 leading-tight">{q.label}</label>
-                                        <div className="flex gap-2">
-                                            <button type="button" onClick={() => handleInputChange(q.id, 'Yes')} className={`flex-1 py-3 rounded-xl border-2 font-black uppercase text-xs transition-all ${formData[q.id] === 'Yes' ? 'bg-emerald-500 border-emerald-500 text-white' : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}>Yes</button>
-                                            <button type="button" onClick={() => handleInputChange(q.id, 'No')} className={`flex-1 py-3 rounded-xl border-2 font-black uppercase text-xs transition-all ${formData[q.id] === 'No' ? 'bg-rose-500 border-rose-500 text-white' : 'bg-slate-50 border-transparent text-slate-400 hover:bg-slate-100'}`}>No</button>
+                                    <div key={q.id} className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between gap-4">
+                                        <label className="text-[11px] font-black text-slate-600 uppercase leading-tight">{q.label}</label>
+                                        <div className="flex gap-2 shrink-0">
+                                            <button type="button" onClick={() => handleInputChange(q.id, 'Yes')} className={`w-16 py-2 rounded-lg border font-black uppercase text-[10px] transition-all ${formData[q.id] === 'Yes' ? 'bg-emerald-500 border-emerald-500 text-white shadow-md' : 'bg-slate-50 border-transparent text-slate-400'}`}>Yes</button>
+                                            <button type="button" onClick={() => handleInputChange(q.id, 'No')} className={`w-16 py-2 rounded-lg border font-black uppercase text-[10px] transition-all ${formData[q.id] === 'No' ? 'bg-rose-500 border-rose-500 text-white shadow-md' : 'bg-slate-50 border-transparent text-slate-400'}`}>No</button>
                                         </div>
                                     </div>
                                 ))}
@@ -316,54 +320,54 @@ const HAIBundlesAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
 
                     {!bundleType && (
                         <div className="bg-slate-50 p-20 rounded-[2.5rem] border border-dashed border-slate-200 text-center flex flex-col items-center gap-4">
-                            <Info size={48} className="text-slate-200" />
-                            <p className="text-slate-400 font-bold uppercase tracking-widest text-xs">Select a bundle type to begin the audit checklist</p>
+                            <Info size={40} className="text-slate-200" />
+                            <p className="text-slate-400 font-bold uppercase tracking-widest text-[10px]">Select a bundle type to begin the audit checklist</p>
                         </div>
                     )}
 
                     <div className="border-t border-slate-100 pt-6 flex flex-col items-center gap-4">
-                        <button type="submit" disabled={loading || !bundleType} className="w-full h-16 bg-slate-900 text-white rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-xl hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50">
+                        <button type="submit" disabled={loading || !bundleType} className="w-full h-14 bg-slate-900 text-white rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-xl hover:bg-black transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50">
                             {loading ? <Clock size={24} className="animate-spin" /> : <Save size={24} />} Publish Bundle Audit
                         </button>
                         
-                        <button type="button" onClick={() => setShowActionPlanModal(true)} className="w-full h-14 bg-white border-2 border-blue-100 text-blue-600 rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-blue-50 hover:border-blue-500 transition-all flex items-center justify-center gap-3 active:scale-[0.98]">
-                            <Zap size={20} className="fill-blue-600 text-blue-600" /> Create Correction Action Plan
+                        <button type="button" onClick={() => setShowActionPlanModal(true)} className="w-full h-12 bg-white border-2 border-blue-100 text-blue-600 rounded-2xl font-black uppercase text-[10px] tracking-widest hover:bg-blue-50 hover:border-blue-500 transition-all flex items-center justify-center gap-3 active:scale-[0.98]">
+                            <Zap size={18} className="fill-blue-600 text-blue-600" /> Create Correction Action Plan
                         </button>
                     </div>
                 </form>
             ) : view === 'list' ? (
-                <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col animate-in fade-in duration-500">
-                    <div className="p-8 border-b border-slate-100 flex items-center justify-between">
+                <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 flex flex-col">
+                    <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-gray-50/50">
                         <div className="flex items-center gap-3">
-                            <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl"><List size={24}/></div>
+                            <div className="p-2 bg-blue-50 text-blue-600 rounded-lg"><List size={18}/></div>
                             <div>
-                                <h2 className="text-xl font-black text-slate-900 uppercase">Bundle History</h2>
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Manage clinical audits</p>
+                                <h2 className="text-sm font-black text-slate-900 uppercase">Bundle History</h2>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Manage clinical audits</p>
                             </div>
                         </div>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="bg-slate-50 text-slate-400 font-black text-[10px] uppercase border-b border-slate-100">
+                            <thead className="bg-gray-50 text-gray-700 font-bold border-b text-[10px] uppercase tracking-wider">
                                 <tr>
-                                    <th className="p-6">Date</th>
-                                    <th className="p-6">Patient</th>
-                                    <th className="p-6">Bundle</th>
-                                    <th className="p-6">Ward</th>
-                                    <th className="p-6 text-center">Actions</th>
+                                    <th className="px-6 py-4">Date</th>
+                                    <th className="px-6 py-4">Patient</th>
+                                    <th className="px-6 py-4">Bundle</th>
+                                    <th className="px-6 py-4">Ward</th>
+                                    <th className="px-6 py-4 text-center">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-50">
+                            <tbody className="divide-y divide-gray-100">
                                 {bundleHistory.map(audit => (
-                                    <tr key={audit.id} className="hover:bg-slate-50 transition-colors group">
-                                        <td className="p-6 font-medium text-slate-600">{audit.date}</td>
-                                        <td className="p-6 font-black text-slate-900 uppercase">{audit.patientName}</td>
-                                        <td className="p-6 font-bold text-blue-600">{audit.bundleType}</td>
-                                        <td className="p-6 text-slate-500 font-bold uppercase text-[10px]">{audit.area}</td>
-                                        <td className="p-6 text-center">
+                                    <tr key={audit.id} className="hover:bg-primary/5 transition-colors group">
+                                        <td className="px-6 py-3 font-medium text-slate-600">{audit.date}</td>
+                                        <td className="px-6 py-3 font-black text-blue-600 uppercase">{audit.patientName}</td>
+                                        <td className="px-6 py-3 font-bold text-slate-800 text-[10px]">{audit.bundleType}</td>
+                                        <td className="px-6 py-3 text-slate-500 font-bold uppercase text-[9px]">{audit.area}</td>
+                                        <td className="px-6 py-3 text-center">
                                             <div className="flex items-center justify-center gap-2">
-                                                <button onClick={() => handleEditItem(audit)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><Edit3 size={18}/></button>
-                                                <button onClick={() => handleDeleteClick(audit)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={18}/></button>
+                                                <button onClick={() => handleEditItem(audit)} className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-all"><Edit3 size={16}/></button>
+                                                <button onClick={() => handleDeleteClick(audit)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={16}/></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -373,42 +377,42 @@ const HAIBundlesAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                     </div>
                 </div>
             ) : (
-                <div className="flex flex-col gap-10 animate-in fade-in duration-500">
+                <div className="flex flex-col gap-6 animate-in fade-in duration-500">
                     {loading ? <Loader2 className="animate-spin mx-auto" size={48}/> : !stats ? (
-                        <div className="p-20 text-center bg-white rounded-[3rem] border border-dashed border-slate-200 text-slate-400 font-bold">Awaiting first bundle audit entry</div>
+                        <div className="p-20 text-center bg-white rounded-xl border border-dashed border-slate-200 text-slate-400 font-bold uppercase text-[10px] tracking-widest">Awaiting first bundle audit entry</div>
                     ) : (
                         <>
                             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                                <div className="lg:col-span-2 bg-blue-900 p-10 rounded-[3rem] text-white flex flex-col gap-6 overflow-hidden relative">
+                                <div className="lg:col-span-2 bg-blue-900 p-8 rounded-[2rem] text-white flex flex-col gap-6 overflow-hidden relative shadow-lg">
                                     <div className="z-10 flex flex-col gap-2">
-                                        <h2 className="text-4xl font-black tracking-tight uppercase">Bundle Compliance</h2>
-                                        <p className="text-blue-300 font-medium text-lg">Hospital-wide adherence to clinical care bundles</p>
+                                        <h2 className="text-3xl font-black tracking-tight uppercase">Bundle Compliance</h2>
+                                        <p className="text-blue-300 font-medium text-base">Hospital-wide adherence to clinical care bundles</p>
                                     </div>
-                                    <div className="absolute top-0 right-0 p-8 opacity-10 text-white"><ShieldCheck size={200} /></div>
+                                    <div className="absolute top-0 right-0 p-8 opacity-10 text-white"><ShieldCheck size={180} /></div>
                                 </div>
-                                <div className="bg-white p-8 rounded-[3rem] border-2 border-blue-500 flex flex-col items-center justify-center text-center gap-2 shadow-xl shadow-blue-500/10">
-                                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-blue-600">Overall Success</span>
-                                    <span className="text-7xl font-black text-slate-900">{stats.overall}%</span>
-                                    <span className="text-xs font-bold text-slate-400 uppercase">Average Adherence</span>
+                                <div className="bg-white p-8 rounded-[2rem] border-2 border-blue-500 flex flex-col items-center justify-center text-center gap-2 shadow-xl shadow-blue-500/10">
+                                    <span className="text-[9px] font-black uppercase tracking-[0.3em] text-blue-600">Overall Success</span>
+                                    <span className="text-6xl font-black text-slate-900">{stats.overall}%</span>
+                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Average Adherence</span>
                                 </div>
                             </div>
 
-                            <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col gap-6">
-                                <div className="flex items-center gap-3">
-                                    <div className="p-3 bg-blue-50 rounded-2xl text-blue-600"><BarChart3 size={24}/></div>
-                                    <h3 className="text-xl font-black uppercase text-slate-900">Area Performance</h3>
+                            <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col gap-6">
+                                <div className="flex items-center gap-3 border-b border-slate-50 pb-3">
+                                    <div className="p-2 bg-blue-50 rounded-lg text-blue-600"><BarChart3 size={20}/></div>
+                                    <h3 className="text-xs font-black uppercase text-slate-900 tracking-widest">Area Performance</h3>
                                 </div>
                                 <div className="h-80">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <BarChart data={stats.areaBundleData}>
                                             <CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} />
-                                            <XAxis dataKey="name" tick={{fontSize: 10, fontWeight: 'bold'}} />
-                                            <YAxis domain={[0, 100]} />
+                                            <XAxis dataKey="name" tick={{fontSize: 9, fontWeight: 'bold'}} />
+                                            <YAxis domain={[0, 100]} tick={{fontSize: 9}} />
                                             <RechartsTooltip contentStyle={{borderRadius: '16px'}} />
-                                            <Legend wrapperStyle={{fontSize: 10, fontWeight: 'bold', paddingTop: 20}} />
-                                            <Bar dataKey="vap" name="VAP" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                                            <Bar dataKey="cauti" name="CAUTI" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                                            <Bar dataKey="clabsi" name="CLABSI" fill="#ec4899" radius={[4, 4, 0, 0]} />
+                                            <Legend wrapperStyle={{fontSize: 9, fontWeight: 'bold', paddingTop: 20}} />
+                                            <Bar dataKey="vap" name="VAP" fill="#3b82f6" radius={[3, 3, 0, 0]} />
+                                            <Bar dataKey="cauti" name="CAUTI" fill="#f59e0b" radius={[3, 3, 0, 0]} />
+                                            <Bar dataKey="clabsi" name="CLABSI" fill="#ec4899" radius={[3, 3, 0, 0]} />
                                         </BarChart>
                                     </ResponsiveContainer>
                                 </div>
@@ -422,20 +426,20 @@ const HAIBundlesAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
             {editingItem && (
                 <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95">
-                        <div className="bg-blue-600 p-8 text-white flex justify-between items-center">
+                        <div className="bg-blue-600 p-6 text-white flex justify-between items-center">
                             <div>
-                                <h3 className="text-2xl font-black uppercase tracking-tight">Edit Bundle Log</h3>
+                                <h3 className="text-xl font-black uppercase tracking-tight">Edit Bundle Log</h3>
                                 <p className="text-xs opacity-80 font-bold uppercase tracking-widest">{editingItem.patientName}</p>
                             </div>
-                            <button onClick={() => setEditingItem(null)} className="p-2 hover:bg-white/20 rounded-full transition-colors"><ChevronLeft className="rotate-180" size={24}/></button>
+                            <button onClick={() => setEditingItem(null)} className="p-2 hover:bg-white/20 rounded-full transition-colors"><X size={20}/></button>
                         </div>
-                        <div className="p-10 flex flex-col gap-6">
+                        <div className="p-8 flex flex-col gap-6">
                             <Input label="Patient Name" value={editingItem.patientName} onChange={e => setEditingItem({...editingItem, patientName: e.target.value})} />
                             <Select label="Ward" options={AREAS} value={editingItem.area} onChange={e => setEditingItem({...editingItem, area: e.target.value})} />
                             <Input label="Nurse in Charge" value={editingItem.nurseInCharge} onChange={e => setEditingItem({...editingItem, nurseInCharge: e.target.value})} />
                             <div className="flex gap-4 mt-4">
-                                <button onClick={() => setEditingItem(null)} className="flex-1 py-4 text-slate-400 font-black uppercase text-xs hover:bg-slate-50 rounded-2xl transition-all">Cancel</button>
-                                <button onClick={handleUpdateItem} className="flex-1 py-4 bg-blue-600 text-white font-black uppercase text-xs rounded-2xl shadow-xl hover:bg-blue-700 transition-all">Save Changes</button>
+                                <button onClick={() => setEditingItem(null)} className="flex-1 py-3 text-slate-400 font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 rounded-xl transition-all">Cancel</button>
+                                <button onClick={handleUpdateItem} className="flex-1 py-3 bg-blue-600 text-white font-black uppercase text-[10px] tracking-widest rounded-xl shadow-lg hover:bg-blue-700 transition-all">Save Changes</button>
                             </div>
                         </div>
                     </div>
@@ -455,9 +459,9 @@ const HAIBundlesAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                 <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95">
                         <div className="bg-blue-600 p-6 text-white text-center">
-                            <Zap size={40} className="mx-auto mb-2" fill="currentColor" />
-                            <h3 className="text-xl font-black uppercase">Create Action Plan</h3>
-                            <p className="text-xs opacity-80 font-bold">Correction for Bundle non-compliance</p>
+                            <Zap size={32} className="mx-auto mb-2" fill="currentColor" />
+                            <h3 className="text-lg font-black uppercase">Create Action Plan</h3>
+                            <p className="text-[10px] opacity-80 font-bold uppercase tracking-widest">Bundle Correction Strategy</p>
                         </div>
                         <div className="p-8 flex flex-col gap-4">
                             <div className="flex flex-col gap-2">
@@ -467,8 +471,8 @@ const HAIBundlesAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                             <Input label="Target Date" type="date" value={apForm.targetDate} onChange={e => setApForm({...apForm, targetDate: e.target.value})} />
                             <Input label="Person Responsible" value={apForm.personResponsible} onChange={e => setApForm({...apForm, personResponsible: e.target.value})} />
                             <div className="flex gap-3 mt-4">
-                                <button type="button" onClick={() => setShowActionPlanModal(false)} className="flex-1 py-3 text-slate-400 font-black uppercase text-xs hover:bg-slate-50 rounded-xl">Cancel</button>
-                                <button type="button" onClick={handleSaveActionPlan} className="flex-1 py-3 bg-blue-600 text-white font-black uppercase text-xs rounded-xl shadow-lg hover:bg-blue-700 transition-all">Save Action</button>
+                                <button type="button" onClick={() => setShowActionPlanModal(false)} className="flex-1 py-3 text-slate-400 font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 rounded-xl">Cancel</button>
+                                <button type="button" onClick={handleSaveActionPlan} className="flex-1 py-3 bg-blue-600 text-white font-black uppercase text-[10px] tracking-widest rounded-xl shadow-lg hover:bg-blue-700 transition-all">Save Action</button>
                             </div>
                         </div>
                     </div>

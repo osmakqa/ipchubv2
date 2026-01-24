@@ -90,7 +90,7 @@ export const NOTIFIABLE_DISEASES = [
 
 // Dengue
 export const DENGUE_VACCINE_OPTIONS = ['Yes', 'No'];
-export const DENGUE_CLINICAL_CLASSES = ['dengue without warning signs', 'dengue with warning signs', 'severe dengue'];
+export const DENGUE_CLINICAL_CLASSES = ['Dengue without Warning Signs', 'Dengue with Warning Signs', 'Severe Dengue'];
 
 // Influenza-like Illness
 export const ILI_TRAVEL_OPTIONS = ['Yes', 'No'];

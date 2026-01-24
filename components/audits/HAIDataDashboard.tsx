@@ -24,7 +24,8 @@ import {
     Search,
     ChevronLeft,
     Sparkles,
-    Users
+    Users,
+    X
 } from 'lucide-react';
 import { 
     BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, 
@@ -126,6 +127,7 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
         const payload: any = {
             date: formData.date,
         };
+        // Keep patientDays logic for legacy/calculation but it's removed from UI
         payload[currentPrefix] = parseInt(formData.patientDays || '0', 10);
         payload[`${currentPrefix}Vent`] = parseInt(formData.ventCount || '0', 10);
         payload[`${currentPrefix}Ifc`] = parseInt(formData.ifcCount || '0', 10);
@@ -209,26 +211,28 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
 
     const RateCard = ({ title, rates }: { title: string, rates: any }) => (
         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-4">
-            <h4 className="text-xs font-black uppercase text-slate-400 tracking-[0.2em] border-b pb-2">{title}</h4>
+            <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-50 pb-2">{title}</h4>
             <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col"><span className="text-[10px] font-black uppercase text-slate-400">HAP Rate</span><span className="text-xl font-black text-slate-800">{rates.hap}</span></div>
-                <div className="flex flex-col"><span className="text-[10px] font-black uppercase text-slate-400">VAP Rate</span><span className="text-xl font-black text-blue-600">{rates.vap}</span></div>
-                <div className="flex flex-col"><span className="text-[10px] font-black uppercase text-slate-400">CAUTI Rate</span><span className="text-xl font-black text-amber-600">{rates.cauti}</span></div>
-                <div className="flex flex-col"><span className="text-[10px] font-black uppercase text-slate-400">CLABSI Rate</span><span className="text-xl font-black text-red-600">{rates.clabsi}</span></div>
+                <div className="flex flex-col"><span className="text-[8px] font-black uppercase text-slate-400">HAP Rate</span><span className="text-xl font-black text-slate-800">{rates.hap}</span></div>
+                <div className="flex flex-col"><span className="text-[8px] font-black uppercase text-slate-400">VAP Rate</span><span className="text-xl font-black text-blue-600">{rates.vap}</span></div>
+                <div className="flex flex-col"><span className="text-[8px] font-black uppercase text-slate-400">CAUTI Rate</span><span className="text-xl font-black text-amber-600">{rates.cauti}</span></div>
+                <div className="flex flex-col"><span className="text-[8px] font-black uppercase text-slate-400">CLABSI Rate</span><span className="text-xl font-black text-red-600">{rates.clabsi}</span></div>
             </div>
             <div className="mt-2 pt-3 border-t border-slate-50 flex items-center justify-between">
-                <span className="text-[9px] font-black uppercase text-slate-500">Overall Rate</span>
-                <span className="px-3 py-0.5 rounded-full bg-slate-900 text-white text-xs font-black">{rates.overall}</span>
+                <span className="text-[8px] font-black uppercase text-slate-500">Overall Rate</span>
+                <span className="px-3 py-0.5 rounded-full bg-slate-900 text-white text-[10px] font-black">{rates.overall}</span>
             </div>
         </div>
     );
 
     return (
-        <div className="flex flex-col gap-6 max-w-6xl mx-auto pb-20">
-            <div className="flex bg-slate-200 p-1.5 rounded-2xl w-fit">
-                <button onClick={() => setView('log')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 ${view === 'log' ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-500 hover:text-slate-700'}`}><LayoutList size={16}/> Log</button>
-                <button onClick={() => setView('list')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 ${view === 'list' ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-500 hover:text-slate-700'}`}><List size={16}/> List</button>
-                <button onClick={() => setView('analysis')} className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-2 ${view === 'analysis' ? 'bg-white text-slate-900 shadow-lg' : 'text-slate-500 hover:text-slate-700'}`}><TrendingUp size={16}/> Analysis</button>
+        <div className="flex flex-col gap-6 animate-in fade-in duration-300">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
+                <div className="flex bg-gray-100 p-1 rounded-lg h-10">
+                    <button onClick={() => setView('log')} className={`px-4 rounded-md text-[10px] font-black uppercase transition-all flex items-center gap-2 ${view === 'log' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500'}`}><LayoutList size={14}/> Log</button>
+                    <button onClick={() => setView('list')} className={`px-4 rounded-md text-[10px] font-black uppercase transition-all flex items-center gap-2 ${view === 'list' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500'}`}><List size={14}/> List</button>
+                    <button onClick={() => setView('analysis')} className={`px-4 rounded-md text-[10px] font-black uppercase transition-all flex items-center gap-2 ${view === 'analysis' ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-500'}`}><TrendingUp size={14}/> Analysis</button>
+                </div>
             </div>
 
             {view === 'log' ? (
@@ -254,10 +258,9 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                                 <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 flex flex-col gap-5">
                                     <div className="flex items-center gap-2 mb-1">
                                         <Activity size={14} className="text-indigo-600"/>
-                                        <span className="text-[10px] font-black uppercase text-indigo-600 tracking-widest">Census & Device Days: {formData.areaName}</span>
+                                        <span className="text-[10px] font-black uppercase text-indigo-600 tracking-widest">Device Days: {formData.areaName}</span>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                        <Input label="Total Census (Patient Days)" type="number" value={formData.patientDays} onChange={e => setFormData({...formData, patientDays: e.target.value})} required />
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                                         <Input label="Ventilator Count" type="number" value={formData.ventCount} onChange={e => setFormData({...formData, ventCount: e.target.value})} required />
                                         <Input label="IFC Count" type="number" value={formData.ifcCount} onChange={e => setFormData({...formData, ifcCount: e.target.value})} required />
                                         <Input label="Central Line Count" type="number" value={formData.centralCount} onChange={e => setFormData({...formData, centralCount: e.target.value})} required />
@@ -346,40 +349,40 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                     </div>
                 </div>
             ) : view === 'list' ? (
-                <div className="bg-white rounded-[3rem] border border-slate-200 shadow-sm overflow-hidden flex flex-col animate-in fade-in duration-500">
-                    <div className="p-8 border-b border-slate-100 flex items-center justify-between">
+                <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 flex flex-col animate-in fade-in duration-500">
+                    <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-gray-50/50">
                         <div className="flex items-center gap-3">
-                            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl"><List size={24}/></div>
+                            <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg"><List size={20}/></div>
                             <div>
-                                <h2 className="text-xl font-black text-slate-900 uppercase">Census History</h2>
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">Manage recorded daily data</p>
+                                <h2 className="text-sm font-black text-slate-900 uppercase leading-none">Census History</h2>
+                                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">Manage recorded daily data</p>
                             </div>
                         </div>
                     </div>
                     <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="bg-slate-50 text-slate-400 font-black text-[10px] uppercase border-b border-slate-100">
+                            <thead className="bg-gray-50 text-gray-700 font-bold border-b text-[10px] uppercase tracking-wider">
                                 <tr>
-                                    <th className="p-6">Date</th>
-                                    <th className="p-6">Census</th>
-                                    <th className="p-6">Overall Vent</th>
-                                    <th className="p-6">Overall IFC</th>
-                                    <th className="p-6">Overall Central</th>
-                                    <th className="p-6 text-center">Actions</th>
+                                    <th className="px-6 py-4">Date</th>
+                                    <th className="px-6 py-4">Census</th>
+                                    <th className="px-6 py-4">Overall Vent</th>
+                                    <th className="px-6 py-4">Overall IFC</th>
+                                    <th className="px-6 py-4">Overall Central</th>
+                                    <th className="px-6 py-4 text-center">Actions</th>
                                 </tr>
                             </thead>
-                            <tbody className="divide-y divide-slate-50">
+                            <tbody className="divide-y divide-gray-100">
                                 {logs.map(log => (
-                                    <tr key={log.date} className="hover:bg-slate-50 transition-colors group">
-                                        <td className="p-6 font-black text-slate-900">{log.date}</td>
-                                        <td className="p-6 font-bold text-emerald-600">{log.overall || 0}</td>
-                                        <td className="p-6 font-bold text-blue-600">{log.overallVent || 0}</td>
-                                        <td className="p-6 font-bold text-amber-600">{log.overallIfc || 0}</td>
-                                        <td className="p-6 font-bold text-rose-600">{log.overallCentral || 0}</td>
-                                        <td className="p-6">
+                                    <tr key={log.date} className="hover:bg-primary/5 transition-colors group">
+                                        <td className="px-6 py-3 font-black text-slate-900">{log.date}</td>
+                                        <td className="px-6 py-3 font-bold text-emerald-600">{log.overall || 0}</td>
+                                        <td className="px-6 py-3 font-bold text-blue-600">{log.overallVent || 0}</td>
+                                        <td className="px-6 py-3 font-bold text-amber-600">{log.overallIfc || 0}</td>
+                                        <td className="px-6 py-3 font-bold text-rose-600">{log.overallCentral || 0}</td>
+                                        <td className="px-6 py-3">
                                             <div className="flex items-center justify-center gap-2">
-                                                <button onClick={() => handleEditLog(log)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"><Edit3 size={18}/></button>
-                                                <button onClick={() => handleDeleteClick(log.date)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={18}/></button>
+                                                <button onClick={() => handleEditLog(log)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"><Edit3 size={16}/></button>
+                                                <button onClick={() => handleDeleteClick(log.date)} className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-all"><Trash2 size={16}/></button>
                                             </div>
                                         </td>
                                     </tr>
@@ -389,26 +392,26 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                     </div>
                 </div>
             ) : (
-                <div className="flex flex-col gap-10 animate-in fade-in duration-500">
+                <div className="flex flex-col gap-6 animate-in fade-in duration-500">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-2 bg-slate-900 p-10 rounded-[3rem] text-white flex flex-col gap-6 relative overflow-hidden">
+                        <div className="lg:col-span-2 bg-slate-900 p-8 rounded-[2rem] text-white flex flex-col gap-6 relative overflow-hidden shadow-lg">
                             <div className="z-10 flex flex-col gap-2">
-                                <h2 className="text-4xl font-black tracking-tight uppercase">Institutional Rate</h2>
-                                <p className="text-slate-400 font-medium text-lg">Infection Rate per 1,000 Patient/Device Days</p>
+                                <h2 className="text-3xl font-black tracking-tight uppercase">Institutional Rate</h2>
+                                <p className="text-slate-400 font-medium text-base">Infection Rate per 1,000 Patient/Device Days</p>
                             </div>
                             <div className="z-10 grid grid-cols-2 md:grid-cols-4 gap-6 mt-4">
-                                <div className="flex flex-col"><span className="text-[11px] font-black uppercase tracking-widest text-emerald-400">HAP Rate</span><span className="text-4xl font-black">{stats.overall.hap}</span></div>
-                                <div className="flex flex-col"><span className="text-[11px] font-black uppercase tracking-widest text-blue-400">VAP Rate</span><span className="text-4xl font-black">{stats.overall.vap}</span></div>
-                                <div className="flex flex-col"><span className="text-[11px] font-black uppercase tracking-widest text-amber-400">CAUTI Rate</span><span className="text-4xl font-black">{stats.overall.cauti}</span></div>
-                                <div className="flex flex-col"><span className="text-[11px] font-black uppercase tracking-widest text-rose-400">CLABSI Rate</span><span className="text-4xl font-black">{stats.overall.clabsi}</span></div>
+                                <div className="flex flex-col"><span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">HAP Rate</span><span className="text-3xl font-black">{stats.overall.hap}</span></div>
+                                <div className="flex flex-col"><span className="text-[10px] font-black uppercase tracking-widest text-blue-400">VAP Rate</span><span className="text-3xl font-black">{stats.overall.vap}</span></div>
+                                <div className="flex flex-col"><span className="text-[10px] font-black uppercase tracking-widest text-amber-400">CAUTI Rate</span><span className="text-3xl font-black">{stats.overall.cauti}</span></div>
+                                <div className="flex flex-col"><span className="text-[10px] font-black uppercase tracking-widest text-rose-400">CLABSI Rate</span><span className="text-3xl font-black">{stats.overall.clabsi}</span></div>
                             </div>
-                            <div className="absolute top-0 right-0 p-8 opacity-10"><Activity size={200} /></div>
+                            <div className="absolute top-0 right-0 p-8 opacity-10"><Activity size={180} /></div>
                         </div>
-                        <div className="bg-white p-8 rounded-[3rem] border-2 border-primary flex flex-col items-center justify-center text-center gap-2 shadow-xl shadow-primary/10">
-                            <span className="text-[10px] font-black uppercase tracking-[0.3em] text-primary">Consolidated Metric</span>
-                            <span className="text-6xl font-black text-slate-900">{stats.overall.overall}</span>
-                            <span className="text-xs font-bold text-slate-400 uppercase">Hospital Wide Infection Rate</span>
-                            <div className="mt-4 flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase"><TrendingUp size={12}/> -4.2% from Last Month</div>
+                        <div className="bg-white p-8 rounded-[2rem] border-2 border-primary flex flex-col items-center justify-center text-center gap-2 shadow-xl shadow-primary/10">
+                            <span className="text-[9px] font-black uppercase tracking-[0.3em] text-primary">Consolidated Metric</span>
+                            <span className="text-5xl font-black text-slate-900">{stats.overall.overall}</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Hospital Wide Infection Rate</span>
+                            <div className="mt-4 flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase"><TrendingUp size={12}/> -4.2% from Last Month</div>
                         </div>
                     </div>
 
@@ -420,11 +423,12 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                         <RateCard title="Cohort Profile" rates={stats.cohort} />
                     </div>
 
-                    <div className="bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col gap-6">
-                        <div className="flex items-center gap-3">
-                            <div className="p-3 bg-blue-50 rounded-2xl text-blue-600"><BarChart2 className="text-primary"/> Ward-Wise Comparison</div>
+                    <div className="bg-white p-8 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col gap-6">
+                        <div className="flex items-center gap-3 border-b border-slate-50 pb-3">
+                            <div className="p-2 bg-blue-50 rounded-lg text-blue-600"><BarChart2 size={20}/></div>
+                            <h3 className="text-xs font-black uppercase text-slate-900 tracking-widest">Ward-Wise Comparison</h3>
                         </div>
-                        <div className="h-96">
+                        <div className="h-80">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={[
                                     { name: 'ICU', ...stats.icu },
@@ -437,10 +441,10 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
                                     <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'bold'}} />
                                     <RechartsTooltip contentStyle={{borderRadius: '16px', border: 'none', boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'}} />
-                                    <Bar dataKey="hap" fill="#10b981" radius={[4, 4, 0, 0]} />
-                                    <Bar dataKey="vap" fill="#3b82f6" radius={[4, 4, 0, 0]} />
-                                    <Bar dataKey="cauti" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                                    <Bar dataKey="clabsi" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                                    <Bar dataKey="hap" fill="#10b981" radius={[3, 3, 0, 0]} barSize={20} />
+                                    <Bar dataKey="vap" fill="#3b82f6" radius={[3, 3, 0, 0]} barSize={20} />
+                                    <Bar dataKey="cauti" fill="#f59e0b" radius={[3, 3, 0, 0]} barSize={20} />
+                                    <Bar dataKey="clabsi" fill="#ef4444" radius={[3, 3, 0, 0]} barSize={20} />
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
@@ -452,14 +456,14 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
             {editingLog && (
                 <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95">
-                        <div className="bg-indigo-600 p-8 text-white flex justify-between items-center">
+                        <div className="bg-indigo-600 p-6 text-white flex justify-between items-center">
                             <div>
-                                <h3 className="text-2xl font-black uppercase tracking-tight">Edit Daily Census</h3>
+                                <h3 className="text-xl font-black uppercase tracking-tight">Edit Daily Census</h3>
                                 <p className="text-xs opacity-80 font-bold uppercase tracking-widest">{editingLog.date}</p>
                             </div>
-                            <button onClick={() => setEditingLog(null)} className="p-2 hover:bg-white/20 rounded-full transition-colors"><ChevronLeft className="rotate-180" size={24}/></button>
+                            <button onClick={() => setEditingLog(null)} className="p-2 hover:bg-white/20 rounded-full transition-colors"><X size={20}/></button>
                         </div>
-                        <div className="p-10 flex flex-col gap-6">
+                        <div className="p-8 flex flex-col gap-6">
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                                 <Input label="Overall Census" type="number" value={editingLog.overall} onChange={e => setEditingLog({...editingLog, overall: e.target.value})} />
                                 <Input label="Overall Vent" type="number" value={editingLog.overallVent} onChange={e => setEditingLog({...editingLog, overallVent: e.target.value})} />
@@ -467,8 +471,8 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                                 <Input label="Overall Central" type="number" value={editingLog.overallCentral} onChange={e => setEditingLog({...editingLog, overallCentral: e.target.value})} />
                             </div>
                             <div className="flex gap-4 mt-4">
-                                <button onClick={() => setEditingLog(null)} className="flex-1 py-4 text-slate-400 font-black uppercase text-xs hover:bg-slate-50 rounded-2xl transition-all">Cancel</button>
-                                <button onClick={handleUpdateLog} className="flex-1 py-4 bg-indigo-600 text-white font-black uppercase text-xs rounded-2xl shadow-xl hover:bg-indigo-700 transition-all">Save Changes</button>
+                                <button onClick={() => setEditingLog(null)} className="flex-1 py-3 text-slate-400 font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 rounded-xl transition-all">Cancel</button>
+                                <button onClick={handleUpdateLog} className="flex-1 py-3 bg-indigo-600 text-white font-black uppercase text-[10px] tracking-widest rounded-xl shadow-lg hover:bg-indigo-700 transition-all">Save Changes</button>
                             </div>
                         </div>
                     </div>
