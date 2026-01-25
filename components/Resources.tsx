@@ -153,33 +153,33 @@ const ManualReader: React.FC<{ title: string }> = ({ title }) => {
                 <p className="text-sm font-medium text-slate-500">Select a section to view official hospital guidelines and protocols.</p>
             </div>
 
-            <div className="grid grid-cols-1 gap-3">
+            <div className="grid grid-cols-1 gap-2.5">
                 {MANUAL_ITEMS.map((item) => (
                     <button 
                         key={item.id} 
                         onClick={() => setSelectedItem(item)}
-                        className="bg-white p-4.5 rounded-[1.5rem] border border-slate-200 shadow-sm hover:shadow-xl hover:border-emerald-500 transition-all group flex items-center gap-5 text-left relative overflow-hidden"
+                        className="bg-white p-3.5 rounded-[1.25rem] border border-slate-200 shadow-sm hover:shadow-xl hover:border-emerald-500 transition-all group flex items-center gap-5 text-left relative overflow-hidden"
                     >
-                        <div className={`size-12 rounded-xl ${item.color} text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform`}>
-                            {React.cloneElement(item.icon as React.ReactElement<any>, { size: 18 })}
+                        <div className={`size-10 rounded-xl ${item.color} text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform`}>
+                            {React.cloneElement(item.icon as React.ReactElement<any>, { size: 16 })}
                         </div>
                         <div className="flex-1 min-w-0">
                             <div className="flex items-center gap-2 mb-0.5">
-                                <span className={`text-[8px] font-black uppercase tracking-widest ${item.textColor}`}>{item.badge}</span>
+                                <span className={`text-[7px] font-black uppercase tracking-widest ${item.textColor}`}>{item.badge}</span>
                             </div>
-                            <h3 className="text-base font-black text-slate-900 uppercase group-hover:text-emerald-600 transition-colors leading-tight">{item.title}</h3>
-                            <p className="text-[11px] text-slate-500 font-medium mt-0.5 leading-relaxed line-clamp-1">{item.description}</p>
+                            <h3 className="text-sm font-black text-slate-900 uppercase group-hover:text-emerald-600 transition-colors leading-tight">{item.title}</h3>
+                            <p className="text-[10px] text-slate-500 font-medium mt-0.5 leading-relaxed line-clamp-1">{item.description}</p>
                         </div>
-                        <div className="size-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-all">
-                            <ArrowRight size={16} />
+                        <div className="size-7 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-all">
+                            <ArrowRight size={14} />
                         </div>
                     </button>
                 ))}
             </div>
 
-            <div className="bg-emerald-50 p-6 rounded-[2.5rem] border border-emerald-100 flex items-start gap-4">
+            <div className="bg-emerald-50 p-5 rounded-[2rem] border border-emerald-100 flex items-start gap-4">
                 <div className="p-2.5 bg-white rounded-xl shadow-sm text-emerald-600">
-                    <BookOpen size={20} />
+                    <BookOpen size={18} />
                 </div>
                 <div>
                     <h4 className="text-xs font-black text-emerald-900 uppercase tracking-tight">Institutional Reference</h4>
@@ -524,12 +524,12 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                         <div 
                             key={item.id} 
                             onClick={() => handleAction(item)}
-                            className={`bg-white p-3.5 md:p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl ${resourceType === 'pocket-guides' ? 'hover:border-amber-500' : 'hover:border-slate-900'} transition-all group flex flex-col relative overflow-hidden cursor-pointer h-full`}
+                            className={`bg-white p-3 md:p-3.5 rounded-xl border border-gray-100 shadow-sm hover:shadow-xl ${resourceType === 'pocket-guides' ? 'hover:border-amber-500' : 'hover:border-slate-900'} transition-all group flex flex-col relative overflow-hidden cursor-pointer h-full`}
                         >
-                            <div className="flex justify-between items-start gap-2 mb-1">
+                            <div className="flex justify-between items-start gap-2 mb-0.5">
                                 <div className="flex-1 min-w-0">
                                     <span className={`text-[7px] md:text-[8px] font-black uppercase ${resourceType === 'pocket-guides' ? 'text-amber-600' : 'text-slate-400'} tracking-widest block truncate`}>{item.category}</span>
-                                    <h3 className={`font-black text-sm md:text-base text-slate-900 mt-0 ${resourceType === 'pocket-guides' ? 'group-hover:text-amber-600' : 'group-hover:text-slate-900'} transition-colors leading-tight truncate`}>{item.title}</h3>
+                                    <h3 className={`font-black text-sm md:text-sm text-slate-900 mt-0.5 ${resourceType === 'pocket-guides' ? 'group-hover:text-amber-600' : 'group-hover:text-slate-900'} transition-colors leading-tight truncate`}>{item.title}</h3>
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0">
                                     {isAuthenticated && (
@@ -550,8 +550,8 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                                             </button>
                                         </div>
                                     )}
-                                    <div className={`p-1.5 md:p-2 ${resourceType === 'pocket-guides' ? 'bg-amber-50 group-hover:bg-amber-100 text-amber-400' : 'bg-slate-50 group-hover:bg-slate-100 text-slate-400'} rounded-lg transition-colors`}>
-                                        {item.type === 'pocket' ? <BookMarked size={16} /> : <ExternalLink size={16} />}
+                                    <div className={`p-1 md:p-1.5 ${resourceType === 'pocket-guides' ? 'bg-amber-50 group-hover:bg-amber-100 text-amber-400' : 'bg-slate-50 group-hover:bg-slate-100 text-slate-400'} rounded-lg transition-colors`}>
+                                        {item.type === 'pocket' ? <BookMarked size={14} /> : <ExternalLink size={14} />}
                                     </div>
                                 </div>
                             </div>
@@ -560,11 +560,11 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                                 {item.description}
                             </p>
                             
-                            <div className="flex items-center justify-between pt-2 border-t border-slate-50">
+                            <div className="flex items-center justify-between pt-1.5 border-t border-slate-50">
                                 <span className="text-[6px] md:text-[7px] font-black text-slate-300 flex items-center gap-1 uppercase tracking-widest">
                                     <Clock size={8}/> {item.updated}
                                 </span>
-                                <div className={`flex items-center gap-1 text-[7px] md:text-[9px] font-black uppercase tracking-widest ${resourceType === 'pocket-guides' ? 'text-amber-700' : 'text-slate-900'}`}>
+                                <div className={`flex items-center gap-1 text-[7px] md:text-[8px] font-black uppercase tracking-widest ${resourceType === 'pocket-guides' ? 'text-amber-700' : 'text-slate-900'}`}>
                                     {item.type === 'pocket' ? 'View Pocket Card' : 'Open Reference'}
                                     <ChevronRight size={10} className="group-hover:translate-x-1 transition-transform"/>
                                 </div>

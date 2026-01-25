@@ -327,7 +327,7 @@ const PTBForm: React.FC = () => {
                             <div key={i} className="grid grid-cols-1 md:grid-cols-3 gap-2 bg-white p-3 rounded-2xl border border-amber-50 shadow-sm relative animate-in zoom-in-95">
                                 <Input label="Date" type="date" value={s.date} onChange={e => updateListItem('smearResults', i, 'date', e.target.value)} />
                                 <Input label="Specimen" value={s.specimen} onChange={e => updateListItem('smearResults', i, 'specimen', e.target.value)} />
-                                <Select label="Result" options={['Negative', '1+', '2+', '3+', 'Scanty']} value={s.result} onChange={e => updateListItem('smearResults', i, 'result', e.target.value)} />
+                                <Select label="Result" options={['Negative', 'Scanty', '1+', '2+', '3+']} value={s.result} onChange={e => updateListItem('smearResults', i, 'result', e.target.value)} />
                                 <button type="button" onClick={() => removeListItem('smearResults', i)} className="absolute -top-2 -right-2 p-1.5 bg-white border border-red-100 text-red-500 rounded-full shadow-sm hover:bg-red-50"><Trash2 size={12}/></button>
                             </div>
                         ))}

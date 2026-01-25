@@ -286,6 +286,7 @@ const SurveillanceHub: React.FC = () => {
   const filterModules = (mods: ModuleConfig[]) => {
     if (isAuthenticated) return mods;
     // Hide registry dashboards from non-logged in users
+    // Contributors (analytics) remains visible
     const restrictedIds = ['hai', 'notifiable', 'tb', 'isolation', 'needlestick'];
     return mods.filter(m => !restrictedIds.includes(m.id));
   };
