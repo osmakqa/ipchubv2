@@ -187,6 +187,8 @@ import { initializeApp } from 'firebase/app';
       return true;
     } catch (e) { return false; }
   };
+
+  export const updateReference = (data: any) => updateGenericRecord('clinical_references', data);
   
   export const submitReport = async (formType: string, data: any): Promise<boolean> => {
     const typeKey = formType.toLowerCase().split(' ')[0];

@@ -24,10 +24,11 @@ import {
     X,
     Loader2,
     Save,
+    Edit3,
     Link as LinkIcon
 } from 'lucide-react';
 import { HAND_HYGIENE_MD, ISOLATION_PRECAUTIONS_MD } from '../constants/guidelines';
-import { getReferences, submitReference } from '../services/ipcService';
+import { getReferences, submitReference, updateReference } from '../services/ipcService';
 
 interface Resource {
     id: string;
@@ -67,6 +68,7 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
     const [dbItems, setDbItems] = useState<Resource[]>([]);
     const [loading, setLoading] = useState(false);
     const [showAddModal, setShowAddModal] = useState(false);
+    const [showEditModal, setShowEditModal] = useState(false);
 
     // Form state for adding new reference
     const [newRef, setNewRef] = useState({
@@ -76,6 +78,9 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
         category: '',
         categoryOther: ''
     });
+
+    // Form state for editing existing reference
+    const [editingItemData, setEditingItemData] = useState<any>(null);
 
     const resourceType = type || 'policies';
 
@@ -146,6 +151,42 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
             loadData();
         } else {
             alert("Failed to save reference.");
+        }
+        setLoading(false);
+    };
+
+    const handleEditClick = (item: Resource) => {
+        const isStandardCategory = REFERENCE_CATEGORIES.includes(item.category);
+        setEditingItemData({
+            id: item.id,
+            title: item.title,
+            link: item.link || '',
+            description: item.description,
+            category: isStandardCategory ? item.category : 'Others (Specify)',
+            categoryOther: isStandardCategory ? '' : item.category
+        });
+        setShowEditModal(true);
+    };
+
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        const category = editingItemData.category === 'Others (Specify)' ? editingItemData.categoryOther : editingItemData.category;
+        
+        const success = await updateReference({
+            id: editingItemData.id,
+            title: editingItemData.title,
+            link: editingItemData.link,
+            description: editingItemData.description,
+            category
+        });
+
+        if (success) {
+            setShowEditModal(false);
+            setEditingItemData(null);
+            loadData();
+        } else {
+            alert("Failed to update reference.");
         }
         setLoading(false);
     };
@@ -248,7 +289,7 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 md:gap-4">
                 {loading ? (
                     <div className="col-span-full py-20 text-center"><Loader2 className="animate-spin mx-auto text-slate-200" size={48} /></div>
                 ) : (
@@ -256,37 +297,48 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                         <div 
                             key={item.id} 
                             onClick={() => handleRead(item)}
-                            className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-primary transition-all group flex flex-col gap-4 relative overflow-hidden cursor-pointer"
+                            className="bg-white p-4 md:p-6 rounded-[2rem] md:rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl hover:border-primary transition-all group flex flex-col gap-3 md:gap-4 relative overflow-hidden cursor-pointer"
                         >
                             <div className="flex justify-between items-start">
                                 <div className="flex-1">
-                                    <span className="text-[10px] font-black uppercase text-[var(--osmak-green)] tracking-widest">{item.category}</span>
-                                    <h3 className="font-black text-xl text-slate-900 mt-1 group-hover:text-primary transition-colors leading-tight">{item.title}</h3>
+                                    <span className="text-[9px] md:text-[10px] font-black uppercase text-[var(--osmak-green)] tracking-widest">{item.category}</span>
+                                    <h3 className="font-black text-base md:text-xl text-slate-900 mt-0.5 md:mt-1 group-hover:text-primary transition-colors leading-tight">{item.title}</h3>
                                 </div>
-                                <div className="p-3 bg-slate-50 rounded-2xl group-hover:bg-green-50 text-gray-400 group-hover:text-primary transition-colors shrink-0 ml-4">
-                                    {item.type === 'pdf' ? <ScrollText size={24} /> : item.type === 'link' ? <ExternalLink size={24} /> : <FileText size={24} />}
+                                <div className="flex items-center gap-1 md:gap-2 shrink-0 ml-2 md:ml-4">
+                                    {isAuthenticated && resourceType === 'pathways' && (
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); handleEditClick(item); }}
+                                            className="p-1.5 md:p-2 text-slate-300 hover:text-primary hover:bg-slate-50 rounded-lg md:rounded-xl transition-all"
+                                            title="Edit Reference"
+                                        >
+                                            <Edit3 size={18} className="md:w-5 md:h-5" />
+                                        </button>
+                                    )}
+                                    <div className="p-2 md:p-3 bg-slate-50 rounded-xl md:rounded-2xl group-hover:bg-green-50 text-gray-400 group-hover:text-primary transition-colors">
+                                        {item.type === 'pdf' ? <ScrollText size={20} className="md:w-6 md:h-6" /> : item.type === 'link' ? <ExternalLink size={20} className="md:w-6 md:h-6" /> : <FileText size={20} className="md:w-6 md:h-6" />}
+                                    </div>
                                 </div>
                             </div>
                             
-                            <p className="text-sm text-slate-500 font-medium leading-relaxed line-clamp-2">{item.description}</p>
+                            <p className="text-xs md:text-sm text-slate-500 font-medium leading-relaxed line-clamp-1 md:line-clamp-2">{item.description}</p>
                             
-                            <div className="flex items-center justify-between mt-auto pt-4 border-t border-slate-50">
-                                <span className="text-[9px] font-black text-slate-300 flex items-center gap-1 uppercase tracking-widest">
+                            <div className="flex items-center justify-between mt-auto pt-3 md:pt-4 border-t border-slate-50">
+                                <span className="text-[8px] md:text-[9px] font-black text-slate-300 flex items-center gap-1 uppercase tracking-widest">
                                     <Clock size={10}/> Updated {item.updated}
                                 </span>
-                                <div className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[var(--osmak-green-dark)]">
+                                <div className="flex items-center gap-2 text-[10px] md:text-xs font-black uppercase tracking-widest text-[var(--osmak-green-dark)]">
                                     {item.type === 'pdf' ? (
                                         <><Download size={14} /> Download</>
                                     ) : item.type === 'link' ? (
-                                        <><ExternalLink size={14} /> Access Resource</>
+                                        <><ExternalLink size={14} /> Access</>
                                     ) : (
-                                        <><BookOpen size={14} /> Read Document</>
+                                        <><BookOpen size={14} /> Read</>
                                     )}
                                     <ChevronRight size={14} className="group-hover:translate-x-1 transition-transform"/>
                                 </div>
                             </div>
-                            <div className="absolute bottom-[-20px] right-[-20px] opacity-0 group-hover:opacity-5 transition-opacity">
-                                <Library size={120} className="text-primary rotate-12" />
+                            <div className="absolute bottom-[-15px] right-[-15px] md:bottom-[-20px] md:right-[-20px] opacity-0 group-hover:opacity-5 transition-opacity">
+                                <Library size={80} className="md:w-[120px] md:h-[120px] text-primary rotate-12" />
                             </div>
                         </div>
                     ))
@@ -391,6 +443,89 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                                     className="flex-1 py-4 bg-primary text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-xl shadow-primary/20 hover:bg-osmak-green-dark transition-all active:scale-95 flex items-center justify-center gap-2"
                                 >
                                     {loading ? <Loader2 size={18} className="animate-spin" /> : <><Save size={18} /> Save Resource</>}
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Edit Reference Modal */}
+            {showEditModal && editingItemData && (
+                <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
+                    <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in-95">
+                        <div className="bg-primary p-8 text-white relative">
+                            <button onClick={() => setShowEditModal(false)} className="absolute top-6 right-6 p-2 hover:bg-white/20 rounded-full transition-colors"><X size={24}/></button>
+                            <div className="flex items-center gap-4">
+                                <div className="p-3 bg-white/20 rounded-2xl">
+                                    <Edit3 size={32} />
+                                </div>
+                                <div>
+                                    <h3 className="text-2xl font-black uppercase tracking-tight">Edit Reference</h3>
+                                    <p className="text-xs opacity-80 font-bold uppercase tracking-widest">Update Clinical Resource</p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <form onSubmit={handleEditSubmit} className="p-10 flex flex-col gap-6">
+                            <Input 
+                                label="Resource Title" 
+                                value={editingItemData.title} 
+                                onChange={e => setEditingItemData({...editingItemData, title: e.target.value})} 
+                                required 
+                            />
+                            
+                            <Input 
+                                label="Resource Link (URL)" 
+                                type="url"
+                                value={editingItemData.link} 
+                                onChange={e => setEditingItemData({...editingItemData, link: e.target.value})} 
+                                required 
+                            />
+
+                            <div className="flex flex-col gap-1.5">
+                                <label className="text-sm font-bold text-gray-600 uppercase tracking-tight ml-0.5">Short Description</label>
+                                <textarea 
+                                    className="px-4 py-3 text-base rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-primary transition-all bg-white placeholder:text-gray-300"
+                                    value={editingItemData.description}
+                                    onChange={e => setEditingItemData({...editingItemData, description: e.target.value})}
+                                    rows={3}
+                                    required
+                                />
+                            </div>
+
+                            <div className="flex flex-col gap-4">
+                                <Select 
+                                    label="Category" 
+                                    options={REFERENCE_CATEGORIES} 
+                                    value={editingItemData.category} 
+                                    onChange={e => setEditingItemData({...editingItemData, category: e.target.value})} 
+                                    required 
+                                />
+                                {editingItemData.category === 'Others (Specify)' && (
+                                    <Input 
+                                        label="Specify Category" 
+                                        value={editingItemData.categoryOther} 
+                                        onChange={e => setEditingItemData({...editingItemData, categoryOther: e.target.value})} 
+                                        required
+                                    />
+                                )}
+                            </div>
+
+                            <div className="flex gap-4 mt-4">
+                                <button 
+                                    type="button" 
+                                    onClick={() => setShowEditModal(false)} 
+                                    className="flex-1 py-4 text-slate-400 font-black uppercase text-xs tracking-widest hover:bg-slate-50 rounded-2xl transition-all"
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    type="submit" 
+                                    disabled={loading}
+                                    className="flex-1 py-4 bg-slate-900 text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-xl hover:bg-black transition-all active:scale-95 flex items-center justify-center gap-2"
+                                >
+                                    {loading ? <Loader2 size={18} className="animate-spin" /> : <><Save size={18} /> Update Resource</>}
                                 </button>
                             </div>
                         </form>
