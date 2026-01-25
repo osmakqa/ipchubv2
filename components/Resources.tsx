@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Layout from './ui/Layout';
 import Input from './ui/Input';
 import Select from './ui/Select';
+import PasswordConfirmModal from './ui/PasswordConfirmModal';
 import { useAuth } from '../AuthContext';
 import { 
     ChevronLeft, 
@@ -171,13 +172,18 @@ interface Props {
 
 const Resources: React.FC<Props> = ({ title, type, isNested }) => {
     const navigate = useNavigate();
-    const { isAuthenticated, user } = useAuth();
+    const { isAuthenticated, user, validatePassword } = useAuth();
     const [search, setSearch] = useState('');
     const [selectedDoc, setSelectedDoc] = useState<Resource | null>(null);
     const [dbItems, setDbItems] = useState<Resource[]>([]);
     const [loading, setLoading] = useState(false);
     const [showAddModal, setShowAddModal] = useState(false);
     const [showEditModal, setShowEditModal] = useState(false);
+
+    // Secure deletion state
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+    const [itemToDelete, setItemToDelete] = useState<Resource | null>(null);
+    const [passwordConfirmLoading, setPasswordConfirmLoading] = useState(false);
 
     const [newRef, setNewRef] = useState({
         title: '',
@@ -304,17 +310,32 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
         setLoading(false);
     };
 
-    const handleDeleteResource = async (id: string) => {
-        if (!confirm("Are you sure you want to delete this resource?")) return;
-        setLoading(true);
-        const col = resourceType === 'pocket-guides' ? 'clinical_pocket_guides' : 'clinical_references';
-        const success = await deleteRecord(col, id);
-        if (success) {
-            loadData();
-        } else {
-            alert("Failed to delete.");
+    const handleDeleteClick = (item: Resource) => {
+        setItemToDelete(item);
+        setShowDeleteConfirm(true);
+    };
+
+    const handleConfirmDelete = async (password: string) => {
+        if (!itemToDelete || !user) return;
+        setPasswordConfirmLoading(true);
+        if (!validatePassword(user, password)) {
+            alert("Incorrect password.");
+            setPasswordConfirmLoading(false);
+            return;
         }
-        setLoading(false);
+        try {
+            const col = resourceType === 'pocket-guides' ? 'clinical_pocket_guides' : 'clinical_references';
+            const success = await deleteRecord(col, itemToDelete.id);
+            if (success) {
+                loadData();
+                setShowDeleteConfirm(false);
+                setItemToDelete(null);
+            } else {
+                alert("Failed to delete.");
+            }
+        } finally {
+            setPasswordConfirmLoading(false);
+        }
     };
 
     if (selectedDoc) {
@@ -387,7 +408,7 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                                                 <Edit3 size={16} />
                                             </button>
                                             <button 
-                                                onClick={(e) => { e.stopPropagation(); handleDeleteResource(item.id); }}
+                                                onClick={(e) => { e.stopPropagation(); handleDeleteClick(item); }}
                                                 className="p-1.5 md:p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
                                                 title="Delete"
                                             >
@@ -418,6 +439,15 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                     ))
                 )}
             </div>
+
+            <PasswordConfirmModal
+                show={showDeleteConfirm}
+                onClose={() => setShowDeleteConfirm(false)}
+                onConfirm={handleConfirmDelete}
+                loading={passwordConfirmLoading}
+                title="Confirm Resource Deletion"
+                description={`Are you sure you want to permanently delete '${itemToDelete?.title}'? This action cannot be undone.`}
+            />
 
             {showAddModal && (
                 <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">

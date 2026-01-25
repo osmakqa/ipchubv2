@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth, AppMode } from '../AuthContext';
-import { LogOut, Key, Loader2, Bell, Activity, ShieldCheck, MonitorPlay, ChevronRight } from 'lucide-react';
+import { LogOut, Key, Loader2, Bell, Activity, ShieldCheck, MonitorPlay, ChevronRight, Sparkles } from 'lucide-react';
 import Input from './ui/Input';
 import Select from './ui/Select';
 import { getPendingReports } from '../services/ipcService';
@@ -31,7 +31,6 @@ const Header: React.FC = () => {
 
   const handleModeSwitch = (mode: AppMode) => {
     setAppMode(mode);
-    // Explicitly navigate to the hub and set the overview module when switching perspectives
     navigate(`/surveillance?module=overview`);
   };
 
@@ -47,6 +46,18 @@ const Header: React.FC = () => {
         }
         setLoading(false);
     }, 800);
+  };
+
+  const handleQuickLoginMax = () => {
+    setLoginData({ name: 'Max', password: 'max123' });
+    setLoading(true);
+    setTimeout(() => {
+      if (login('Max', 'max123')) {
+        setShowLogin(false);
+        setLoginData({ name: '', password: '' });
+      }
+      setLoading(false);
+    }, 500);
   };
 
   const getThemeColors = () => {
@@ -66,12 +77,11 @@ const Header: React.FC = () => {
             <img src="https://maxterrenal-hash.github.io/justculture/osmak-logo.png" alt="OsMak" className="h-9 md:h-10 w-auto" />
           </div>
           <div className="flex flex-col">
-            <h1 className="text-sm md:text-lg font-black tracking-tighter uppercase leading-none">Ospital ng Makati</h1>
-            <span className="text-[8px] md:text-[10px] opacity-70 font-black uppercase tracking-widest mt-0.5">IPC Unified Platform</span>
+            <h1 className="text-sm md:text-lg font-black tracking-tighter uppercase leading-none">IPC Hub</h1>
+            <span className="text-[8px] md:text-[10px] opacity-70 font-black uppercase tracking-widest mt-0.5">Ospital ng Makati</span>
           </div>
         </div>
 
-        {/* PERSPECTIVE SWITCHER - Centered pill with clear labels for Web */}
         {isAuthenticated && (
           <div className="hidden lg:flex items-center bg-black/20 rounded-full p-1.5 backdrop-blur-xl border border-white/10 shadow-inner">
             <button 
@@ -93,33 +103,6 @@ const Header: React.FC = () => {
               <MonitorPlay size={14} /> Present
             </button>
           </div>
-        )}
-
-        {/* MOBILE PERSPECTIVE SWITCHER - Truncated but stylish */}
-        {isAuthenticated && (
-            <div className="lg:hidden flex items-center bg-black/20 rounded-2xl p-1 backdrop-blur-md border border-white/10">
-                <button 
-                    onClick={() => handleModeSwitch('report')}
-                    className={`p-2.5 rounded-xl transition-all ${appMode === 'report' ? 'bg-white text-osmak-green shadow-lg' : 'text-white/60'}`}
-                    title="Surveillance"
-                >
-                    <Activity size={18} />
-                </button>
-                <button 
-                    onClick={() => handleModeSwitch('audit')}
-                    className={`p-2.5 rounded-xl transition-all ${appMode === 'audit' ? 'bg-white text-teal-600 shadow-lg' : 'text-white/60'}`}
-                    title="Audit"
-                >
-                    <ShieldCheck size={18} />
-                </button>
-                <button 
-                    onClick={() => handleModeSwitch('present')}
-                    className={`p-2.5 rounded-xl transition-all ${appMode === 'present' ? 'bg-white text-slate-800 shadow-lg' : 'text-white/60'}`}
-                    title="Present"
-                >
-                    <MonitorPlay size={18} />
-                </button>
-            </div>
         )}
 
         <div className="flex items-center gap-2 md:gap-4 shrink-0">
@@ -144,7 +127,6 @@ const Header: React.FC = () => {
                 </div>
                 <button onClick={logout} className="p-2 bg-white/20 hover:bg-rose-500 hover:text-white rounded-lg transition-all"><LogOut size={16} /></button>
               </div>
-              {/* Mobile logout */}
               <button onClick={logout} className="sm:hidden p-2.5 bg-white/10 rounded-xl border border-white/5"><LogOut size={18} /></button>
             </>
           ) : (
@@ -172,29 +154,45 @@ const Header: React.FC = () => {
                     <p className="text-[10px] opacity-60 uppercase tracking-[0.3em] font-bold mt-2">Authorization Required</p>
                 </div>
                 
-                <form onSubmit={handleLogin} className="p-10 flex flex-col gap-6">
-                    <Select 
-                        label="Identity"
-                        options={['Max', 'Miko', 'Micha', 'Michael', 'Bel']}
-                        value={loginData.name}
-                        onChange={(e) => setLoginData({...loginData, name: e.target.value})}
-                        required
-                    />
-                    <Input 
-                        label="Security Key" 
-                        type="password"
-                        placeholder="••••••••"
-                        value={loginData.password}
-                        onChange={(e) => setLoginData({...loginData, password: e.target.value})}
-                        required
-                    />
-                    <div className="flex gap-4 mt-4">
-                        <button type="button" onClick={() => setShowLogin(false)} className="flex-1 py-4 text-slate-400 font-black uppercase text-[11px] tracking-widest hover:bg-slate-50 rounded-2xl transition-all">Cancel</button>
-                        <button type="submit" disabled={loading} className="flex-1 py-4 bg-slate-900 text-white font-black uppercase text-[11px] tracking-widest rounded-2xl shadow-2xl hover:bg-black transition-all flex items-center justify-center gap-3 group">
-                            {loading ? <Loader2 size={18} className="animate-spin" /> : <>Authorize <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" /></>}
-                        </button>
+                <div className="p-10 flex flex-col gap-6">
+                    <button 
+                      onClick={handleQuickLoginMax}
+                      type="button"
+                      className="w-full py-4 bg-amber-50 text-amber-700 border border-amber-200 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] hover:bg-amber-100 transition-all flex items-center justify-center gap-2 shadow-sm"
+                    >
+                      <Sparkles size={16} className="text-amber-500" /> Beta Testing: Login as Max
+                    </button>
+
+                    <div className="flex items-center gap-4 py-2">
+                      <div className="h-px bg-slate-100 flex-1"></div>
+                      <span className="text-[10px] font-black text-slate-300 uppercase">Or Manual Entry</span>
+                      <div className="h-px bg-slate-100 flex-1"></div>
                     </div>
-                </form>
+
+                    <form onSubmit={handleLogin} className="flex flex-col gap-6">
+                        <Select 
+                            label="Identity"
+                            options={['Max', 'Miko', 'Micha', 'Michael', 'Bel']}
+                            value={loginData.name}
+                            onChange={(e) => setLoginData({...loginData, name: e.target.value})}
+                            required
+                        />
+                        <Input 
+                            label="Security Key" 
+                            type="password"
+                            placeholder="••••••••"
+                            value={loginData.password}
+                            onChange={(e) => setLoginData({...loginData, password: e.target.value})}
+                            required
+                        />
+                        <div className="flex gap-4 mt-4">
+                            <button type="button" onClick={() => setShowLogin(false)} className="flex-1 py-4 text-slate-400 font-black uppercase text-[11px] tracking-widest hover:bg-slate-50 rounded-2xl transition-all">Cancel</button>
+                            <button type="submit" disabled={loading} className="flex-1 py-4 bg-slate-900 text-white font-black uppercase text-[11px] tracking-widest rounded-2xl shadow-2xl hover:bg-black transition-all flex items-center justify-center gap-3 group">
+                                {loading ? <Loader2 size={18} className="animate-spin" /> : <>Authorize <ChevronRight size={16} className="group-hover:translate-x-1 transition-transform" /></>}
+                            </button>
+                        </div>
+                    </form>
+                </div>
             </div>
         </div>
       )}

@@ -189,6 +189,7 @@ import { initializeApp } from 'firebase/app';
   };
 
   export const updateReference = (data: any) => updateGenericRecord('clinical_references', data);
+  export const deleteReference = (id: string) => deleteRecord('clinical_references', id);
 
   export const getPocketGuides = async () => {
     const q = query(collection(db, 'clinical_pocket_guides'), orderBy('created_at', 'desc'));
@@ -205,6 +206,7 @@ import { initializeApp } from 'firebase/app';
   };
 
   export const updatePocketGuide = (data: any) => updateGenericRecord('clinical_pocket_guides', data);
+  export const deletePocketGuide = (id: string) => deleteRecord('clinical_pocket_guides', id);
   
   export const submitReport = async (formType: string, data: any): Promise<boolean> => {
     const typeKey = formType.toLowerCase().split(' ')[0];

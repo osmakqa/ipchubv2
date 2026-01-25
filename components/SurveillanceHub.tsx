@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
@@ -73,30 +72,40 @@ const OverviewModule: React.FC = () => {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const unsubHAI = subscribeToReports('reports_hai', 'validated', (data) => {
-            setCounts(prev => ({ ...prev, hai: data.length }));
-            setLoading(false);
-        });
-        const unsubNotif = subscribeToReports('reports_notifiable', 'validated', (data) => {
-            setCounts(prev => ({ ...prev, notifiable: data.length }));
-        });
-        const unsubTB = subscribeToReports('reports_tb', 'validated', (data) => {
-            setCounts(prev => ({ ...prev, tb: data.length }));
-        });
-        const unsubIso = subscribeToReports('reports_isolation', 'validated', (data) => {
-            setCounts(prev => ({ ...prev, isolation: data.length }));
-        });
-        return () => { unsubHAI(); unsubNotif(); unsubTB(); unsubIso(); };
-    }, []);
+        if (isAuthenticated) {
+            const unsubHAI = subscribeToReports('reports_hai', 'validated', (data) => {
+                setCounts(prev => ({ ...prev, hai: data.length }));
+                setLoading(false);
+            });
+            const unsubNotif = subscribeToReports('reports_notifiable', 'validated', (data) => {
+                setCounts(prev => ({ ...prev, notifiable: data.length }));
+            });
+            const unsubTB = subscribeToReports('reports_tb', 'validated', (data) => {
+                setCounts(prev => ({ ...prev, tb: data.length }));
+            });
+            const unsubIso = subscribeToReports('reports_isolation', 'validated', (data) => {
+                setCounts(prev => ({ ...prev, isolation: data.length }));
+            });
+            return () => { unsubHAI(); unsubNotif(); unsubTB(); unsubIso(); };
+        }
+    }, [isAuthenticated]);
 
     const handleQuickNav = (id: string) => setSearchParams({ module: id });
     
-    const actions = [
+    const registryActions = [
       { label: 'Report HAI', path: '/report-hai', icon: <Activity size={18}/>, color: 'bg-blue-600' },
       { label: 'Register TB', path: '/report-ptb', icon: <Stethoscope size={18}/>, color: 'bg-amber-700' },
       { label: 'New Notifiable', path: '/report-disease', icon: <Bell size={18}/>, color: 'bg-red-600' },
       { label: 'Log Injury', path: '/report-needlestick', icon: <ShieldAlert size={18}/>, color: 'bg-red-500' },
       { label: 'Isolation Admit', path: '/report-isolation', icon: <ShieldCheck size={18}/>, color: 'bg-indigo-600' },
+      { label: 'Add Lab Report', path: '/report-culture', icon: <FlaskConical size={18}/>, color: 'bg-teal-600' },
+    ];
+
+    const resourceActions = [
+      { label: 'Antibiogram', module: 'culture', icon: <FlaskConical size={18}/>, color: 'bg-teal-600' },
+      { label: 'IPC Manual', module: 'manual', icon: <BookOpen size={18}/>, color: 'bg-emerald-600' },
+      { label: 'Pocket Guides', module: 'pocket-guides', icon: <FileBadge size={18}/>, color: 'bg-amber-600' },
+      { label: 'References', module: 'references', icon: <Library size={18}/>, color: 'bg-slate-600' },
     ];
 
     const stats = [
@@ -107,33 +116,72 @@ const OverviewModule: React.FC = () => {
 
     return (
         <div className="flex flex-col gap-8 max-w-[1400px] mx-auto animate-in fade-in duration-500">
+            {/* Action Grid - Always Visible */}
             <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col gap-6">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
-                    <div className="size-10 bg-primary/10 text-primary flex items-center justify-center rounded-xl"><Activity size={22} fill="currentColor" /></div>
-                    <div><h2 className="text-lg md:text-xl font-black text-slate-900 tracking-tight uppercase leading-tight">Registry Access</h2><p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest">Select a form to begin a new entry</p></div>
+                    <div className="size-10 bg-primary/10 text-primary flex items-center justify-center rounded-xl">
+                      <Library size={22} />
+                    </div>
+                    <div>
+                      <h2 className="text-lg md:text-xl font-black text-slate-900 tracking-tight uppercase leading-tight">
+                        Registry Access & Resources
+                      </h2>
+                      <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest">
+                        Submit reports or access essential IPC protocols
+                      </p>
+                    </div>
                   </div>
                 </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
-                  {actions.map((action, i) => (
-                    <button key={i} onClick={() => navigate(action.path)} className={`${action.color} text-white p-3 md:p-4 rounded-2xl flex flex-col items-center justify-center gap-2 md:gap-3 shadow-lg hover:brightness-110 active:scale-95 group`}>
-                      <div className="bg-white/20 p-2 rounded-xl group-hover:scale-110 transition-transform">{action.icon}</div>
-                      <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-center leading-tight">{action.label}</span>
-                    </button>
-                  ))}
+
+                <div className="flex flex-col gap-8">
+                  <div className="flex flex-col gap-4">
+                    <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Surveillance Reporting</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
+                      {registryActions.map((action, i) => (
+                        <button 
+                          key={i} 
+                          onClick={() => navigate(action.path)} 
+                          className={`${action.color} text-white p-3 md:p-4 rounded-2xl flex flex-col items-center justify-center gap-2 md:gap-3 shadow-lg hover:brightness-110 active:scale-95 group transition-all`}
+                        >
+                          <div className="bg-white/20 p-2 rounded-xl group-hover:scale-110 transition-transform">{action.icon}</div>
+                          <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-center leading-tight">{action.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col gap-4">
+                    <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Clinical Guidelines</h3>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+                      {resourceActions.map((action, i) => (
+                        <button 
+                          key={i} 
+                          onClick={() => handleQuickNav(action.module)} 
+                          className={`${action.color} text-white p-3 md:p-4 rounded-2xl flex flex-col items-center justify-center gap-2 md:gap-3 shadow-lg hover:brightness-110 active:scale-95 group transition-all`}
+                        >
+                          <div className="bg-white/20 p-2 rounded-xl group-hover:scale-110 transition-transform">{action.icon}</div>
+                          <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-center leading-tight">{action.label}</span>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-                {stats.map((stat) => (
-                    <button key={stat.id} onClick={() => handleQuickNav(stat.id)} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-4 text-left hover:border-primary transition-all group min-h-[140px] md:min-h-[160px] animate-in fade-in zoom-in-95 duration-500">
-                        <div className="flex items-center justify-between"><div className={`p-3 ${stat.bg} ${stat.color} rounded-2xl group-hover:scale-110 transition-transform`}>{stat.icon}</div><span className={`text-[10px] font-black uppercase ${stat.color} ${stat.bg} px-2 py-1 rounded`}>{stat.trend}</span></div>
-                        {loading ? <div className="h-8 w-1/2 bg-slate-100 animate-pulse rounded"></div> : (
-                            <div><h3 className="text-2xl md:text-3xl font-black text-slate-900">{stat.value}</h3><p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">{stat.label}</p></div>
-                        )}
-                    </button>
-                ))}
-            </div>
+            {/* Data Cards - Auth Required */}
+            {isAuthenticated && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                    {stats.map((stat) => (
+                        <button key={stat.id} onClick={() => handleQuickNav(stat.id)} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-4 text-left hover:border-primary transition-all group min-h-[140px] md:min-h-[160px] animate-in fade-in zoom-in-95 duration-500">
+                            <div className="flex items-center justify-between"><div className={`p-3 ${stat.bg} ${stat.color} rounded-2xl group-hover:scale-110 transition-transform`}>{stat.icon}</div><span className={`text-[10px] font-black uppercase ${stat.color} ${stat.bg} px-2 py-1 rounded`}>{stat.trend}</span></div>
+                            {loading ? <div className="h-8 w-1/2 bg-slate-100 animate-pulse rounded"></div> : (
+                                <div><h3 className="text-2xl md:text-3xl font-black text-slate-900">{stat.value}</h3><p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">{stat.label}</p></div>
+                            )}
+                        </button>
+                    ))}
+                </div>
+            )}
         </div>
     );
 };
@@ -222,7 +270,6 @@ const SurveillanceHub: React.FC = () => {
     { id: 'action-plans', label: 'Action Tracker', icon: <ClipboardList size={20} />, color: 'text-rose-600', component: ActionPlanTracker },
   ];
 
-  // Added definition for presentModules to fix 'Cannot find name' error
   const presentModules: ModuleConfig[] = [
     { id: 'overview', label: 'Executive Hub', icon: <Presentation size={20} />, color: 'text-slate-800', component: ExecutiveDashboard },
     { id: 'hai', label: 'HAI Analytics', icon: <Activity size={20} />, color: 'text-blue-600', component: HAIDashboard },
@@ -232,7 +279,14 @@ const SurveillanceHub: React.FC = () => {
     { id: 'needlestick', label: 'Sharps Analytics', icon: <ShieldAlert size={20} />, color: 'text-red-500', component: NeedlestickDashboard },
   ];
 
-  const mainModules = appMode === 'report' ? reportModules : appMode === 'audit' ? auditModules : presentModules;
+  // Logic to hide specific registries when not logged in
+  const filterModules = (mods: ModuleConfig[]) => {
+    if (isAuthenticated) return mods;
+    const restrictedIds = ['hai', 'notifiable', 'tb', 'isolation', 'needlestick', 'analytics'];
+    return mods.filter(m => !restrictedIds.includes(m.id));
+  };
+
+  const mainModules = filterModules(appMode === 'report' ? reportModules : appMode === 'audit' ? auditModules : presentModules);
   const allModules = [...mainModules, ...universalModules];
   const currentModule = allModules.find(m => m.id === activeModule) || allModules[0];
   const ActiveComponent = currentModule.component;
