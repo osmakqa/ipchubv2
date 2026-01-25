@@ -248,7 +248,6 @@ const SurveillanceHub: React.FC = () => {
     { id: 'manual', label: 'IPC Manual', icon: <BookOpen size={20} />, color: 'text-emerald-600', component: Resources },
     { id: 'pocket-guides', label: 'Pocket Guides', icon: <FileBadge size={20} />, color: 'text-amber-600', component: Resources },
     { id: 'references', label: 'References', icon: <Library size={20} />, color: 'text-slate-600', component: Resources },
-    { id: 'analytics', label: 'Contributors', icon: <FileSpreadsheet size={20} />, color: 'text-emerald-600', component: ReporterAnalytics },
   ];
 
   const reportModules: ModuleConfig[] = [
@@ -258,6 +257,7 @@ const SurveillanceHub: React.FC = () => {
     { id: 'tb', label: 'TB Registry', icon: <Stethoscope size={20} />, color: 'text-amber-700', component: PTBDashboard },
     { id: 'isolation', label: 'Isolation Room', icon: <Bed size={20} />, color: 'text-indigo-600', component: IsolationDashboard },
     { id: 'needlestick', label: 'Sharps / Injury', icon: <ShieldAlert size={20} />, color: 'text-red-500', component: NeedlestickDashboard },
+    { id: 'analytics', label: 'Contributors', icon: <FileSpreadsheet size={20} />, color: 'text-emerald-600', component: ReporterAnalytics },
   ];
 
   const auditModules: ModuleConfig[] = [
@@ -268,6 +268,7 @@ const SurveillanceHub: React.FC = () => {
     { id: 'hai-data', label: 'HAI Data', icon: <FileBarChart size={20} />, color: 'text-indigo-600', component: HAIDataDashboard },
     { id: 'hai-bundles', label: 'Care Bundles', icon: <CheckCircle2 size={20} />, color: 'text-blue-600', component: HAIBundlesAudit },
     { id: 'action-plans', label: 'Action Tracker', icon: <ClipboardList size={20} />, color: 'text-rose-600', component: ActionPlanTracker },
+    { id: 'analytics', label: 'Contributors', icon: <FileSpreadsheet size={20} />, color: 'text-emerald-600', component: ReporterAnalytics },
   ];
 
   const presentModules: ModuleConfig[] = [
@@ -277,6 +278,7 @@ const SurveillanceHub: React.FC = () => {
     { id: 'tb', label: 'TB Analytics', icon: <Stethoscope size={20} />, color: 'text-amber-700', component: PTBDashboard },
     { id: 'isolation', label: 'Isolation Analytics', icon: <Bed size={20} />, color: 'text-indigo-600', component: IsolationDashboard },
     { id: 'needlestick', label: 'Sharps Analytics', icon: <ShieldAlert size={20} />, color: 'text-red-500', component: NeedlestickDashboard },
+    { id: 'analytics', label: 'Contributors', icon: <FileSpreadsheet size={20} />, color: 'text-emerald-600', component: ReporterAnalytics },
   ];
 
   // Logic to hide specific registries when not logged in
