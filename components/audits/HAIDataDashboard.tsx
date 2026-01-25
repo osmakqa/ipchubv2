@@ -26,7 +26,9 @@ import {
     Sparkles,
     Users,
     X,
-    BedDouble
+    BedDouble,
+    CalendarDays,
+    ArrowUpRight
 } from 'lucide-react';
 import { 
     BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, 
@@ -34,7 +36,6 @@ import {
 } from 'recharts';
 
 const ANALYTICAL_WARDS = [
-    { label: 'Overall Hospital', prefix: 'overall' },
     { label: 'ICU', prefix: 'icu' },
     { label: 'NICU', prefix: 'nicu' },
     { label: 'PICU', prefix: 'picu' },
@@ -67,7 +68,7 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
         nicuCensus: '',
         medicineCensus: '',
         // Ward Specific Device Days
-        areaName: 'Overall Hospital',
+        areaName: 'ICU',
         ventCount: '',
         ifcCount: '',
         centralCount: ''
@@ -77,11 +78,10 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
         if (initialViewMode) setView(initialViewMode); 
     }, [initialViewMode]);
 
-    const areaOptions = useMemo(() => ["Overall Hospital", ...AREAS], []);
+    const areaOptions = useMemo(() => AREAS, []);
 
     const currentPrefix = useMemo(() => {
         const area = formData.areaName;
-        if (area === "Overall Hospital") return "overall";
         if (area === "ICU") return "icu";
         if (area === "NICU") return "nicu";
         if (area === "PICU" || area === "Pedia ICU") return "picu";
@@ -160,6 +160,24 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
     };
 
     const stats = useMemo(() => calculateInfectionRates(logs, infections), [logs, infections]);
+
+    const monthlySummaries = useMemo(() => {
+        const months: Record<string, any> = {};
+        logs.forEach(log => {
+            const date = new Date(log.date);
+            const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
+            if (!months[monthKey]) {
+                months[monthKey] = { month: monthKey, census: 0, vent: 0, ifc: 0, central: 0 };
+            }
+            months[monthKey].census += Number(log.overall || 0);
+            
+            // Calculate device days for the month (summing overall or ward-specific if overall not directly logged)
+            months[monthKey].vent += Number(log.overallVent || 0);
+            months[monthKey].ifc += Number(log.overallIfc || 0);
+            months[monthKey].central += Number(log.overallCentral || 0);
+        });
+        return Object.values(months).sort((a, b) => b.month.localeCompare(a.month)).slice(0, 6);
+    }, [logs]);
     
     const currentDayLog = useMemo(() => {
         return logs.find(l => l.date === formData.date);
@@ -274,11 +292,11 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                                     <h3 className="text-xs font-black uppercase text-slate-900 tracking-wider">A. Patient Census (Daily Aggregate)</h3>
                                 </div>
                                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                                    <Input label="Total Hospital" type="number" value={formData.overallCensus} onChange={e => setFormData({...formData, overallCensus: e.target.value})} required />
-                                    <Input label="ICU" type="number" value={formData.icuCensus} onChange={e => setFormData({...formData, icuCensus: e.target.value})} required />
-                                    <Input label="PICU" type="number" value={formData.picuCensus} onChange={e => setFormData({...formData, picuCensus: e.target.value})} required />
-                                    <Input label="NICU" type="number" value={formData.nicuCensus} onChange={e => setFormData({...formData, nicuCensus: e.target.value})} required />
-                                    <Input label="Medicine Ward" type="number" value={formData.medicineCensus} onChange={e => setFormData({...formData, medicineCensus: e.target.value})} required />
+                                    <Input label="Total Hospital" type="number" value={formData.overallCensus} onChange={e => setFormData({...formData, overallCensus: e.target.value})} placeholder="0" />
+                                    <Input label="ICU" type="number" value={formData.icuCensus} onChange={e => setFormData({...formData, icuCensus: e.target.value})} placeholder="0" />
+                                    <Input label="PICU" type="number" value={formData.picuCensus} onChange={e => setFormData({...formData, picuCensus: e.target.value})} placeholder="0" />
+                                    <Input label="NICU" type="number" value={formData.nicuCensus} onChange={e => setFormData({...formData, nicuCensus: e.target.value})} placeholder="0" />
+                                    <Input label="Medicine Ward" type="number" value={formData.medicineCensus} onChange={e => setFormData({...formData, medicineCensus: e.target.value})} placeholder="0" />
                                 </div>
                             </div>
 
@@ -300,21 +318,21 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                                             <Wind size={14}/>
                                             <span className="text-[9px] font-black uppercase tracking-widest">Ventilator Days</span>
                                         </div>
-                                        <Input label="Quantity" type="number" value={formData.ventCount} onChange={e => setFormData({...formData, ventCount: e.target.value})} required placeholder="0" />
+                                        <Input label="Quantity" type="number" value={formData.ventCount} onChange={e => setFormData({...formData, ventCount: e.target.value})} placeholder="0" />
                                     </div>
                                     <div className="flex flex-col">
                                         <div className="flex items-center gap-2 text-amber-600 mb-1.5 ml-1">
                                             <Droplets size={14}/>
                                             <span className="text-[9px] font-black uppercase tracking-widest">IFC Days</span>
                                         </div>
-                                        <Input label="Quantity" type="number" value={formData.ifcCount} onChange={e => setFormData({...formData, ifcCount: e.target.value})} required placeholder="0" />
+                                        <Input label="Quantity" type="number" value={formData.ifcCount} onChange={e => setFormData({...formData, ifcCount: e.target.value})} placeholder="0" />
                                     </div>
                                     <div className="flex flex-col">
                                         <div className="flex items-center gap-2 text-rose-600 mb-1.5 ml-1">
                                             <Syringe size={14}/>
                                             <span className="text-[9px] font-black uppercase tracking-widest">Central Line Days</span>
                                         </div>
-                                        <Input label="Quantity" type="number" value={formData.centralCount} onChange={e => setFormData({...formData, centralCount: e.target.value})} required placeholder="0" />
+                                        <Input label="Quantity" type="number" value={formData.centralCount} onChange={e => setFormData({...formData, centralCount: e.target.value})} placeholder="0" />
                                     </div>
                                 </div>
                             </div>
@@ -365,7 +383,7 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                                     <div className="mt-4 flex flex-col gap-2">
                                         <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] px-1">Unit Detail</h3>
                                         <div className="grid grid-cols-1 gap-2">
-                                            {ANALYTICAL_WARDS.filter(a => a.prefix !== 'overall').map(area => (
+                                            {ANALYTICAL_WARDS.map(area => (
                                                 <button key={area.prefix} onClick={() => setFormData(prev => ({...prev, areaName: area.label}))} className={`group p-3 rounded-xl border transition-all flex items-center justify-between ${formData.areaName === area.label ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-slate-100 hover:border-slate-300'}`}>
                                                     <span className={`text-[10px] font-black uppercase ${formData.areaName === area.label ? 'text-indigo-600' : 'text-slate-600'}`}>{area.label}</span>
                                                     <div className="flex items-center gap-4 text-[10px] font-bold text-slate-400">
@@ -441,7 +459,7 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                     </div>
                 </div>
             ) : (
-                <div className="flex flex-col gap-6 animate-in fade-in duration-500">
+                <div className="flex flex-col gap-8 animate-in fade-in duration-500">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div className="lg:col-span-2 bg-slate-900 p-8 rounded-[2rem] text-white flex flex-col gap-6 relative overflow-hidden shadow-lg">
                             <div className="z-10 flex flex-col gap-2">
@@ -461,6 +479,46 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                             <span className="text-5xl font-black text-slate-900">{stats.overall.overall}</span>
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Hospital Wide Infection Rate</span>
                             <div className="mt-4 flex items-center gap-2 px-4 py-1.5 rounded-full bg-emerald-50 text-emerald-600 text-[9px] font-black uppercase"><TrendingUp size={12}/> -4.2% from Last Month</div>
+                        </div>
+                    </div>
+
+                    {/* Monthly Summary Section */}
+                    <div className="bg-white p-8 rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col gap-6">
+                        <div className="flex items-center justify-between border-b border-slate-50 pb-4">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-rose-50 text-rose-600 rounded-xl"><CalendarDays size={20}/></div>
+                                <div>
+                                    <h3 className="text-sm font-black uppercase text-slate-900 tracking-widest">Monthly Surveillance Summary</h3>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase">Aggregated census and device totals</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="overflow-x-auto">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-slate-50 text-slate-500 font-black text-[10px] uppercase tracking-widest">
+                                    <tr>
+                                        <th className="px-6 py-4">Month/Year</th>
+                                        <th className="px-6 py-4">Total Patient Days</th>
+                                        <th className="px-6 py-4 text-blue-600">Ventilator Days</th>
+                                        <th className="px-6 py-4 text-amber-600">IFC Days</th>
+                                        <th className="px-6 py-4 text-rose-600">Central Line Days</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50">
+                                    {monthlySummaries.map(m => (
+                                        <tr key={m.month} className="hover:bg-slate-50 transition-colors">
+                                            <td className="px-6 py-4 font-black text-slate-900">{new Date(m.month + '-01').toLocaleDateString(undefined, {month: 'long', year: 'numeric'})}</td>
+                                            <td className="px-6 py-4 font-bold text-slate-700">{m.census.toLocaleString()}</td>
+                                            <td className="px-6 py-4 font-bold text-blue-700">{m.vent.toLocaleString()}</td>
+                                            <td className="px-6 py-4 font-bold text-amber-700">{m.ifc.toLocaleString()}</td>
+                                            <td className="px-6 py-4 font-bold text-rose-700">{m.central.toLocaleString()}</td>
+                                        </tr>
+                                    ))}
+                                    {monthlySummaries.length === 0 && (
+                                        <tr><td colSpan={5} className="p-10 text-center text-slate-300 font-bold uppercase text-xs">No historical summary available</td></tr>
+                                    )}
+                                </tbody>
+                            </table>
                         </div>
                     </div>
 
@@ -516,20 +574,20 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                             <div className="flex flex-col gap-4">
                                 <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest border-b pb-2">Patient Census</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                    <Input label="Overall Census" type="number" value={editingLog.overall} onChange={e => setEditingLog({...editingLog, overall: e.target.value})} />
-                                    <Input label="ICU Census" type="number" value={editingLog.icu} onChange={e => setEditingLog({...editingLog, icu: e.target.value})} />
-                                    <Input label="PICU Census" type="number" value={editingLog.picu} onChange={e => setEditingLog({...editingLog, picu: e.target.value})} />
-                                    <Input label="NICU Census" type="number" value={editingLog.nicu} onChange={e => setEditingLog({...editingLog, nicu: e.target.value})} />
-                                    <Input label="Medicine Census" type="number" value={editingLog.medicine} onChange={e => setEditingLog({...editingLog, medicine: e.target.value})} />
+                                    <Input label="Overall Census" type="number" value={editingLog.overall} onChange={e => setEditingLog({...editingLog, overall: e.target.value})} placeholder="0" />
+                                    <Input label="ICU Census" type="number" value={editingLog.icu} onChange={e => setEditingLog({...editingLog, icu: e.target.value})} placeholder="0" />
+                                    <Input label="PICU Census" type="number" value={editingLog.picu} onChange={e => setEditingLog({...editingLog, picu: e.target.value})} placeholder="0" />
+                                    <Input label="NICU Census" type="number" value={editingLog.nicu} onChange={e => setEditingLog({...editingLog, nicu: e.target.value})} placeholder="0" />
+                                    <Input label="Medicine Census" type="number" value={editingLog.medicine} onChange={e => setEditingLog({...editingLog, medicine: e.target.value})} placeholder="0" />
                                 </div>
                             </div>
                             
                             <div className="flex flex-col gap-4 mt-2">
                                 <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest border-b pb-2">Overall Device Totals</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                    <Input label="Overall Vent" type="number" value={editingLog.overallVent} onChange={e => setEditingLog({...editingLog, overallVent: e.target.value})} />
-                                    <Input label="Overall IFC" type="number" value={editingLog.overallIfc} onChange={e => setEditingLog({...editingLog, overallIfc: e.target.value})} />
-                                    <Input label="Overall Central" type="number" value={editingLog.overallCentral} onChange={e => setEditingLog({...editingLog, overallCentral: e.target.value})} />
+                                    <Input label="Overall Vent" type="number" value={editingLog.overallVent} onChange={e => setEditingLog({...editingLog, overallVent: e.target.value})} placeholder="0" />
+                                    <Input label="Overall IFC" type="number" value={editingLog.overallIfc} onChange={e => setEditingLog({...editingLog, overallIfc: e.target.value})} placeholder="0" />
+                                    <Input label="Overall Central" type="number" value={editingLog.overallCentral} onChange={e => setEditingLog({...editingLog, overallCentral: e.target.value})} placeholder="0" />
                                 </div>
                             </div>
 
