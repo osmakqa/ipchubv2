@@ -1,10 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ReactMarkdown from 'react-markdown';
 import Layout from './ui/Layout';
 import Input from './ui/Input';
 import Select from './ui/Select';
 import PasswordConfirmModal from './ui/PasswordConfirmModal';
 import { useAuth } from '../AuthContext';
+import { HAND_HYGIENE_MD, ISOLATION_PRECAUTIONS_MD } from '../constants/guidelines';
 import { 
     ChevronLeft, 
     FileText, 
@@ -20,10 +22,16 @@ import {
     Save,
     Edit3,
     Trash2,
-    Printer,
     Info,
     Stethoscope,
-    BookMarked
+    BookMarked,
+    FileType,
+    Hand,
+    ShieldCheck,
+    Download,
+    BookOpen,
+    ArrowRight,
+    Printer
 } from 'lucide-react';
 import { getReferences, submitReference, updateReference, getPocketGuides, submitPocketGuide, updatePocketGuide, deleteRecord } from '../services/ipcService';
 
@@ -54,6 +62,136 @@ const POCKET_GUIDE_CATEGORIES = [
     "Emergency Procedures",
     "Others (Specify)"
 ];
+
+const MANUAL_ITEMS = [
+    {
+        id: 'hand-hygiene',
+        title: 'Hand Hygiene Practices',
+        description: 'Standard institutional protocols for effective hand decontamination and WHO 5 moments.',
+        content: HAND_HYGIENE_MD,
+        icon: <Hand size={24} />,
+        color: 'bg-emerald-500',
+        textColor: 'text-emerald-600',
+        badge: 'Critical'
+    },
+    {
+        id: 'isolation-precautions',
+        title: 'Isolation Precautions',
+        description: 'Standard and transmission-based precautions for Droplet, Airborne, and Contact isolation.',
+        content: ISOLATION_PRECAUTIONS_MD,
+        icon: <ShieldCheck size={24} />,
+        color: 'bg-indigo-500',
+        textColor: 'text-indigo-600',
+        badge: 'Updated'
+    }
+];
+
+const ManualReader: React.FC<{ title: string }> = ({ title }) => {
+    const [selectedItem, setSelectedItem] = useState<typeof MANUAL_ITEMS[0] | null>(null);
+
+    if (selectedItem) {
+        return (
+            <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-3xl mx-auto pb-20">
+                <div className="flex items-center justify-between sticky top-16 bg-slate-50/90 backdrop-blur-md py-4 z-10 border-b border-slate-200 -mx-4 px-4">
+                    <button 
+                        onClick={() => setSelectedItem(null)}
+                        className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-emerald-600 transition-colors"
+                    >
+                        <ArrowLeft size={16} /> Back
+                    </button>
+                    <div className="flex items-center gap-3">
+                        <div className={`p-2 ${selectedItem.color} bg-opacity-10 ${selectedItem.textColor} rounded-lg`}>
+                            {selectedItem.icon}
+                        </div>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Institutional Protocol</span>
+                    </div>
+                </div>
+
+                <div className="bg-white rounded-[3rem] shadow-2xl border border-slate-200 overflow-hidden">
+                    <div className={`${selectedItem.color} p-10 text-white relative overflow-hidden`}>
+                        <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none">
+                            {selectedItem.icon}
+                        </div>
+                        <div className="relative z-10 flex flex-col gap-4">
+                            <div className="flex items-center gap-3">
+                                <img src="https://maxterrenal-hash.github.io/justculture/osmak-logo.png" alt="OsMak" className="h-10 w-auto brightness-0 invert" />
+                                <div className="h-8 w-px bg-white/20"></div>
+                                <div className="flex flex-col">
+                                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 leading-none">Ospital ng Makati</span>
+                                    <span className="text-[10px] font-bold opacity-60 uppercase mt-1 leading-none">IPC Manual</span>
+                                </div>
+                            </div>
+                            <h1 className="text-xl md:text-2xl font-black uppercase tracking-tight leading-tight mt-2">{selectedItem.title}</h1>
+                        </div>
+                    </div>
+
+                    <div className="p-10 md:p-12 bg-white prose prose-slate max-w-none">
+                        <style dangerouslySetInnerHTML={{ __html: `
+                            .ipc-markdown h1 { font-size: 1.5rem; font-weight: 900; color: #0f172a; margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: -0.025em; border-bottom: 3px solid #f1f5f9; padding-bottom: 0.75rem; }
+                            .ipc-markdown h2 { font-size: 1.125rem; font-weight: 900; color: #334155; margin-top: 2.5rem; margin-bottom: 1.25rem; text-transform: uppercase; letter-spacing: 0.05em; }
+                            .ipc-markdown h3 { font-size: 0.9375rem; font-weight: 800; color: #475569; margin-top: 1.75rem; margin-bottom: 0.75rem; text-transform: uppercase; }
+                            .ipc-markdown p { font-size: 0.9375rem; line-height: 1.6; color: #475569; margin-bottom: 1rem; font-weight: 500; }
+                            .ipc-markdown ul { list-style-type: none; padding-left: 0; margin-bottom: 1.5rem; }
+                            .ipc-markdown li { position: relative; padding-left: 1.75rem; margin-bottom: 0.625rem; font-weight: 600; color: #334155; line-height: 1.5; font-size: 0.9375rem; }
+                            .ipc-markdown li::before { content: ""; position: absolute; left: 0.5rem; top: 0.5rem; width: 0.4rem; height: 0.4rem; background-color: #10b981; border-radius: 9999px; }
+                            .ipc-markdown strong { font-weight: 900; color: #0f172a; }
+                            .ipc-markdown blockquote { border-left: 4px solid #10b981; padding-left: 1.25rem; font-style: italic; color: #065f46; margin: 1.5rem 0; background: #f0fdf4; padding-top: 0.75rem; padding-bottom: 0.75rem; border-radius: 0 0.75rem 0.75rem 0; }
+                        `}} />
+                        <div className="ipc-markdown">
+                            <ReactMarkdown>{selectedItem.content}</ReactMarkdown>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    return (
+        <div className="flex flex-col gap-8 max-w-3xl mx-auto animate-in fade-in duration-500">
+            <div className="flex flex-col gap-2">
+                <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Manual of Operations</h2>
+                <p className="text-sm font-medium text-slate-500">Select a section to view official hospital guidelines and protocols.</p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-3">
+                {MANUAL_ITEMS.map((item) => (
+                    <button 
+                        key={item.id} 
+                        onClick={() => setSelectedItem(item)}
+                        className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm hover:shadow-xl hover:border-emerald-500 transition-all group flex items-center gap-6 text-left relative overflow-hidden"
+                    >
+                        <div className={`size-14 rounded-2xl ${item.color} text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform`}>
+                            {/* Fix: cast icon to ReactElement<any> to resolve TS error with 'size' property in cloneElement */}
+                            {React.cloneElement(item.icon as React.ReactElement<any>, { size: 20 })}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                                <span className={`text-[9px] font-black uppercase tracking-widest ${item.textColor}`}>{item.badge}</span>
+                            </div>
+                            <h3 className="text-lg font-black text-slate-900 uppercase group-hover:text-emerald-600 transition-colors leading-tight">{item.title}</h3>
+                            <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed line-clamp-1">{item.description}</p>
+                        </div>
+                        <div className="size-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-all">
+                            <ArrowRight size={20} />
+                        </div>
+                    </button>
+                ))}
+            </div>
+
+            <div className="bg-emerald-50 p-6 rounded-[2.5rem] border border-emerald-100 flex items-start gap-4">
+                <div className="p-2.5 bg-white rounded-xl shadow-sm text-emerald-600">
+                    <BookOpen size={20} />
+                </div>
+                <div>
+                    <h4 className="text-xs font-black text-emerald-900 uppercase tracking-tight">Institutional Reference</h4>
+                    <p className="text-[10px] font-bold text-emerald-700/70 mt-1 leading-relaxed">
+                        The contents of this manual are reviewed annually by the IPC Committee. All healthcare workers are required to adhere to the practices outlined herein.
+                    </p>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 const PocketCardViewer: React.FC<{ guide: Resource; onClose: () => void }> = ({ guide, onClose }) => {
     const handlePrint = () => {
@@ -90,7 +228,7 @@ const PocketCardViewer: React.FC<{ guide: Resource; onClose: () => void }> = ({ 
     }, [guide.content]);
 
     return (
-        <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-2xl mx-auto pb-20 print:p-0 print:m-0">
+        <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-3xl mx-auto pb-20 print:p-0 print:m-0">
             <div className="flex items-center justify-between sticky top-0 bg-slate-50/80 backdrop-blur-md py-4 z-10 border-b border-slate-200 -mx-4 px-4 print:hidden">
                 <button 
                     onClick={onClose}
@@ -111,34 +249,34 @@ const PocketCardViewer: React.FC<{ guide: Resource; onClose: () => void }> = ({ 
                     <div className="flex justify-between items-start gap-6">
                         <div className="flex flex-col gap-2">
                             <span className="text-[10px] font-black uppercase tracking-[0.25em] text-amber-200/80">Clinical Pocket Guide</span>
-                            <h1 className="text-3xl md:text-4xl font-black uppercase tracking-tight leading-tight">{guide.title}</h1>
-                            <div className="flex items-center gap-2 text-xs font-bold text-amber-100/90 mt-2 bg-black/10 w-fit px-3 py-1 rounded-full border border-white/10">
-                                <Info size={14} className="shrink-0" /> {guide.description}
+                            <h1 className="text-xl md:text-2xl font-black uppercase tracking-tight leading-tight mt-1">{guide.title}</h1>
+                            <div className="flex items-center gap-2 text-[10px] font-bold text-amber-100/90 mt-2 bg-black/10 w-fit px-3 py-1 rounded-full border border-white/10">
+                                <Info size={12} className="shrink-0" /> {guide.description}
                             </div>
                         </div>
-                        <div className="p-4 bg-white/15 rounded-[1.5rem] shrink-0 backdrop-blur-sm border border-white/20">
-                            <Stethoscope size={36} />
+                        <div className="p-3 bg-white/15 rounded-2xl shrink-0 backdrop-blur-sm border border-white/20">
+                            <Stethoscope size={28} />
                         </div>
                     </div>
                 </div>
 
                 <div className="p-10 md:p-12 flex flex-col gap-10 bg-[radial-gradient(#e5e7eb_1px,transparent_1px)] [background-size:24px_24px]">
                     {sections.length === 0 ? (
-                        <p className="text-slate-700 font-medium leading-relaxed text-lg whitespace-pre-wrap">{guide.content}</p>
+                        <p className="text-slate-700 font-medium leading-relaxed text-base whitespace-pre-wrap">{guide.content}</p>
                     ) : (
                         sections.map((section, sIdx) => (
                             <div key={sIdx} className="flex flex-col gap-5">
                                 <div className="flex items-center gap-4">
-                                    <div className="size-10 rounded-xl bg-amber-600 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-lg shadow-amber-600/20">{sIdx + 1}</div>
-                                    <h2 className="text-lg font-black uppercase tracking-widest text-slate-900 border-b-4 border-amber-500/10 flex-1 pb-1.5">{section.title}</h2>
+                                    <div className="size-8 rounded-lg bg-amber-600 text-white flex items-center justify-center font-black text-xs shrink-0 shadow-lg shadow-amber-600/20">{sIdx + 1}</div>
+                                    <h2 className="text-base font-black uppercase tracking-widest text-slate-900 border-b-4 border-amber-500/10 flex-1 pb-1.5">{section.title}</h2>
                                 </div>
-                                <div className="flex flex-col gap-4 ml-14">
+                                <div className="flex flex-col gap-3.5 ml-12">
                                     {section.items.map((item, iIdx) => {
                                         const isMainPoint = item.toUpperCase() === item && item.length > 5;
                                         return (
                                             <div key={iIdx} className="flex gap-4 group">
-                                                <div className={`size-2 rounded-full mt-2 shrink-0 ${isMainPoint ? 'bg-amber-600' : 'bg-slate-300'}`}></div>
-                                                <p className={`text-base leading-relaxed ${isMainPoint ? 'font-black text-slate-950 uppercase tracking-tight text-sm' : 'font-medium text-slate-600'}`}>
+                                                <div className={`size-1.5 rounded-full mt-2 shrink-0 ${isMainPoint ? 'bg-amber-600' : 'bg-slate-300'}`}></div>
+                                                <p className={`text-sm leading-relaxed ${isMainPoint ? 'font-black text-slate-950 uppercase tracking-tight' : 'font-medium text-slate-600'}`}>
                                                     {item}
                                                 </p>
                                             </div>
@@ -148,16 +286,6 @@ const PocketCardViewer: React.FC<{ guide: Resource; onClose: () => void }> = ({ 
                             </div>
                         ))
                     )}
-                </div>
-
-                <div className="bg-slate-50 border-t border-slate-100 p-8 flex items-center justify-between">
-                    <div className="flex flex-col gap-1">
-                        <span className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em]">Institutional Protocol</span>
-                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-tight">{guide.updated} • Ospital ng Makati IPC Hub</span>
-                    </div>
-                    <div className="size-12 bg-white rounded-2xl border border-slate-200 flex items-center justify-center text-slate-200">
-                        <BookMarked size={24} />
-                    </div>
                 </div>
             </div>
         </div>
@@ -199,7 +327,9 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
     const resourceType = type || 'pathways';
 
     useEffect(() => {
-        loadData();
+        if (resourceType !== 'policies') {
+            loadData();
+        }
     }, [resourceType]);
 
     const loadData = async () => {
@@ -338,12 +468,17 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
         }
     };
 
+    // If type is policies, we show the fixed Manual Selection / Reader
+    if (resourceType === 'policies') {
+        return <ManualReader title={title || "IPC Manual"} />;
+    }
+
     if (selectedDoc) {
         return <PocketCardViewer guide={selectedDoc} onClose={() => setSelectedDoc(null)} />;
     }
 
     const ListView = (
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 max-w-3xl mx-auto">
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div className="flex items-center gap-4">
                     {!isNested && (
@@ -360,25 +495,26 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                     {isAuthenticated && (
                         <button 
                             onClick={() => setShowAddModal(true)}
-                            className={`h-10 px-6 ${resourceType === 'pocket-guides' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-slate-900 hover:bg-black'} text-white rounded-xl font-black uppercase text-[10px] tracking-widest shadow-xl transition-all flex items-center gap-2`}
+                            className={`h-9 px-4 ${resourceType === 'pocket-guides' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-slate-900 hover:bg-black'} text-white rounded-xl font-black uppercase text-[9px] tracking-widest shadow-lg transition-all flex items-center gap-2`}
                         >
-                            <Plus size={14}/> Add {resourceType === 'pocket-guides' ? 'Pocket Guide' : 'Reference'}
+                            <Plus size={12}/> Add {resourceType === 'pocket-guides' ? 'Pocket Guide' : 'Reference'}
                         </button>
                     )}
                 </div>
-                <div className="relative w-full md:w-96">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+                <div className="relative w-full md:w-80">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                     <input 
                         type="text" 
-                        className={`w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-200 focus:ring-2 ${resourceType === 'pocket-guides' ? 'focus:ring-amber-500' : 'focus:ring-slate-900'} outline-none shadow-sm transition-all font-medium`}
+                        className={`w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 focus:ring-2 ${resourceType === 'pocket-guides' ? 'focus:ring-amber-500' : 'focus:ring-slate-900'} outline-none shadow-sm transition-all font-medium text-sm`}
                         placeholder={`Search ${title || 'Resources'}...`}
+                        /* Fix: corrected variable name from 'searchQuery' to 'search' */
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-stretch">
+            <div className="grid grid-cols-1 gap-3 items-stretch">
                 {loading ? (
                     <div className="col-span-full py-20 text-center"><Loader2 className="animate-spin mx-auto text-slate-200" size={48} /></div>
                 ) : filteredItems.length === 0 ? (
@@ -390,12 +526,12 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                         <div 
                             key={item.id} 
                             onClick={() => handleAction(item)}
-                            className={`bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl ${resourceType === 'pocket-guides' ? 'hover:border-amber-500' : 'hover:border-slate-900'} transition-all group flex flex-col relative overflow-hidden cursor-pointer h-full`}
+                            className={`bg-white p-4 md:p-5 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl ${resourceType === 'pocket-guides' ? 'hover:border-amber-500' : 'hover:border-slate-900'} transition-all group flex flex-col relative overflow-hidden cursor-pointer h-full`}
                         >
-                            <div className="flex justify-between items-start gap-2 mb-2">
+                            <div className="flex justify-between items-start gap-2 mb-1.5">
                                 <div className="flex-1 min-w-0">
-                                    <span className={`text-[8px] md:text-[10px] font-black uppercase ${resourceType === 'pocket-guides' ? 'text-amber-600' : 'text-slate-400'} tracking-widest block truncate`}>{item.category}</span>
-                                    <h3 className={`font-black text-sm md:text-xl text-slate-900 mt-0.5 ${resourceType === 'pocket-guides' ? 'group-hover:text-amber-600' : 'group-hover:text-slate-900'} transition-colors leading-tight truncate`}>{item.title}</h3>
+                                    <span className={`text-[8px] md:text-[9px] font-black uppercase ${resourceType === 'pocket-guides' ? 'text-amber-600' : 'text-slate-400'} tracking-widest block truncate`}>{item.category}</span>
+                                    <h3 className={`font-black text-sm md:text-lg text-slate-900 mt-0.5 ${resourceType === 'pocket-guides' ? 'group-hover:text-amber-600' : 'group-hover:text-slate-900'} transition-colors leading-tight truncate`}>{item.title}</h3>
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0">
                                     {isAuthenticated && (
@@ -416,21 +552,21 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                                             </button>
                                         </div>
                                     )}
-                                    <div className={`p-1.5 md:p-3 ${resourceType === 'pocket-guides' ? 'bg-amber-50 group-hover:bg-amber-100 text-amber-400' : 'bg-slate-50 group-hover:bg-slate-100 text-slate-400'} rounded-lg md:rounded-2xl transition-colors`}>
-                                        {item.type === 'pocket' ? <BookMarked size={22} /> : <ExternalLink size={22} />}
+                                    <div className={`p-1.5 md:p-2.5 ${resourceType === 'pocket-guides' ? 'bg-amber-50 group-hover:bg-amber-100 text-amber-400' : 'bg-slate-50 group-hover:bg-slate-100 text-slate-400'} rounded-lg md:rounded-2xl transition-colors`}>
+                                        {item.type === 'pocket' ? <BookMarked size={18} /> : <ExternalLink size={18} />}
                                     </div>
                                 </div>
                             </div>
                             
-                            <p className="text-xs text-slate-500 font-medium leading-relaxed mb-4 line-clamp-2">
+                            <p className="text-[11px] text-slate-500 font-medium leading-relaxed mb-3 line-clamp-1">
                                 {item.description}
                             </p>
                             
-                            <div className="flex items-center justify-between pt-4 border-t border-slate-50">
-                                <span className="text-[7px] md:text-[9px] font-black text-slate-300 flex items-center gap-1 uppercase tracking-widest">
+                            <div className="flex items-center justify-between pt-3 border-t border-slate-50">
+                                <span className="text-[7px] md:text-[8px] font-black text-slate-300 flex items-center gap-1 uppercase tracking-widest">
                                     <Clock size={10}/> {item.updated}
                                 </span>
-                                <div className={`flex items-center gap-1 text-[8px] md:text-xs font-black uppercase tracking-widest ${resourceType === 'pocket-guides' ? 'text-amber-700' : 'text-slate-900'}`}>
+                                <div className={`flex items-center gap-1 text-[8px] md:text-[10px] font-black uppercase tracking-widest ${resourceType === 'pocket-guides' ? 'text-amber-700' : 'text-slate-900'}`}>
                                     {item.type === 'pocket' ? 'View Pocket Card' : 'Open Reference'}
                                     <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform"/>
                                 </div>

@@ -25,7 +25,8 @@ import {
   FileText,
   UserPlus,
   X,
-  FileBadge
+  FileBadge,
+  Sparkles
 } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 
@@ -87,6 +88,8 @@ const OverviewModule: React.FC = () => {
                 setCounts(prev => ({ ...prev, isolation: data.length }));
             });
             return () => { unsubHAI(); unsubNotif(); unsubTB(); unsubIso(); };
+        } else {
+          setLoading(false);
         }
     }, [isAuthenticated]);
 
@@ -98,7 +101,6 @@ const OverviewModule: React.FC = () => {
       { label: 'New Notifiable', path: '/report-disease', icon: <Bell size={18}/>, color: 'bg-red-600' },
       { label: 'Log Injury', path: '/report-needlestick', icon: <ShieldAlert size={18}/>, color: 'bg-red-500' },
       { label: 'Isolation Admit', path: '/report-isolation', icon: <ShieldCheck size={18}/>, color: 'bg-indigo-600' },
-      { label: 'Add Lab Report', path: '/report-culture', icon: <FlaskConical size={18}/>, color: 'bg-teal-600' },
     ];
 
     const resourceActions = [
@@ -116,62 +118,60 @@ const OverviewModule: React.FC = () => {
 
     return (
         <div className="flex flex-col gap-8 max-w-[1400px] mx-auto animate-in fade-in duration-500">
-            {/* Action Grid - Always Visible */}
-            <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col gap-6">
-                <div className="flex items-center justify-between">
+            {/* Action Grid - Always Visible (Registry Access & Resources) */}
+            <div className="bg-white p-6 md:p-8 rounded-[2rem] md:rounded-[2.5rem] border border-slate-200 shadow-sm flex flex-col gap-8">
+                <div className="flex flex-col gap-4">
                   <div className="flex items-center gap-3">
                     <div className="size-10 bg-primary/10 text-primary flex items-center justify-center rounded-xl">
-                      <Library size={22} />
+                      <Activity size={22} />
                     </div>
                     <div>
-                      <h2 className="text-lg md:text-xl font-black text-slate-900 tracking-tight uppercase leading-tight">
-                        Registry Access & Resources
-                      </h2>
-                      <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest">
-                        Submit reports or access essential IPC protocols
-                      </p>
+                      <h2 className="text-lg md:text-xl font-black text-slate-900 tracking-tight uppercase leading-tight">Registry Access</h2>
+                      <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest">Incident reporting & patient registration</p>
                     </div>
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
+                    {registryActions.map((action, i) => (
+                      <button 
+                        key={i} 
+                        onClick={() => navigate(action.path)} 
+                        className={`${action.color} text-white p-3 md:p-4 rounded-2xl flex flex-col items-center justify-center gap-2 md:gap-3 shadow-lg hover:brightness-110 active:scale-95 group transition-all`}
+                      >
+                        <div className="bg-white/20 p-2 rounded-xl group-hover:scale-110 transition-transform">{action.icon}</div>
+                        <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-center leading-tight">{action.label}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-8">
-                  <div className="flex flex-col gap-4">
-                    <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Surveillance Reporting</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
-                      {registryActions.map((action, i) => (
-                        <button 
-                          key={i} 
-                          onClick={() => navigate(action.path)} 
-                          className={`${action.color} text-white p-3 md:p-4 rounded-2xl flex flex-col items-center justify-center gap-2 md:gap-3 shadow-lg hover:brightness-110 active:scale-95 group transition-all`}
-                        >
-                          <div className="bg-white/20 p-2 rounded-xl group-hover:scale-110 transition-transform">{action.icon}</div>
-                          <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-center leading-tight">{action.label}</span>
-                        </button>
-                      ))}
+                <div className="flex flex-col gap-4">
+                  <div className="flex items-center gap-3">
+                    <div className="size-10 bg-teal-500/10 text-teal-600 flex items-center justify-center rounded-xl">
+                      <Library size={22} />
+                    </div>
+                    <div>
+                      <h2 className="text-lg md:text-xl font-black text-slate-900 tracking-tight uppercase leading-tight">Institutional Resources</h2>
+                      <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest">Official IPC documents & antibiogram</p>
                     </div>
                   </div>
-
-                  <div className="flex flex-col gap-4">
-                    <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-widest ml-1">Clinical Guidelines</h3>
-                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-                      {resourceActions.map((action, i) => (
-                        <button 
-                          key={i} 
-                          onClick={() => handleQuickNav(action.module)} 
-                          className={`${action.color} text-white p-3 md:p-4 rounded-2xl flex flex-col items-center justify-center gap-2 md:gap-3 shadow-lg hover:brightness-110 active:scale-95 group transition-all`}
-                        >
-                          <div className="bg-white/20 p-2 rounded-xl group-hover:scale-110 transition-transform">{action.icon}</div>
-                          <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-center leading-tight">{action.label}</span>
-                        </button>
-                      ))}
-                    </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+                    {resourceActions.map((action, i) => (
+                      <button 
+                        key={i} 
+                        onClick={() => handleQuickNav(action.module)} 
+                        className={`${action.color} text-white p-3 md:p-4 rounded-2xl flex flex-col items-center justify-center gap-2 md:gap-3 shadow-lg hover:brightness-110 active:scale-95 group transition-all`}
+                      >
+                        <div className="bg-white/20 p-2 rounded-xl group-hover:scale-110 transition-transform">{action.icon}</div>
+                        <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest text-center leading-tight">{action.label}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
             </div>
 
-            {/* Data Cards - Auth Required */}
+            {/* Private Data Stats - Only Visible if Authenticated */}
             {isAuthenticated && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
                     {stats.map((stat) => (
                         <button key={stat.id} onClick={() => handleQuickNav(stat.id)} className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-4 text-left hover:border-primary transition-all group min-h-[140px] md:min-h-[160px] animate-in fade-in zoom-in-95 duration-500">
                             <div className="flex items-center justify-between"><div className={`p-3 ${stat.bg} ${stat.color} rounded-2xl group-hover:scale-110 transition-transform`}>{stat.icon}</div><span className={`text-[10px] font-black uppercase ${stat.color} ${stat.bg} px-2 py-1 rounded`}>{stat.trend}</span></div>
@@ -248,6 +248,7 @@ const SurveillanceHub: React.FC = () => {
     { id: 'manual', label: 'IPC Manual', icon: <BookOpen size={20} />, color: 'text-emerald-600', component: Resources },
     { id: 'pocket-guides', label: 'Pocket Guides', icon: <FileBadge size={20} />, color: 'text-amber-600', component: Resources },
     { id: 'references', label: 'References', icon: <Library size={20} />, color: 'text-slate-600', component: Resources },
+    { id: 'analytics', label: 'Contributors', icon: <FileSpreadsheet size={20} />, color: 'text-emerald-600', component: ReporterAnalytics },
   ];
 
   const reportModules: ModuleConfig[] = [
@@ -257,7 +258,6 @@ const SurveillanceHub: React.FC = () => {
     { id: 'tb', label: 'TB Registry', icon: <Stethoscope size={20} />, color: 'text-amber-700', component: PTBDashboard },
     { id: 'isolation', label: 'Isolation Room', icon: <Bed size={20} />, color: 'text-indigo-600', component: IsolationDashboard },
     { id: 'needlestick', label: 'Sharps / Injury', icon: <ShieldAlert size={20} />, color: 'text-red-500', component: NeedlestickDashboard },
-    { id: 'analytics', label: 'Contributors', icon: <FileSpreadsheet size={20} />, color: 'text-emerald-600', component: ReporterAnalytics },
   ];
 
   const auditModules: ModuleConfig[] = [
@@ -282,7 +282,8 @@ const SurveillanceHub: React.FC = () => {
   // Logic to hide specific registries when not logged in
   const filterModules = (mods: ModuleConfig[]) => {
     if (isAuthenticated) return mods;
-    const restrictedIds = ['hai', 'notifiable', 'tb', 'isolation', 'needlestick', 'analytics'];
+    // Hide registry dashboards from non-logged in users
+    const restrictedIds = ['hai', 'notifiable', 'tb', 'isolation', 'needlestick'];
     return mods.filter(m => !restrictedIds.includes(m.id));
   };
 
@@ -312,7 +313,7 @@ const SurveillanceHub: React.FC = () => {
         />
       )}
 
-      {/* Sidebar - Enhanced Mobile Drawer Logic */}
+      {/* Sidebar - Conditional Items */}
       <aside className={`
         fixed lg:sticky top-0 lg:top-16 z-[120] lg:z-50 h-screen lg:h-[calc(100vh-64px)] bg-slate-900 text-white transition-all duration-300 flex flex-col overflow-hidden
         ${isSidebarOpen ? 'w-72 lg:w-64 translate-x-0' : 'w-0 lg:w-20 -translate-x-full lg:translate-x-0'}
@@ -353,7 +354,6 @@ const SurveillanceHub: React.FC = () => {
           </div>
         </nav>
 
-        {/* Mobile-only Close Label at Bottom */}
         <div className={`p-4 lg:hidden transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
             <button onClick={() => setIsSidebarOpen(false)} className="w-full py-3 bg-white/5 rounded-xl text-[10px] font-black uppercase text-slate-500 hover:text-white flex items-center justify-center gap-2">
                 <X size={14}/> Close Sidebar
@@ -372,7 +372,7 @@ const SurveillanceHub: React.FC = () => {
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-[8px] md:text-[9px] font-black uppercase text-slate-400 leading-none mb-1 truncate">
-                    {appMode === 'report' ? 'Institutional Surveillance Hub' : appMode === 'audit' ? 'Quality & Compliance Desk' : 'Executive Data Brief'}
+                    {appMode === 'report' ? 'Institutional Surveillance' : appMode === 'audit' ? 'Quality & Compliance' : 'Executive Data'} Hub
                 </span>
                 <h1 className="text-sm md:text-lg font-black text-slate-900 uppercase tracking-tight truncate leading-tight">{currentModule.label}</h1>
               </div>

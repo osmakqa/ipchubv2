@@ -49,12 +49,12 @@ const Header: React.FC = () => {
   };
 
   const handleQuickLoginMax = () => {
-    setLoginData({ name: 'Max', password: 'max123' });
     setLoading(true);
     setTimeout(() => {
       if (login('Max', 'max123')) {
         setShowLogin(false);
-        setLoginData({ name: '', password: '' });
+      } else {
+        alert("Quick login failed.");
       }
       setLoading(false);
     }, 500);
@@ -156,17 +156,17 @@ const Header: React.FC = () => {
                 
                 <div className="p-10 flex flex-col gap-6">
                     <button 
-                      onClick={handleQuickLoginMax}
                       type="button"
-                      className="w-full py-4 bg-amber-50 text-amber-700 border border-amber-200 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] hover:bg-amber-100 transition-all flex items-center justify-center gap-2 shadow-sm"
+                      onClick={handleQuickLoginMax}
+                      className="w-full py-4 bg-amber-50 text-amber-700 border border-amber-200 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] hover:bg-amber-100 transition-all flex items-center justify-center gap-3 shadow-sm group"
                     >
-                      <Sparkles size={16} className="text-amber-500" /> Beta Testing: Login as Max
+                      <Sparkles size={16} className="text-amber-500 group-hover:scale-125 transition-transform" /> Quick Login as Max (Beta)
                     </button>
 
-                    <div className="flex items-center gap-4 py-2">
-                      <div className="h-px bg-slate-100 flex-1"></div>
-                      <span className="text-[10px] font-black text-slate-300 uppercase">Or Manual Entry</span>
-                      <div className="h-px bg-slate-100 flex-1"></div>
+                    <div className="flex items-center gap-4 py-2 opacity-30">
+                      <div className="h-px bg-slate-200 flex-1"></div>
+                      <span className="text-[10px] font-black uppercase tracking-widest">OR</span>
+                      <div className="h-px bg-slate-200 flex-1"></div>
                     </div>
 
                     <form onSubmit={handleLogin} className="flex flex-col gap-6">
