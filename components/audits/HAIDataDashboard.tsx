@@ -32,7 +32,7 @@ import {
 } from 'lucide-react';
 import { 
     BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, 
-    CartesianGrid, LineChart, Line, Legend, Cell 
+    CartesianGrid, LineChart, Legend, Cell 
 } from 'recharts';
 
 const ANALYTICAL_WARDS = [
@@ -167,11 +167,25 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
             const date = new Date(log.date);
             const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`;
             if (!months[monthKey]) {
-                months[monthKey] = { month: monthKey, census: 0, vent: 0, ifc: 0, central: 0 };
+                months[monthKey] = { 
+                    month: monthKey, 
+                    census: 0, 
+                    icuCensus: 0, 
+                    nicuCensus: 0, 
+                    picuCensus: 0, 
+                    medCensus: 0, 
+                    vent: 0, 
+                    ifc: 0, 
+                    central: 0 
+                };
             }
             months[monthKey].census += Number(log.overall || 0);
+            months[monthKey].icuCensus += Number(log.icu || 0);
+            months[monthKey].nicuCensus += Number(log.nicu || 0);
+            months[monthKey].picuCensus += Number(log.picu || 0);
+            months[monthKey].medCensus += Number(log.medicine || 0);
             
-            // Calculate device days for the month (summing overall or ward-specific if overall not directly logged)
+            // Device days
             months[monthKey].vent += Number(log.overallVent || 0);
             months[monthKey].ifc += Number(log.overallIfc || 0);
             months[monthKey].central += Number(log.overallCentral || 0);
@@ -489,33 +503,41 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                                 <div className="p-2 bg-rose-50 text-rose-600 rounded-xl"><CalendarDays size={20}/></div>
                                 <div>
                                     <h3 className="text-sm font-black uppercase text-slate-900 tracking-widest">Monthly Surveillance Summary</h3>
-                                    <p className="text-[10px] font-bold text-slate-400 uppercase">Aggregated census and device totals</p>
+                                    <p className="text-[10px] font-bold text-slate-400 uppercase">Aggregated patient and device days</p>
                                 </div>
                             </div>
                         </div>
                         <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
+                            <table className="w-full text-sm text-left min-w-[1000px]">
                                 <thead className="bg-slate-50 text-slate-500 font-black text-[10px] uppercase tracking-widest">
                                     <tr>
-                                        <th className="px-6 py-4">Month/Year</th>
-                                        <th className="px-6 py-4">Total Patient Days</th>
-                                        <th className="px-6 py-4 text-blue-600">Ventilator Days</th>
+                                        <th className="px-6 py-4 sticky left-0 bg-slate-50 z-10">Month/Year</th>
+                                        <th className="px-6 py-4">Total Days</th>
+                                        <th className="px-6 py-4 bg-emerald-50 text-emerald-600">ICU</th>
+                                        <th className="px-6 py-4 bg-emerald-50 text-emerald-600">NICU</th>
+                                        <th className="px-6 py-4 bg-emerald-50 text-emerald-600">PICU</th>
+                                        <th className="px-6 py-4 bg-emerald-50 text-emerald-600">Med Ward</th>
+                                        <th className="px-6 py-4 text-blue-600">Vent Days</th>
                                         <th className="px-6 py-4 text-amber-600">IFC Days</th>
-                                        <th className="px-6 py-4 text-rose-600">Central Line Days</th>
+                                        <th className="px-6 py-4 text-rose-600">Central Days</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
                                     {monthlySummaries.map(m => (
                                         <tr key={m.month} className="hover:bg-slate-50 transition-colors">
-                                            <td className="px-6 py-4 font-black text-slate-900">{new Date(m.month + '-01').toLocaleDateString(undefined, {month: 'long', year: 'numeric'})}</td>
+                                            <td className="px-6 py-4 font-black text-slate-900 sticky left-0 bg-white group-hover:bg-slate-50 z-10 border-r border-slate-50">{new Date(m.month + '-01').toLocaleDateString(undefined, {month: 'long', year: 'numeric'})}</td>
                                             <td className="px-6 py-4 font-bold text-slate-700">{m.census.toLocaleString()}</td>
+                                            <td className="px-6 py-4 font-bold text-emerald-700">{m.icuCensus.toLocaleString()}</td>
+                                            <td className="px-6 py-4 font-bold text-emerald-700">{m.nicuCensus.toLocaleString()}</td>
+                                            <td className="px-6 py-4 font-bold text-emerald-700">{m.picuCensus.toLocaleString()}</td>
+                                            <td className="px-6 py-4 font-bold text-emerald-700">{m.medCensus.toLocaleString()}</td>
                                             <td className="px-6 py-4 font-bold text-blue-700">{m.vent.toLocaleString()}</td>
                                             <td className="px-6 py-4 font-bold text-amber-700">{m.ifc.toLocaleString()}</td>
                                             <td className="px-6 py-4 font-bold text-rose-700">{m.central.toLocaleString()}</td>
                                         </tr>
                                     ))}
                                     {monthlySummaries.length === 0 && (
-                                        <tr><td colSpan={5} className="p-10 text-center text-slate-300 font-bold uppercase text-xs">No historical summary available</td></tr>
+                                        <tr><td colSpan={9} className="p-10 text-center text-slate-300 font-bold uppercase text-xs">No historical summary available</td></tr>
                                     )}
                                 </tbody>
                             </table>
