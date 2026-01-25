@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
@@ -24,7 +25,8 @@ import {
   FileSpreadsheet,
   FileText,
   UserPlus,
-  X
+  X,
+  FileBadge
 } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 
@@ -196,6 +198,7 @@ const SurveillanceHub: React.FC = () => {
   const universalModules: ModuleConfig[] = [
     { id: 'culture', label: 'Antibiogram', icon: <FlaskConical size={20} />, color: 'text-teal-600', component: CultureDashboard },
     { id: 'manual', label: 'IPC Manual', icon: <BookOpen size={20} />, color: 'text-emerald-600', component: Resources },
+    { id: 'pocket-guides', label: 'Pocket Guides', icon: <FileBadge size={20} />, color: 'text-amber-600', component: Resources },
     { id: 'references', label: 'References', icon: <Library size={20} />, color: 'text-slate-600', component: Resources },
   ];
 
@@ -219,16 +222,14 @@ const SurveillanceHub: React.FC = () => {
     { id: 'action-plans', label: 'Action Tracker', icon: <ClipboardList size={20} />, color: 'text-rose-600', component: ActionPlanTracker },
   ];
 
+  // Added definition for presentModules to fix 'Cannot find name' error
   const presentModules: ModuleConfig[] = [
-    { id: 'overview', label: 'Executive Brief', icon: <MonitorPlay size={20} />, color: 'text-slate-600', component: ExecutiveDashboard },
-    { id: 'hai', label: 'HAI Analysis', icon: <Activity size={20} />, color: 'text-blue-600', component: HAIDashboard },
-    { id: 'notifiable', label: 'Epidemiology', icon: <Bell size={20} />, color: 'text-red-600', component: NotifiableDashboard },
-    { id: 'tb', label: 'TB Surveillance', icon: <Stethoscope size={20} />, color: 'text-amber-700', component: PTBDashboard },
-    { id: 'isolation', label: 'Isolation Room', icon: <ShieldCheck size={20} />, color: 'text-indigo-600', component: IsolationDashboard },
-    { id: 'area-audit', label: 'Walkrounds', icon: <SearchCode size={20} />, color: 'text-amber-600', component: AreaAudit },
-    { id: 'hand-hygiene', label: 'Hand Hygiene', icon: <Hand size={20} />, color: 'text-emerald-600', component: HandHygieneAudit },
-    { id: 'hai-data', label: 'Statistical Logs', icon: <FileBarChart size={20} />, color: 'text-indigo-600', component: HAIDataDashboard },
-    { id: 'action-plans', label: 'Action Tracker', icon: <ClipboardList size={20} />, color: 'text-rose-600', component: ActionPlanTracker },
+    { id: 'overview', label: 'Executive Hub', icon: <Presentation size={20} />, color: 'text-slate-800', component: ExecutiveDashboard },
+    { id: 'hai', label: 'HAI Analytics', icon: <Activity size={20} />, color: 'text-blue-600', component: HAIDashboard },
+    { id: 'notifiable', label: 'Notifiable Analytics', icon: <Bell size={20} />, color: 'text-red-600', component: NotifiableDashboard },
+    { id: 'tb', label: 'TB Analytics', icon: <Stethoscope size={20} />, color: 'text-amber-700', component: PTBDashboard },
+    { id: 'isolation', label: 'Isolation Analytics', icon: <Bed size={20} />, color: 'text-indigo-600', component: IsolationDashboard },
+    { id: 'needlestick', label: 'Sharps Analytics', icon: <ShieldAlert size={20} />, color: 'text-red-500', component: NeedlestickDashboard },
   ];
 
   const mainModules = appMode === 'report' ? reportModules : appMode === 'audit' ? auditModules : presentModules;
@@ -288,7 +289,7 @@ const SurveillanceHub: React.FC = () => {
               <button 
                 key={module.id} 
                 onClick={() => handleModuleSelect(module.id)} 
-                className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all group ${activeModule === module.id ? 'bg-teal-600 text-white shadow-lg' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
+                className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all group ${activeModule === module.id ? (module.id === 'pocket-guides' ? 'bg-amber-600' : 'bg-teal-600') + ' text-white shadow-lg' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
                 title={module.label}
               >
                 <div className="shrink-0">{module.icon}</div>
@@ -327,7 +328,7 @@ const SurveillanceHub: React.FC = () => {
            <div className="animate-in fade-in duration-500">
               <ActiveComponent 
                 isNested={true} 
-                type={activeModule === 'manual' ? 'policies' : activeModule === 'references' ? 'pathways' : undefined} 
+                type={activeModule === 'manual' ? 'policies' : activeModule === 'references' ? 'pathways' : activeModule === 'pocket-guides' ? 'pocket-guides' : undefined} 
                 title={currentModule.label} 
                 viewMode={appMode === 'present' && activeModule !== 'overview' ? 'analysis' : undefined} 
               />

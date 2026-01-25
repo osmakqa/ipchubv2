@@ -58,6 +58,7 @@ const App: React.FC = () => {
 
           <Route path="/policies" element={<Resources title="IPC Policies" type="policies" />} />
           <Route path="/pathways" element={<Resources title="Clinical Pathways" type="pathways" />} />
+          <Route path="/pocket-guides" element={<Resources title="Pocket Guides" type="pocket-guides" />} />
         </Routes>
       </HashRouter>
     </AuthProvider>

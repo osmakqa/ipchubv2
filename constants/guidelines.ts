@@ -192,7 +192,6 @@ export const HAND_HYGIENE_MD = `# Hand Hygiene Practices (Institutional Guidelin
 
 **1.2.** Hand Hygiene Technical Reference Manual, To be used by healthcare workers, trainers and observers of hand hygiene practices, World Health Organization`;
 
-// Fix: Removed invalid backslashes from template literal
 export const ISOLATION_PRECAUTIONS_MD = `# Isolation Precautions (Institutional Guidelines)
 **Updated: May 2023**
 

@@ -189,6 +189,22 @@ import { initializeApp } from 'firebase/app';
   };
 
   export const updateReference = (data: any) => updateGenericRecord('clinical_references', data);
+
+  export const getPocketGuides = async () => {
+    const q = query(collection(db, 'clinical_pocket_guides'), orderBy('created_at', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshotToArray(snapshot);
+  };
+  
+  export const submitPocketGuide = async (data: any) => {
+    const sanitized = sanitizeData(data);
+    try {
+      await addDoc(collection(db, 'clinical_pocket_guides'), { ...sanitized, created_at: serverTimestamp() });
+      return true;
+    } catch (e) { return false; }
+  };
+
+  export const updatePocketGuide = (data: any) => updateGenericRecord('clinical_pocket_guides', data);
   
   export const submitReport = async (formType: string, data: any): Promise<boolean> => {
     const typeKey = formType.toLowerCase().split(' ')[0];
