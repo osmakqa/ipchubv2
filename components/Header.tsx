@@ -77,8 +77,8 @@ const Header: React.FC = () => {
             <img src="https://maxterrenal-hash.github.io/justculture/osmak-logo.png" alt="OsMak" className="h-9 md:h-10 w-auto" />
           </div>
           <div className="flex flex-col">
-            <h1 className="text-sm md:text-lg font-black tracking-tighter uppercase leading-none">IPC Hub</h1>
-            <span className="text-[8px] md:text-[10px] opacity-70 font-black uppercase tracking-widest mt-0.5">Ospital ng Makati</span>
+            <h1 className="text-sm md:text-lg font-black tracking-tighter uppercase leading-none">Ospital ng Makati</h1>
+            <span className="text-[8px] md:text-[10px] opacity-70 font-black uppercase tracking-widest mt-0.5">IPC Hub</span>
           </div>
         </div>
 

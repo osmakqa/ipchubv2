@@ -118,7 +118,7 @@ const ManualReader: React.FC<{ title: string }> = ({ title }) => {
                                 <div className="h-8 w-px bg-white/20"></div>
                                 <div className="flex flex-col">
                                     <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 leading-none">Ospital ng Makati</span>
-                                    <span className="text-[10px] font-bold opacity-60 uppercase mt-1 leading-none">IPC Manual</span>
+                                    <span className="text-[10px] font-bold opacity-60 uppercase mt-1 leading-none">IPC Hub</span>
                                 </div>
                             </div>
                             <h1 className="text-xl md:text-2xl font-black uppercase tracking-tight leading-tight mt-2">{selectedItem.title}</h1>
@@ -158,21 +158,20 @@ const ManualReader: React.FC<{ title: string }> = ({ title }) => {
                     <button 
                         key={item.id} 
                         onClick={() => setSelectedItem(item)}
-                        className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm hover:shadow-xl hover:border-emerald-500 transition-all group flex items-center gap-6 text-left relative overflow-hidden"
+                        className="bg-white p-4.5 rounded-[1.5rem] border border-slate-200 shadow-sm hover:shadow-xl hover:border-emerald-500 transition-all group flex items-center gap-5 text-left relative overflow-hidden"
                     >
-                        <div className={`size-14 rounded-2xl ${item.color} text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform`}>
-                            {/* Fix: cast icon to ReactElement<any> to resolve TS error with 'size' property in cloneElement */}
-                            {React.cloneElement(item.icon as React.ReactElement<any>, { size: 20 })}
+                        <div className={`size-12 rounded-xl ${item.color} text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform`}>
+                            {React.cloneElement(item.icon as React.ReactElement<any>, { size: 18 })}
                         </div>
                         <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-1">
-                                <span className={`text-[9px] font-black uppercase tracking-widest ${item.textColor}`}>{item.badge}</span>
+                            <div className="flex items-center gap-2 mb-0.5">
+                                <span className={`text-[8px] font-black uppercase tracking-widest ${item.textColor}`}>{item.badge}</span>
                             </div>
-                            <h3 className="text-lg font-black text-slate-900 uppercase group-hover:text-emerald-600 transition-colors leading-tight">{item.title}</h3>
-                            <p className="text-xs text-slate-500 font-medium mt-1 leading-relaxed line-clamp-1">{item.description}</p>
+                            <h3 className="text-base font-black text-slate-900 uppercase group-hover:text-emerald-600 transition-colors leading-tight">{item.title}</h3>
+                            <p className="text-[11px] text-slate-500 font-medium mt-0.5 leading-relaxed line-clamp-1">{item.description}</p>
                         </div>
-                        <div className="size-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-all">
-                            <ArrowRight size={20} />
+                        <div className="size-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-all">
+                            <ArrowRight size={16} />
                         </div>
                     </button>
                 ))}
@@ -507,14 +506,13 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                         type="text" 
                         className={`w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 focus:ring-2 ${resourceType === 'pocket-guides' ? 'focus:ring-amber-500' : 'focus:ring-slate-900'} outline-none shadow-sm transition-all font-medium text-sm`}
                         placeholder={`Search ${title || 'Resources'}...`}
-                        /* Fix: corrected variable name from 'searchQuery' to 'search' */
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 items-stretch">
+            <div className="grid grid-cols-1 gap-2.5 items-stretch">
                 {loading ? (
                     <div className="col-span-full py-20 text-center"><Loader2 className="animate-spin mx-auto text-slate-200" size={48} /></div>
                 ) : filteredItems.length === 0 ? (
@@ -526,49 +524,49 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                         <div 
                             key={item.id} 
                             onClick={() => handleAction(item)}
-                            className={`bg-white p-4 md:p-5 rounded-3xl border border-gray-100 shadow-sm hover:shadow-xl ${resourceType === 'pocket-guides' ? 'hover:border-amber-500' : 'hover:border-slate-900'} transition-all group flex flex-col relative overflow-hidden cursor-pointer h-full`}
+                            className={`bg-white p-3.5 md:p-4 rounded-2xl border border-gray-100 shadow-sm hover:shadow-xl ${resourceType === 'pocket-guides' ? 'hover:border-amber-500' : 'hover:border-slate-900'} transition-all group flex flex-col relative overflow-hidden cursor-pointer h-full`}
                         >
-                            <div className="flex justify-between items-start gap-2 mb-1.5">
+                            <div className="flex justify-between items-start gap-2 mb-1">
                                 <div className="flex-1 min-w-0">
-                                    <span className={`text-[8px] md:text-[9px] font-black uppercase ${resourceType === 'pocket-guides' ? 'text-amber-600' : 'text-slate-400'} tracking-widest block truncate`}>{item.category}</span>
-                                    <h3 className={`font-black text-sm md:text-lg text-slate-900 mt-0.5 ${resourceType === 'pocket-guides' ? 'group-hover:text-amber-600' : 'group-hover:text-slate-900'} transition-colors leading-tight truncate`}>{item.title}</h3>
+                                    <span className={`text-[7px] md:text-[8px] font-black uppercase ${resourceType === 'pocket-guides' ? 'text-amber-600' : 'text-slate-400'} tracking-widest block truncate`}>{item.category}</span>
+                                    <h3 className={`font-black text-sm md:text-base text-slate-900 mt-0 ${resourceType === 'pocket-guides' ? 'group-hover:text-amber-600' : 'group-hover:text-slate-900'} transition-colors leading-tight truncate`}>{item.title}</h3>
                                 </div>
                                 <div className="flex items-center gap-1 shrink-0">
                                     {isAuthenticated && (
                                         <div className="flex items-center gap-1">
                                             <button 
                                                 onClick={(e) => { e.stopPropagation(); handleEditClick(item); }}
-                                                className={`p-1.5 md:p-2 text-slate-300 ${resourceType === 'pocket-guides' ? 'hover:text-amber-600 hover:bg-amber-50' : 'hover:text-slate-900 hover:bg-slate-50'} rounded-lg transition-all`}
+                                                className={`p-1 text-slate-300 ${resourceType === 'pocket-guides' ? 'hover:text-amber-600 hover:bg-amber-50' : 'hover:text-slate-900 hover:bg-slate-50'} rounded-lg transition-all`}
                                                 title="Edit"
                                             >
-                                                <Edit3 size={16} />
+                                                <Edit3 size={14} />
                                             </button>
                                             <button 
                                                 onClick={(e) => { e.stopPropagation(); handleDeleteClick(item); }}
-                                                className="p-1.5 md:p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                                                className="p-1 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
                                                 title="Delete"
                                             >
-                                                <Trash2 size={16} />
+                                                <Trash2 size={14} />
                                             </button>
                                         </div>
                                     )}
-                                    <div className={`p-1.5 md:p-2.5 ${resourceType === 'pocket-guides' ? 'bg-amber-50 group-hover:bg-amber-100 text-amber-400' : 'bg-slate-50 group-hover:bg-slate-100 text-slate-400'} rounded-lg md:rounded-2xl transition-colors`}>
-                                        {item.type === 'pocket' ? <BookMarked size={18} /> : <ExternalLink size={18} />}
+                                    <div className={`p-1.5 md:p-2 ${resourceType === 'pocket-guides' ? 'bg-amber-50 group-hover:bg-amber-100 text-amber-400' : 'bg-slate-50 group-hover:bg-slate-100 text-slate-400'} rounded-lg transition-colors`}>
+                                        {item.type === 'pocket' ? <BookMarked size={16} /> : <ExternalLink size={16} />}
                                     </div>
                                 </div>
                             </div>
                             
-                            <p className="text-[11px] text-slate-500 font-medium leading-relaxed mb-3 line-clamp-1">
+                            <p className="text-[10px] text-slate-500 font-medium leading-relaxed mb-2 line-clamp-1">
                                 {item.description}
                             </p>
                             
-                            <div className="flex items-center justify-between pt-3 border-t border-slate-50">
-                                <span className="text-[7px] md:text-[8px] font-black text-slate-300 flex items-center gap-1 uppercase tracking-widest">
-                                    <Clock size={10}/> {item.updated}
+                            <div className="flex items-center justify-between pt-2 border-t border-slate-50">
+                                <span className="text-[6px] md:text-[7px] font-black text-slate-300 flex items-center gap-1 uppercase tracking-widest">
+                                    <Clock size={8}/> {item.updated}
                                 </span>
-                                <div className={`flex items-center gap-1 text-[8px] md:text-[10px] font-black uppercase tracking-widest ${resourceType === 'pocket-guides' ? 'text-amber-700' : 'text-slate-900'}`}>
+                                <div className={`flex items-center gap-1 text-[7px] md:text-[9px] font-black uppercase tracking-widest ${resourceType === 'pocket-guides' ? 'text-amber-700' : 'text-slate-900'}`}>
                                     {item.type === 'pocket' ? 'View Pocket Card' : 'Open Reference'}
-                                    <ChevronRight size={12} className="group-hover:translate-x-1 transition-transform"/>
+                                    <ChevronRight size={10} className="group-hover:translate-x-1 transition-transform"/>
                                 </div>
                             </div>
                         </div>

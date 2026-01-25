@@ -108,6 +108,7 @@ const OverviewModule: React.FC = () => {
       { label: 'IPC Manual', module: 'manual', icon: <BookOpen size={18}/>, color: 'bg-emerald-600' },
       { label: 'Pocket Guides', module: 'pocket-guides', icon: <FileBadge size={18}/>, color: 'bg-amber-600' },
       { label: 'References', module: 'references', icon: <Library size={18}/>, color: 'bg-slate-600' },
+      { label: 'Contributors', module: 'analytics', icon: <FileSpreadsheet size={18}/>, color: 'bg-emerald-600' },
     ];
 
     const stats = [
@@ -154,7 +155,7 @@ const OverviewModule: React.FC = () => {
                       <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest">Official IPC documents & antibiogram</p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
                     {resourceActions.map((action, i) => (
                       <button 
                         key={i} 
