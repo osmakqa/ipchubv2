@@ -31,7 +31,7 @@ const PTBForm: React.FC = () => {
     xpertResults: [] as { date: string, specimen: string, result: string }[],
     smearResults: [] as { date: string, specimen: string, result: string }[],
     cxrDate: '',
-    classification: '', anatomicalSite: 'Pulmonary', drugSusceptibility: '', treatmentHistory: '', 
+    classification: '', classificationOther: '', anatomicalSite: 'Pulmonary', drugSusceptibility: '', treatmentHistory: '', 
     emergencySurgicalProcedure: '',
     outcome: 'Admitted', outcomeDate: '',
     treatmentStarted: '', treatmentStartDate: '', 
@@ -177,6 +177,11 @@ const PTBForm: React.FC = () => {
       submissionData.area = submissionData.areaOther || 'Other Area';
     }
     delete submissionData.areaOther;
+
+    if (submissionData.classification === 'Others (Specify)') {
+      submissionData.classification = submissionData.classificationOther || 'Other';
+    }
+    delete submissionData.classificationOther;
 
     // Clean up transfer history "Other" areas
     if (submissionData.movementHistory) {
@@ -333,7 +338,10 @@ const PTBForm: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
                 <Input label="CXR Date (if any)" name="cxrDate" type="date" value={formData.cxrDate} onChange={handleChange} />
                 <Select label="Anatomical Site" name="anatomicalSite" options={['Pulmonary', 'Extra-pulmonary']} value={formData.anatomicalSite} onChange={handleChange} />
-                <Select label="Registration Class" name="classification" options={['Bacteriological Confirmed', 'Clinically Diagnosed', 'Presumptive TB']} value={formData.classification} onChange={handleChange} required />
+                <div className="flex flex-col gap-2">
+                    <Select label="Registration Class" name="classification" options={['Bacteriological Confirmed', 'Clinically Diagnosed', 'Presumptive TB', 'Others (Specify)']} value={formData.classification} onChange={handleChange} required />
+                    {formData.classification === 'Others (Specify)' && <Input label="Specify Classification" name="classificationOther" value={formData.classificationOther} onChange={handleChange} required />}
+                </div>
             </div>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
