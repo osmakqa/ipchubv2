@@ -31,8 +31,18 @@ import {
   Wind,
   Droplets,
   Syringe,
-  Scissors
+  Scissors,
+  Microscope,
+  Pill,
+  Plus,
+  Trash2
 } from 'lucide-react';
+
+interface SensitivityEntry {
+  antibiotic: string;
+  result: string;
+  resultOther?: string;
+}
 
 const HAIForm: React.FC = () => {
   const navigate = useNavigate();
@@ -48,9 +58,12 @@ const HAIForm: React.FC = () => {
     dateOfAdmission: '',
     movementHistory: [] as { area: string, date: string }[],
     haiType: '', haiTypeOther: '', 
+    // Common Laboratory & Treatment Fields
+    empiricAntibiotics: '',
+    cultureOrganism: '',
+    sensitivities: [] as SensitivityEntry[],
     // VAP
     mvInitiationArea: '', mvInitiationDate: '', 
-    vap_empiricAntibiotics: '', vap_cultureResult: '',
     // CAUTI
     ifcInitiationArea: '', ifcInitiationDate: '',
     // CRBSI
@@ -76,12 +89,30 @@ const HAIForm: React.FC = () => {
     setFormData((prev: any) => ({ ...prev, [name]: value }));
   };
 
+  const handleSensitivityChange = (index: number, field: keyof SensitivityEntry, value: string) => {
+    const updated = [...formData.sensitivities];
+    updated[index] = { ...updated[index], [field]: value };
+    setFormData((prev: any) => ({ ...prev, sensitivities: updated }));
+  };
+
+  const addSensitivityRow = () => {
+    setFormData((prev: any) => ({
+      ...prev,
+      sensitivities: [...prev.sensitivities, { antibiotic: '', result: '' }]
+    }));
+  };
+
+  const removeSensitivityRow = (index: number) => {
+    setFormData((prev: any) => ({
+      ...prev,
+      sensitivities: prev.sensitivities.filter((_: any, i: number) => i !== index)
+    }));
+  };
+
   const handleMagicFill = () => {
     const demoDate = new Date();
     const admDate = new Date();
     admDate.setDate(demoDate.getDate() - 10);
-    const onsetDate = new Date();
-    onsetDate.setDate(demoDate.getDate() - 2);
 
     setFormData({
       ...initialFormData,
@@ -99,8 +130,12 @@ const HAIForm: React.FC = () => {
       haiType: 'Ventilator Associated Pneumonia',
       mvInitiationArea: 'ICU',
       mvInitiationDate: admDate.toISOString().split('T')[0],
-      vap_empiricAntibiotics: 'Ceftriaxone + Azithromycin',
-      vap_cultureResult: 'Acinetobacter baumannii (MDR)',
+      empiricAntibiotics: 'Ceftriaxone + Azithromycin',
+      cultureOrganism: 'Acinetobacter baumannii',
+      sensitivities: [
+        { antibiotic: 'Meropenem', result: 'R' },
+        { antibiotic: 'Colistin', result: 'S' }
+      ],
       clinicalSigns: ['Fever (>38C)', 'Chills'],
       outcome: 'Admitted',
       reporterName: 'Dr. Maria Santos',
@@ -233,17 +268,11 @@ const HAIForm: React.FC = () => {
 
             {/* Ventilator Associated Pneumonia (VAP) */}
             {formData.haiType === 'Ventilator Associated Pneumonia' && (
-              <div className="p-6 bg-blue-50 rounded-3xl border border-blue-100 flex flex-col gap-6 animate-in slide-in-from-top-2">
+              <div className="p-6 bg-blue-50 rounded-3xl border border-blue-100 flex flex-col gap-4 animate-in slide-in-from-top-2">
                 <div className="flex items-center gap-2 text-blue-800"><Wind size={18}/> <h4 className="text-xs font-black uppercase tracking-widest">Ventilator Specific Data</h4></div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Select label="MV Initiation Area" name="mvInitiationArea" options={AREAS} value={formData.mvInitiationArea} onChange={handleChange} required />
                   <Input label="MV Initiation Date" name="mvInitiationDate" type="date" value={formData.mvInitiationDate} onChange={handleChange} required />
-                  <div className="md:col-span-2">
-                     <Input label="Empiric antibiotics given" name="vap_empiricAntibiotics" value={formData.vap_empiricAntibiotics} onChange={handleChange} placeholder="Enter name of antibiotics..." />
-                  </div>
-                  <div className="md:col-span-2">
-                     <Input label="Culture result" name="vap_cultureResult" value={formData.vap_cultureResult} onChange={handleChange} placeholder="Enter antibiotics and result..." />
-                  </div>
                 </div>
               </div>
             )}
@@ -311,7 +340,99 @@ const HAIForm: React.FC = () => {
             )}
         </section>
 
-        {/* Section 3: Finalization */}
+        {/* Section 3: Laboratory & Treatment (Standardized for all) */}
+        <section className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-200 flex flex-col gap-6">
+            <h3 className="font-black text-slate-900 flex items-center gap-3 border-b border-slate-100 pb-4 uppercase text-sm tracking-tight"><Microscope size={20} className="text-primary"/> Laboratory & Treatment</h3>
+            
+            <div className="flex flex-col gap-6">
+              <Input 
+                label="Empiric Antibiotics Given" 
+                name="empiricAntibiotics" 
+                value={formData.empiricAntibiotics} 
+                onChange={handleChange} 
+                placeholder="List antibiotics initiated..." 
+              />
+
+              <div className="bg-slate-50 p-6 rounded-3xl border border-slate-100 flex flex-col gap-5">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 bg-white rounded-lg shadow-sm text-primary"><Pill size={18}/></div>
+                  <h4 className="text-xs font-black uppercase tracking-widest text-slate-700">Culture Results & Sensitivity</h4>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Input 
+                    label="Isolated Organism" 
+                    name="cultureOrganism" 
+                    value={formData.cultureOrganism} 
+                    onChange={handleChange} 
+                    placeholder="e.g. Acinetobacter baumannii" 
+                  />
+                </div>
+
+                <div className="flex flex-col gap-3">
+                  <div className="flex items-center justify-between px-1">
+                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Antibiotic Sensitivity List</span>
+                    <button 
+                      type="button" 
+                      onClick={addSensitivityRow}
+                      className="flex items-center gap-2 px-3 py-1.5 bg-primary text-white rounded-lg text-[10px] font-black uppercase hover:bg-osmak-green-dark transition-all shadow-sm"
+                    >
+                      <Plus size={14}/> Add Row
+                    </button>
+                  </div>
+
+                  <div className="space-y-2">
+                    {formData.sensitivities.map((entry: SensitivityEntry, idx: number) => (
+                      <div key={idx} className="bg-white p-4 rounded-2xl border border-slate-200 grid grid-cols-1 md:grid-cols-12 gap-3 items-end group animate-in slide-in-from-right-1">
+                        <div className="md:col-span-5">
+                          <Input 
+                            label="Antibiotic" 
+                            value={entry.antibiotic} 
+                            onChange={(e) => handleSensitivityChange(idx, 'antibiotic', e.target.value)} 
+                            placeholder="Drug Name" 
+                          />
+                        </div>
+                        <div className="md:col-span-3">
+                          <Select 
+                            label="Result" 
+                            options={['S (Susceptible)', 'I (Intermediate)', 'R (Resistant)', 'Others (Specify)']} 
+                            value={entry.result} 
+                            onChange={(e) => handleSensitivityChange(idx, 'result', e.target.value)} 
+                          />
+                        </div>
+                        <div className="md:col-span-3">
+                          {entry.result === 'Others (Specify)' && (
+                            <Input 
+                              label="Specify Result" 
+                              value={entry.resultOther || ''} 
+                              onChange={(e) => handleSensitivityChange(idx, 'resultOther', e.target.value)} 
+                              placeholder="..." 
+                            />
+                          )}
+                        </div>
+                        <div className="md:col-span-1 flex justify-end">
+                          <button 
+                            type="button" 
+                            onClick={() => removeSensitivityRow(idx)}
+                            className="p-2.5 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-xl transition-all"
+                          >
+                            <Trash2 size={18}/>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    {formData.sensitivities.length === 0 && (
+                      <div className="py-8 text-center bg-white/50 rounded-2xl border border-dashed border-slate-200">
+                        <p className="text-[10px] font-bold text-slate-300 uppercase italic">No sensitivities recorded yet.</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+        </section>
+
+        {/* Section 4: Finalization */}
         <section className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-200 flex flex-col gap-6">
             <h3 className="font-black text-slate-900 flex items-center gap-3 border-b border-slate-100 pb-4 uppercase text-sm tracking-tight"><FileText size={20} className="text-primary"/> Finalization & Reporter</h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
