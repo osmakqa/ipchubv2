@@ -25,7 +25,8 @@ import {
     ChevronLeft,
     Sparkles,
     Users,
-    X
+    X,
+    BedDouble
 } from 'lucide-react';
 import { 
     BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, 
@@ -37,19 +38,16 @@ const ANALYTICAL_WARDS = [
     { label: 'ICU', prefix: 'icu' },
     { label: 'NICU', prefix: 'nicu' },
     { label: 'PICU', prefix: 'picu' },
-    { label: 'Medicine Ward', prefix: 'medicine' }, 
+    { label: 'Medicine Ward', prefix: 'med' }, 
     { label: 'Cohort', prefix: 'cohort' }
 ];
 
-// Add Props interface to handle initialViewMode
 interface Props {
   viewMode?: 'log' | 'list' | 'analysis';
 }
 
-// Update component signature to accept Props and destructure viewMode
 const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
     const { user, isAuthenticated, validatePassword } = useAuth();
-    // Fix: initialViewMode is now correctly passed from props
     const [view, setView] = useState<'log' | 'list' | 'analysis'>(initialViewMode || 'log');
     const [loading, setLoading] = useState(false);
     const [logs, setLogs] = useState<any[]>([]);
@@ -62,14 +60,19 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
 
     const [formData, setFormData] = useState({
         date: new Date().toISOString().split('T')[0],
+        // Patient Census
+        overallCensus: '',
+        icuCensus: '',
+        picuCensus: '',
+        nicuCensus: '',
+        medicineCensus: '',
+        // Ward Specific Device Days
         areaName: 'Overall Hospital',
-        patientDays: '',
         ventCount: '',
         ifcCount: '',
         centralCount: ''
     });
 
-    // Add useEffect to sync view with initialViewMode prop updates
     useEffect(() => { 
         if (initialViewMode) setView(initialViewMode); 
     }, [initialViewMode]);
@@ -82,7 +85,7 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
         if (area === "ICU") return "icu";
         if (area === "NICU") return "nicu";
         if (area === "PICU" || area === "Pedia ICU") return "picu";
-        if (area === "Medicine Ward") return "medicine";
+        if (area === "Medicine Ward") return "med";
         if (area === "Cohort") return "cohort";
         return area.toLowerCase().replace(/\s+/g, '');
     }, [formData.areaName]);
@@ -95,15 +98,23 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
             if (existingLog) {
                 setFormData(prev => ({
                     ...prev,
-                    patientDays: existingLog[currentPrefix] || '',
-                    ventCount: existingLog[`${currentPrefix}Vent`] || '',
-                    ifcCount: existingLog[`${currentPrefix}Ifc`] || '',
-                    centralCount: existingLog[`${currentPrefix}Central`] || ''
+                    overallCensus: existingLog.overall?.toString() || '',
+                    icuCensus: existingLog.icu?.toString() || '',
+                    picuCensus: existingLog.picu?.toString() || '',
+                    nicuCensus: existingLog.nicu?.toString() || '',
+                    medicineCensus: existingLog.medicine?.toString() || '',
+                    ventCount: existingLog[`${currentPrefix}Vent`]?.toString() || '',
+                    ifcCount: existingLog[`${currentPrefix}Ifc`]?.toString() || '',
+                    centralCount: existingLog[`${currentPrefix}Central`]?.toString() || ''
                 }));
             } else {
                 setFormData(prev => ({
                     ...prev,
-                    patientDays: '',
+                    overallCensus: '',
+                    icuCensus: '',
+                    picuCensus: '',
+                    nicuCensus: '',
+                    medicineCensus: '',
                     ventCount: '',
                     ifcCount: '',
                     centralCount: '',
@@ -126,9 +137,13 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
 
         const payload: any = {
             date: formData.date,
+            overall: parseInt(formData.overallCensus || '0', 10),
+            icu: parseInt(formData.icuCensus || '0', 10),
+            picu: parseInt(formData.picuCensus || '0', 10),
+            nicu: parseInt(formData.nicuCensus || '0', 10),
+            medicine: parseInt(formData.medicineCensus || '0', 10),
         };
-        // Keep patientDays logic for legacy/calculation but it's removed from UI
-        payload[currentPrefix] = parseInt(formData.patientDays || '0', 10);
+        
         payload[`${currentPrefix}Vent`] = parseInt(formData.ventCount || '0', 10);
         payload[`${currentPrefix}Ifc`] = parseInt(formData.ifcCount || '0', 10);
         payload[`${currentPrefix}Central`] = parseInt(formData.centralCount || '0', 10);
@@ -237,33 +252,69 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
 
             {view === 'log' ? (
                 <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                    <div className="lg:col-span-7 flex flex-col gap-8">
+                    <div className="lg:col-span-8 flex flex-col gap-8">
                         <form onSubmit={handleLogSubmit} className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col gap-8 animate-in fade-in duration-500">
-                            <div className="flex items-center justify-between border-b border-slate-100 pb-5">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between border-b border-slate-100 pb-5 gap-4">
                                 <div className="flex items-center gap-3">
                                     <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl"><ClipboardList size={24}/></div>
                                     <div>
-                                        <h2 className="text-xl font-black text-slate-900 uppercase leading-none">Daily Census Log</h2>
-                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Registry Entry</p>
+                                        <h2 className="text-xl font-black text-slate-900 uppercase leading-none">Daily Surveillance Census</h2>
+                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Institutional Data Submission</p>
                                     </div>
+                                </div>
+                                <div className="w-full md:w-48">
+                                    <Input label="Registry Date" type="date" value={formData.date} onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))} required />
                                 </div>
                             </div>
 
-                            <div className="flex flex-col gap-6">
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <Input label="Registry Date" type="date" value={formData.date} onChange={e => setFormData(prev => ({ ...prev, date: e.target.value }))} required />
-                                    <Select label="Ward" options={areaOptions} value={formData.areaName} onChange={e => setFormData(prev => ({ ...prev, areaName: e.target.value }))} required />
+                            {/* Section A: Hospital-Wide Census */}
+                            <div className="flex flex-col gap-5">
+                                <div className="flex items-center gap-2">
+                                    <BedDouble size={18} className="text-emerald-600"/>
+                                    <h3 className="text-xs font-black uppercase text-slate-900 tracking-wider">A. Patient Census (Daily Aggregate)</h3>
                                 </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                                    <Input label="Total Hospital" type="number" value={formData.overallCensus} onChange={e => setFormData({...formData, overallCensus: e.target.value})} required />
+                                    <Input label="ICU" type="number" value={formData.icuCensus} onChange={e => setFormData({...formData, icuCensus: e.target.value})} required />
+                                    <Input label="PICU" type="number" value={formData.picuCensus} onChange={e => setFormData({...formData, picuCensus: e.target.value})} required />
+                                    <Input label="NICU" type="number" value={formData.nicuCensus} onChange={e => setFormData({...formData, nicuCensus: e.target.value})} required />
+                                    <Input label="Medicine Ward" type="number" value={formData.medicineCensus} onChange={e => setFormData({...formData, medicineCensus: e.target.value})} required />
+                                </div>
+                            </div>
 
-                                <div className="bg-slate-50 p-6 rounded-[2rem] border border-slate-100 flex flex-col gap-5">
-                                    <div className="flex items-center gap-2 mb-1">
-                                        <Activity size={14} className="text-indigo-600"/>
-                                        <span className="text-[10px] font-black uppercase text-indigo-600 tracking-widest">Device Days: {formData.areaName}</span>
+                            {/* Section B: Ward Specific Device Days */}
+                            <div className="flex flex-col gap-5 pt-4 border-t border-slate-100">
+                                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+                                    <div className="flex items-center gap-2">
+                                        <Activity size={18} className="text-blue-600"/>
+                                        <h3 className="text-xs font-black uppercase text-slate-900 tracking-wider">B. Device Surveillance (Unit Specific)</h3>
                                     </div>
-                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                        <Input label="Ventilator Count" type="number" value={formData.ventCount} onChange={e => setFormData({...formData, ventCount: e.target.value})} required />
-                                        <Input label="IFC Count" type="number" value={formData.ifcCount} onChange={e => setFormData({...formData, ifcCount: e.target.value})} required />
-                                        <Input label="Central Line Count" type="number" value={formData.centralCount} onChange={e => setFormData({...formData, centralCount: e.target.value})} required />
+                                    <div className="w-full md:w-64">
+                                        <Select label="Select Target Ward" options={areaOptions} value={formData.areaName} onChange={e => setFormData(prev => ({ ...prev, areaName: e.target.value }))} required />
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-slate-50/50 p-6 rounded-3xl border border-slate-100 grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+                                    <div className="flex flex-col">
+                                        <div className="flex items-center gap-2 text-blue-600 mb-1.5 ml-1">
+                                            <Wind size={14}/>
+                                            <span className="text-[9px] font-black uppercase tracking-widest">Ventilator Days</span>
+                                        </div>
+                                        <Input label="Quantity" type="number" value={formData.ventCount} onChange={e => setFormData({...formData, ventCount: e.target.value})} required placeholder="0" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <div className="flex items-center gap-2 text-amber-600 mb-1.5 ml-1">
+                                            <Droplets size={14}/>
+                                            <span className="text-[9px] font-black uppercase tracking-widest">IFC Days</span>
+                                        </div>
+                                        <Input label="Quantity" type="number" value={formData.ifcCount} onChange={e => setFormData({...formData, ifcCount: e.target.value})} required placeholder="0" />
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <div className="flex items-center gap-2 text-rose-600 mb-1.5 ml-1">
+                                            <Syringe size={14}/>
+                                            <span className="text-[9px] font-black uppercase tracking-widest">Central Line Days</span>
+                                        </div>
+                                        <Input label="Quantity" type="number" value={formData.centralCount} onChange={e => setFormData({...formData, centralCount: e.target.value})} required placeholder="0" />
                                     </div>
                                 </div>
                             </div>
@@ -271,18 +322,18 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                             <div className="flex justify-end pt-4 border-t border-slate-100">
                                 <button disabled={loading} className="w-full md:w-fit h-14 bg-indigo-600 text-white px-12 py-4 rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-xl shadow-indigo-600/20 hover:bg-indigo-700 transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50">
                                     {loading ? <Clock size={24} className="animate-spin" /> : <Save size={24} />} 
-                                    {currentDayLog && currentDayLog[`${currentPrefix}Vent`] !== undefined ? 'Update Registry' : 'Save Entry'}
+                                    Update Registry Entry
                                 </button>
                             </div>
                         </form>
                     </div>
 
-                    <div className="lg:col-span-5 flex flex-col gap-6 sticky top-24">
+                    <div className="lg:col-span-4 flex flex-col gap-6 sticky top-24">
                         <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col gap-6 animate-in slide-in-from-right-4 duration-500">
                             <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
                                 <div className="p-3 bg-slate-50 text-slate-600 rounded-2xl"><Hash size={24}/></div>
                                 <div>
-                                    <h2 className="text-xl font-black text-slate-900 uppercase leading-none">Daily Summary</h2>
+                                    <h2 className="text-xl font-black text-slate-900 uppercase leading-none">Day Summary</h2>
                                     <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">{new Date(formData.date).toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</p>
                                 </div>
                             </div>
@@ -312,13 +363,13 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                                     </div>
 
                                     <div className="mt-4 flex flex-col gap-2">
-                                        <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] px-1">Breakdown per Ward</h3>
+                                        <h3 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] px-1">Unit Detail</h3>
                                         <div className="grid grid-cols-1 gap-2">
                                             {ANALYTICAL_WARDS.filter(a => a.prefix !== 'overall').map(area => (
                                                 <button key={area.prefix} onClick={() => setFormData(prev => ({...prev, areaName: area.label}))} className={`group p-3 rounded-xl border transition-all flex items-center justify-between ${formData.areaName === area.label ? 'bg-indigo-50 border-indigo-200' : 'bg-white border-slate-100 hover:border-slate-300'}`}>
                                                     <span className={`text-[10px] font-black uppercase ${formData.areaName === area.label ? 'text-indigo-600' : 'text-slate-600'}`}>{area.label}</span>
                                                     <div className="flex items-center gap-4 text-[10px] font-bold text-slate-400">
-                                                        <div className="flex items-center gap-1"><span>C:</span><span className="font-black text-slate-900">{currentDayLog[area.prefix] || '0'}</span></div>
+                                                        <div className="flex items-center gap-1"><span>C:</span><span className="font-black text-slate-900">{currentDayLog[area.prefix === 'med' ? 'medicine' : area.prefix] || '0'}</span></div>
                                                         <div className="flex items-center gap-1"><span>V:</span><span className="font-black text-slate-900">{currentDayLog[`${area.prefix}Vent`] || '0'}</span></div>
                                                         <div className="flex items-center gap-1"><span>I:</span><span className="font-black text-slate-900">{currentDayLog[`${area.prefix}Ifc`] || '0'}</span></div>
                                                     </div>
@@ -333,12 +384,12 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                                 <div className="flex items-center justify-between">
                                     <div className="flex items-center gap-2">
                                         <CalendarX size={18} className="text-rose-500" />
-                                        <h3 className="text-xs font-black uppercase text-slate-900 tracking-tight">Missing Dates</h3>
+                                        <h3 className="text-xs font-black uppercase text-slate-900 tracking-tight">Pending Dates</h3>
                                     </div>
-                                    <span className="text-[9px] font-black uppercase text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">{missingDates.length} pending</span>
+                                    <span className="text-[9px] font-black uppercase text-rose-600 bg-rose-50 px-2 py-0.5 rounded-full">{missingDates.length} days</span>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
-                                    {missingDates.map(d => (
+                                    {missingDates.slice(0, 8).map(d => (
                                         <button key={d} onClick={() => setFormData(prev => ({...prev, date: d}))} className="px-3 py-1.5 rounded-lg bg-rose-50 border border-rose-100 text-rose-600 text-[10px] font-black uppercase hover:bg-rose-100 transition-all active:scale-95">
                                             {new Date(d).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                         </button>
@@ -364,10 +415,9 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                             <thead className="bg-gray-50 text-gray-700 font-bold border-b text-[10px] uppercase tracking-wider">
                                 <tr>
                                     <th className="px-6 py-4">Date</th>
-                                    <th className="px-6 py-4">Census</th>
-                                    <th className="px-6 py-4">Overall Vent</th>
-                                    <th className="px-6 py-4">Overall IFC</th>
-                                    <th className="px-6 py-4">Overall Central</th>
+                                    <th className="px-6 py-4">Total Census</th>
+                                    <th className="px-6 py-4">ICU/PICU/NICU</th>
+                                    <th className="px-6 py-4">Med Ward</th>
                                     <th className="px-6 py-4 text-center">Actions</th>
                                 </tr>
                             </thead>
@@ -376,9 +426,8 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                                     <tr key={log.date} className="hover:bg-primary/5 transition-colors group">
                                         <td className="px-6 py-3 font-black text-slate-900">{log.date}</td>
                                         <td className="px-6 py-3 font-bold text-emerald-600">{log.overall || 0}</td>
-                                        <td className="px-6 py-3 font-bold text-blue-600">{log.overallVent || 0}</td>
-                                        <td className="px-6 py-3 font-bold text-amber-600">{log.overallIfc || 0}</td>
-                                        <td className="px-6 py-3 font-bold text-rose-600">{log.overallCentral || 0}</td>
+                                        <td className="px-6 py-3 font-bold text-slate-600">{log.icu || 0} / {log.picu || 0} / {log.nicu || 0}</td>
+                                        <td className="px-6 py-3 font-bold text-slate-600">{log.medicine || 0}</td>
                                         <td className="px-6 py-3">
                                             <div className="flex items-center justify-center gap-2">
                                                 <button onClick={() => handleEditLog(log)} className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"><Edit3 size={16}/></button>
@@ -458,21 +507,35 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                     <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95">
                         <div className="bg-indigo-600 p-6 text-white flex justify-between items-center">
                             <div>
-                                <h3 className="text-xl font-black uppercase tracking-tight">Edit Daily Census</h3>
+                                <h3 className="text-xl font-black uppercase tracking-tight">Edit Surveillance Census</h3>
                                 <p className="text-xs opacity-80 font-bold uppercase tracking-widest">{editingLog.date}</p>
                             </div>
                             <button onClick={() => setEditingLog(null)} className="p-2 hover:bg-white/20 rounded-full transition-colors"><X size={20}/></button>
                         </div>
-                        <div className="p-8 flex flex-col gap-6">
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                                <Input label="Overall Census" type="number" value={editingLog.overall} onChange={e => setEditingLog({...editingLog, overall: e.target.value})} />
-                                <Input label="Overall Vent" type="number" value={editingLog.overallVent} onChange={e => setEditingLog({...editingLog, overallVent: e.target.value})} />
-                                <Input label="Overall IFC" type="number" value={editingLog.overallIfc} onChange={e => setEditingLog({...editingLog, overallIfc: e.target.value})} />
-                                <Input label="Overall Central" type="number" value={editingLog.overallCentral} onChange={e => setEditingLog({...editingLog, overallCentral: e.target.value})} />
+                        <div className="p-8 flex flex-col gap-6 max-h-[80vh] overflow-y-auto">
+                            <div className="flex flex-col gap-4">
+                                <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest border-b pb-2">Patient Census</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                    <Input label="Overall Census" type="number" value={editingLog.overall} onChange={e => setEditingLog({...editingLog, overall: e.target.value})} />
+                                    <Input label="ICU Census" type="number" value={editingLog.icu} onChange={e => setEditingLog({...editingLog, icu: e.target.value})} />
+                                    <Input label="PICU Census" type="number" value={editingLog.picu} onChange={e => setEditingLog({...editingLog, picu: e.target.value})} />
+                                    <Input label="NICU Census" type="number" value={editingLog.nicu} onChange={e => setEditingLog({...editingLog, nicu: e.target.value})} />
+                                    <Input label="Medicine Census" type="number" value={editingLog.medicine} onChange={e => setEditingLog({...editingLog, medicine: e.target.value})} />
+                                </div>
                             </div>
-                            <div className="flex gap-4 mt-4">
-                                <button onClick={() => setEditingLog(null)} className="flex-1 py-3 text-slate-400 font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 rounded-xl transition-all">Cancel</button>
-                                <button onClick={handleUpdateLog} className="flex-1 py-3 bg-indigo-600 text-white font-black uppercase text-[10px] tracking-widest rounded-xl shadow-lg hover:bg-indigo-700 transition-all">Save Changes</button>
+                            
+                            <div className="flex flex-col gap-4 mt-2">
+                                <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-widest border-b pb-2">Overall Device Totals</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <Input label="Overall Vent" type="number" value={editingLog.overallVent} onChange={e => setEditingLog({...editingLog, overallVent: e.target.value})} />
+                                    <Input label="Overall IFC" type="number" value={editingLog.overallIfc} onChange={e => setEditingLog({...editingLog, overallIfc: e.target.value})} />
+                                    <Input label="Overall Central" type="number" value={editingLog.overallCentral} onChange={e => setEditingLog({...editingLog, overallCentral: e.target.value})} />
+                                </div>
+                            </div>
+
+                            <div className="flex gap-4 mt-6 sticky bottom-0 bg-white pt-4">
+                                <button onClick={() => setEditingLog(null)} className="flex-1 py-4 text-slate-400 font-black uppercase text-[10px] tracking-widest hover:bg-slate-50 rounded-xl transition-all border border-slate-100">Cancel</button>
+                                <button onClick={handleUpdateLog} className="flex-1 py-4 bg-indigo-600 text-white font-black uppercase text-[10px] tracking-widest rounded-xl shadow-lg hover:bg-indigo-700 transition-all">Save Changes</button>
                             </div>
                         </div>
                     </div>
@@ -485,7 +548,7 @@ const HAIDataDashboard: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                 onConfirm={handleConfirmDelete}
                 loading={passwordConfirmLoading}
                 title="Confirm Census Deletion"
-                description={`Permanently delete the daily census for ${logToDelete}?`}
+                description={`Permanently delete the surveillance census for ${logToDelete}?`}
             />
         </div>
     );

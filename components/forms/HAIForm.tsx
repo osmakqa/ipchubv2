@@ -31,8 +31,7 @@ import {
   Wind,
   Droplets,
   Syringe,
-  Scissors,
-  Clock
+  Scissors
 } from 'lucide-react';
 
 const HAIForm: React.FC = () => {
@@ -51,7 +50,7 @@ const HAIForm: React.FC = () => {
     haiType: '', haiTypeOther: '', 
     // VAP
     mvInitiationArea: '', mvInitiationDate: '', 
-    vap_empiricAntibiotics: '', vap_cultureResult: '', vap_awaitingResults: false,
+    vap_empiricAntibiotics: '', vap_cultureResult: '',
     // CAUTI
     ifcInitiationArea: '', ifcInitiationDate: '',
     // CRBSI
@@ -73,9 +72,8 @@ const HAIForm: React.FC = () => {
   }, [formData.dob]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-    const { name, value, type } = e.target as HTMLInputElement;
-    const val = type === 'checkbox' ? (e.target as HTMLInputElement).checked : value;
-    setFormData((prev: any) => ({ ...prev, [name]: val }));
+    const { name, value } = e.target;
+    setFormData((prev: any) => ({ ...prev, [name]: value }));
   };
 
   const handleMagicFill = () => {
@@ -103,7 +101,6 @@ const HAIForm: React.FC = () => {
       mvInitiationDate: admDate.toISOString().split('T')[0],
       vap_empiricAntibiotics: 'Ceftriaxone + Azithromycin',
       vap_cultureResult: 'Acinetobacter baumannii (MDR)',
-      vap_awaitingResults: false,
       clinicalSigns: ['Fever (>38C)', 'Chills'],
       outcome: 'Admitted',
       reporterName: 'Dr. Maria Santos',
@@ -244,25 +241,8 @@ const HAIForm: React.FC = () => {
                   <div className="md:col-span-2">
                      <Input label="Empiric antibiotics given" name="vap_empiricAntibiotics" value={formData.vap_empiricAntibiotics} onChange={handleChange} placeholder="Enter name of antibiotics..." />
                   </div>
-                  <div className="md:col-span-2 flex flex-col gap-2">
-                     <Input 
-                       label="Culture result" 
-                       name="vap_cultureResult" 
-                       value={formData.vap_cultureResult} 
-                       onChange={handleChange} 
-                       placeholder="Enter antibiotics and result..." 
-                       disabled={formData.vap_awaitingResults}
-                     />
-                     <label className="flex items-center gap-2 text-[10px] font-black text-blue-600 uppercase cursor-pointer ml-1">
-                        <input 
-                          type="checkbox" 
-                          name="vap_awaitingResults" 
-                          checked={formData.vap_awaitingResults} 
-                          onChange={handleChange} 
-                          className="rounded text-blue-600 h-4 w-4"
-                        />
-                        <Clock size={12}/> Awaiting Results
-                     </label>
+                  <div className="md:col-span-2">
+                     <Input label="Culture result" name="vap_cultureResult" value={formData.vap_cultureResult} onChange={handleChange} placeholder="Enter antibiotics and result..." />
                   </div>
                 </div>
               </div>

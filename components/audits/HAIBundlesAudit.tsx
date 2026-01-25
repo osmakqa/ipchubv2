@@ -68,12 +68,10 @@ const HAIBundlesAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
         cauti_catheterSecured: '',
         cauti_urineBagPosition: '',
         cauti_meatalCare: '',
-        cauti_bagBelowBladder: '',
-        cauti_glovesUsed: '',
-        cauti_meatalHygiene: '',
         vap_headElevated: '',
         vap_oralCare: '',
         vap_pepticProphylaxis: '',
+        vap_dvtProphylaxis: '',
         vap_suctionTechnique: '',
         vap_suctionBottleClean: '',
         vap_suctionCatheterDisposed: '',
@@ -120,8 +118,7 @@ const HAIBundlesAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
             date: new Date().toISOString().split('T')[0],
             area: '', areaOther: '', patientName: '', nurseInCharge: '',
             cauti_drainageIntact: '', cauti_catheterSecured: '', cauti_urineBagPosition: '', cauti_meatalCare: '',
-            cauti_bagBelowBladder: '', cauti_glovesUsed: '', cauti_meatalHygiene: '',
-            vap_headElevated: '', vap_oralCare: '', vap_pepticProphylaxis: '',
+            vap_headElevated: '', vap_oralCare: '', vap_pepticProphylaxis: '', vap_dvtProphylaxis: '',
             vap_suctionTechnique: '', vap_suctionBottleClean: '', vap_suctionCatheterDisposed: '', vap_handHygiene: '',
             clabsi_handHygiene: '', clabsi_scrubConnector: '', clabsi_dressingClean: ''
         });
@@ -191,14 +188,13 @@ const HAIBundlesAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
             let compliant = true;
 
             if (type === 'VAP') {
-                const isC = audit.vap_headElevated === 'Yes' && audit.vap_oralCare === 'Yes' && audit.vap_pepticProphylaxis === 'Yes' &&
+                const isC = audit.vap_headElevated === 'Yes' && audit.vap_oralCare === 'Yes' && audit.vap_pepticProphylaxis === 'Yes' && audit.vap_dvtProphylaxis === 'Yes' &&
                             audit.vap_suctionTechnique === 'Yes' && audit.vap_suctionBottleClean === 'Yes' && audit.vap_suctionCatheterDisposed === 'Yes' && audit.vap_handHygiene === 'Yes';
                 if (isC) resultsByArea[area].vap++;
                 resultsByArea[area].countVap++;
                 compliant = isC;
             } else if (type === 'CAUTI') {
-                const isC = audit.cauti_drainageIntact === 'Yes' && audit.cauti_catheterSecured === 'Yes' && 
-                            audit.cauti_bagBelowBladder === 'Yes' && audit.cauti_glovesUsed === 'Yes' && audit.cauti_meatalHygiene === 'Yes';
+                const isC = audit.cauti_drainageIntact === 'Yes' && audit.cauti_catheterSecured === 'Yes' && audit.cauti_urineBagPosition === 'Below bladder level' && audit.cauti_meatalCare === 'Daily with soap & water';
                 if (isC) resultsByArea[area].cauti++;
                 resultsByArea[area].countCauti++;
                 compliant = isC;
@@ -274,19 +270,12 @@ const HAIBundlesAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                                         <button type="button" onClick={() => handleInputChange('cauti_catheterSecured', 'No')} className={`w-16 py-2 rounded-lg border font-black uppercase text-[10px] transition-all ${formData.cauti_catheterSecured === 'No' ? 'bg-rose-500 border-rose-500 text-white shadow-md' : 'bg-slate-50 border-transparent text-slate-400'}`}>No</button>
                                     </div>
                                 </div>
-                                {[
-                                    { id: 'cauti_bagBelowBladder', label: "Bag below bladder at all times; not on the floor?" },
-                                    { id: 'cauti_glovesUsed', label: "Gloves used during any manipulation?" },
-                                    { id: 'cauti_meatalHygiene', label: "Meatal/perineal hygiene performed per shift?" }
-                                ].map(q => (
-                                    <div key={q.id} className="bg-white p-4 rounded-2xl border border-slate-100 flex items-center justify-between gap-4">
-                                        <label className="text-[11px] font-black text-slate-600 uppercase leading-tight">{q.label}</label>
-                                        <div className="flex gap-2 shrink-0">
-                                            <button type="button" onClick={() => handleInputChange(q.id, 'Yes')} className={`w-16 py-2 rounded-lg border font-black uppercase text-[10px] transition-all ${formData[q.id] === 'Yes' ? 'bg-emerald-500 border-emerald-500 text-white shadow-md' : 'bg-slate-50 border-transparent text-slate-400'}`}>Yes</button>
-                                            <button type="button" onClick={() => handleInputChange(q.id, 'No')} className={`w-16 py-2 rounded-lg border font-black uppercase text-[10px] transition-all ${formData[q.id] === 'No' ? 'bg-rose-500 border-rose-500 text-white shadow-md' : 'bg-slate-50 border-transparent text-slate-400'}`}>No</button>
-                                        </div>
-                                    </div>
-                                ))}
+                                <div className="md:col-span-1">
+                                    <Select label="Urine Bag Position" options={['Below bladder level', 'Not touching floor', 'Improper positioning']} value={formData.cauti_urineBagPosition} onChange={e => handleInputChange('cauti_urineBagPosition', e.target.value)} required />
+                                </div>
+                                <div className="md:col-span-1">
+                                    <Select label="Routine Meatal Care" options={['Daily with soap & water', 'No antiseptics used', 'Not documented / improper']} value={formData.cauti_meatalCare} onChange={e => handleInputChange('cauti_meatalCare', e.target.value)} required />
+                                </div>
                             </div>
                         </div>
                     )}
@@ -299,6 +288,7 @@ const HAIBundlesAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                                     { id: 'vap_headElevated', label: "Head elevated 30-45deg?" },
                                     { id: 'vap_oralCare', label: "Oral care received?" },
                                     { id: 'vap_pepticProphylaxis', label: "Peptic ulcer prophylaxis?" },
+                                    { id: 'vap_dvtProphylaxis', label: "DVT prophylaxis?" },
                                     { id: 'vap_suctionTechnique', label: "Appropriate suctioning technique?" },
                                     { id: 'vap_suctionBottleClean', label: "Suction bottle cleaned per shift?" },
                                     { id: 'vap_suctionCatheterDisposed', label: "Suction catheter disposed after use?" },
