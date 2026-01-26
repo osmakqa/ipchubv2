@@ -216,8 +216,12 @@ export const CIVIL_STATUS = [
   "Single", "Married", "Widowed", "Separated", "Divorced"
 ];
 
-export const PTB_OUTCOMES = [
-  "Admitted", "Discharged", "Expired", "For Admission"
+export const PTB_INITIAL_DISPOSITIONS = [
+  "Admitted", "Discharged", "Transferred", "Expired"
+];
+
+export const PTB_FINAL_DISPOSITIONS = [
+  "Currently Admitted", "Discharged", "Expired", "Cleared"
 ];
 
 export const COMORBIDITIES = [
@@ -233,7 +237,7 @@ export const CLINICAL_SIGNS = ["Fever (>38C)", "Chills", "Hypotension", "Infant 
 
 // SSI Specific Constants
 export const SURGICAL_PROCEDURES = [
-  "APPY – Appendectomy", "BILI – Biliary tract surgery", "CHOL – Cholecystectomy", "COLO – Colon surgery", "REC – Rectal surgery", "SB – Small bowel surgery", "GAST – Gastric surgery", "HYST – Abdominal hysterectomy", "VHYS – Vaginal hysterectomy", "HER – Herniorrhaphy", "VENT – Ventral hernia repair (no mesh left)", "SPLE – Splenectomy", "LIVER – Liver surgery", "PAN – Pancreatic surgery", "CSEC – Cesarean section", "OVRY – Ovarian surgery", "NECK – Neck surgery", "THYR – Thyroid surgery", "LAM – Laminectomy (no implant)", "HPRO – Hip prosthesis", "KPRO – Knee prosthesis", "FX – Fracture repair", "FUSN – Spinal fusion", "LAM – Laminectomy with implant", "CABG – Coronary artery bypass graft", "CARD – Cardiac surgery", "VASC – Vascular surgery", "AAA – Abdominal aortic aneurysm repair", "THOR – Thoracic surgery", "CRAN – Craniotomy", "VSHN – Ventricular shunt", "BRST – Breast surgery with implant or expander"
+  "APPY – Appendectomy", "BILI – Biliary tract surgery", "CHOL – Cholecystectomy", "COLO – Colon surgery", "REC – Rectal surgery", "SB – Small bowel surgery", "GAST – Gastric surgery", "HYST – Abdominal hysterectomy", "VHYS – Vaginal hysterectomy", "HER – Herniorrhaphy", "VENT – Ventral hernia repair (no mesh left)", "SPLE – Splenectomy", "LIVER – Liver surgery", "PAN – Pancreatic surgery", "CSEC – Cesarean section", "OVRY – Ovarian surgery", "NECK – Neck surgery", "THYR – Thyroid surgery", "LAM – Lamectomy (no implant)", "HPRO – Hip prosthesis", "KPRO – Knee prosthesis", "FX – Fracture repair", "FUSN – Spinal fusion", "LAM – Lamectomy with implant", "CABG – Coronary artery bypass graft", "CARD – Cardiac surgery", "VASC – Vascular surgery", "AAA – Abdominal aortic aneurysm repair", "THOR – Thoracic surgery", "CRAN – Craniotomy", "VSHN – Ventricular shunt", "BRST – Breast surgery with implant or expander"
 ];
 
 export const SSI_TISSUE_LEVELS = ["Skin and subcutaneous tissue only", "Deep soft tissue (fascia and/or muscle)", "Organ/space deeper than fascia or muscle"];

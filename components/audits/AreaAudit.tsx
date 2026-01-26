@@ -114,8 +114,13 @@ const AreaAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
     const [itemToDelete, setItemToDelete] = useState<any | null>(null);
     const [passwordConfirmLoading, setPasswordConfirmLoading] = useState(false);
 
-    const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
-    const [selectedQuarter, setSelectedQuarter] = useState('');
+    // Dynamic Current Dates
+    const now = new Date();
+    const currentYear = now.getFullYear().toString();
+    const currentQuarter = `Q${Math.floor(now.getMonth() / 3) + 1}`;
+
+    const [selectedYear, setSelectedYear] = useState(currentYear);
+    const [selectedQuarter, setSelectedQuarter] = useState(currentQuarter);
 
     const [formData, setFormData] = useState<any>({
         date: new Date().toISOString().split('T')[0],
@@ -390,7 +395,7 @@ const AreaAudit: React.FC<Props> = ({ viewMode: initialViewMode }) => {
                                     <option value="Q4">Q4</option>
                                 </select>
                             </div>
-                            <button onClick={() => { setSelectedYear(new Date().getFullYear().toString()); setSelectedQuarter(''); }} className="p-1.5 text-slate-400 hover:text-amber-600 transition-all"><RotateCcw size={14} /></button>
+                            <button onClick={() => { setSelectedYear(currentYear); setSelectedQuarter(currentQuarter); loadHistory(); }} className="p-1.5 text-slate-400 hover:text-amber-600 transition-all"><RotateCcw size={14} /></button>
                         </div>
                     </div>
 

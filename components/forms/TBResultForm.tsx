@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../AuthContext';
 import Layout from '../ui/Layout';
-import { getTBReports, updateTBReport, submitReport } from '../../services/ipcService';
+import { getTBReports, updateTBReport, submitReport, getPendingReports } from '../../services/ipcService';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import { 
@@ -46,16 +46,24 @@ const TBResultForm: React.FC = () => {
 
   const loadRegistry = async () => {
     setFetching(true);
-    const data = await getTBReports();
-    setRegistry(data);
-    setFetching(false);
+    try {
+      // Lab results should be linkable to any patient, even if they are still "pending" validation
+      const validated = await getTBReports();
+      const allPending = await getPendingReports();
+      const combined = [...validated, ...allPending.tb];
+      setRegistry(combined);
+    } catch (error) {
+      console.error("Registry fetch error:", error);
+    } finally {
+      setFetching(false);
+    }
   };
 
   const filteredRegistry = useMemo(() => {
     if (!searchTerm.trim()) return [];
     return registry.filter(p => 
       `${p.lastName} ${p.firstName}`.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.hospitalNumber.includes(searchTerm)
+      p.hospitalNumber?.includes(searchTerm)
     );
   }, [registry, searchTerm]);
 
@@ -73,7 +81,10 @@ const TBResultForm: React.FC = () => {
   };
 
   const addResultRow = (type: 'xpert' | 'smear') => {
-    const newRow = { date: new Date().toISOString().split('T')[0], specimen: 'Sputum', result: '' };
+    const date = new Date().toISOString().split('T')[0];
+    const newRow = type === 'xpert' 
+      ? { date, specimen: 'Sputum', mtbResult: '', mtbLevel: '', rifResistance: '' }
+      : { date, specimen: 'Sputum', result: '' };
     if (type === 'xpert') setXpertResults([...xpertResults, newRow]);
     else setSmearResults([...smearResults, newRow]);
   };
@@ -109,39 +120,43 @@ const TBResultForm: React.FC = () => {
     setLoading(true);
     try {
       if (selectedPatient) {
-        // Appending to existing patient
+        // Update existing record and promote to "validated" status
         const updatedPatient = {
           ...selectedPatient,
           xpertResults: [...(selectedPatient.xpertResults || []), ...xpertResults],
-          smearResults: [...(selectedPatient.smearResults || []), ...smearResults]
+          smearResults: [...(selectedPatient.smearResults || []), ...smearResults],
+          validationStatus: 'validated', // Auto-validate when results are added
+          validatedBy: user || 'Laboratory'
         };
         
         // Auto-update classification if positive
-        const hasPositive = [...xpertResults, ...smearResults].some(r => 
-            r.result.includes('+') || r.result.toLowerCase().includes('detected')
-        );
-        if (hasPositive) updatedPatient.classification = 'Bacteriological Confirmed';
+        const hasPositiveXpert = xpertResults.some(r => r.mtbResult === 'MTB Detected');
+        const hasPositiveSmear = smearResults.some(r => r.result?.includes('+'));
+        
+        if (hasPositiveXpert || hasPositiveSmear) updatedPatient.classification = 'Bacteriological Confirmed';
 
         await updateTBReport(updatedPatient);
       } else {
-        // Creating a new pending report for manual entry
+        // Create a new auto-validated report for manual entry
         const payload = {
           ...patientData,
           xpertResults,
           smearResults,
           dateReported: new Date().toISOString().split('T')[0],
-          reporterName: user || 'Unknown',
-          classification: [...xpertResults, ...smearResults].some(r => r.result.includes('+') || r.result.toLowerCase().includes('detected')) 
+          reporterName: user || 'Lab System',
+          classification: (xpertResults.some(r => r.mtbResult === 'MTB Detected') || smearResults.some(r => r.result?.includes('+')))
             ? 'Bacteriological Confirmed' 
             : 'Presumptive TB',
-          validationStatus: 'pending',
-          isLabOnly: true // Mark that this came from lab entry only
+          validationStatus: 'validated',
+          validatedBy: user || 'Laboratory',
+          isLabOnly: true 
         };
         await submitReport("tb", payload);
       }
       setSuccess(true);
     } catch (err) {
-      alert("Submission failed. Check connection.");
+      console.error("TB Lab Registry Error:", err);
+      alert("Transmission failed. Please check your connection and try again.");
     } finally {
       setLoading(false);
     }
@@ -151,12 +166,12 @@ const TBResultForm: React.FC = () => {
     return (
       <Layout title="Lab Transmission Successful">
         <div className="max-w-xl mx-auto bg-white p-12 rounded-[3rem] border border-slate-200 shadow-xl text-center flex flex-col items-center gap-6 animate-in zoom-in-95">
-          <div className="size-24 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center">
+          <div className="size-24 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center">
             <CheckCircle2 size={56} />
           </div>
           <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Results Recorded</h2>
           <p className="text-slate-500 font-medium leading-relaxed">
-            Laboratory findings have been linked to <span className="text-amber-700 font-black uppercase">{patientData.lastName}, {patientData.firstName}</span>.
+            Laboratory findings have been linked and published for <span className="text-amber-700 font-black uppercase">{patientData.lastName}, {patientData.firstName}</span>.
           </p>
           <button onClick={() => navigate('/surveillance?module=tb')} className="mt-4 px-12 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] hover:bg-black transition-all shadow-xl">Return to Hub</button>
         </div>
@@ -179,7 +194,14 @@ const TBResultForm: React.FC = () => {
                 <h3 className="font-black text-slate-900 uppercase text-sm tracking-tight flex items-center gap-2">
                   <User size={18} className="text-amber-600" /> Patient Target
                 </h3>
-                {isManual && (
+                {!isManual ? (
+                  <button 
+                    onClick={switchToManual}
+                    className="text-[10px] font-black uppercase text-amber-600 hover:text-amber-700 flex items-center gap-1 transition-all"
+                  >
+                    <UserPlus size={14}/> Add New
+                  </button>
+                ) : (
                    <button 
                    onClick={() => setIsManual(false)}
                    className="p-1.5 hover:bg-slate-100 rounded-lg text-slate-400"
@@ -195,7 +217,7 @@ const TBResultForm: React.FC = () => {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
                     <input 
                       className="w-full h-12 pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 focus:ring-2 focus:ring-amber-500 outline-none font-bold text-sm" 
-                      placeholder="Search name or Hosp #..."
+                      placeholder="Search name or Hosp #..." 
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
                     />
@@ -212,7 +234,12 @@ const TBResultForm: React.FC = () => {
                           className={`p-4 rounded-2xl border text-left transition-all ${selectedPatient?.id === p.id ? 'bg-amber-50 border-amber-500 ring-2 ring-amber-500/20' : 'bg-slate-50 border-slate-100 hover:border-amber-200'}`}
                         >
                           <div className="font-black text-xs text-slate-900 uppercase">{p.lastName}, {p.firstName}</div>
-                          <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter mt-0.5">{p.hospitalNumber} • {p.area}</div>
+                          <div className="flex items-center justify-between mt-1">
+                            <div className="text-[10px] text-slate-400 font-bold uppercase tracking-tighter">{p.hospitalNumber} • {p.area || 'Walk-in'}</div>
+                            <span className={`text-[8px] font-black uppercase px-1.5 py-0.5 rounded ${p.validationStatus === 'validated' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'}`}>
+                              {p.validationStatus}
+                            </span>
+                          </div>
                         </button>
                       ))}
                     </div>
@@ -229,6 +256,15 @@ const TBResultForm: React.FC = () => {
                         <UserPlus size={14}/> Add New Patient
                       </button>
                     </div>
+                  )}
+                  
+                  {!searchTerm && !selectedPatient && (
+                    <button 
+                      onClick={switchToManual}
+                      className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-[10px] font-black uppercase tracking-widest hover:border-amber-400 hover:text-amber-600 transition-all flex items-center justify-center gap-2"
+                    >
+                      <Plus size={14}/> Add New Patient
+                    </button>
                   )}
                 </div>
               ) : (
@@ -261,7 +297,7 @@ const TBResultForm: React.FC = () => {
                 </div>
                 <div>
                   <h3 className="font-black text-xl text-slate-900 uppercase tracking-tight">Diagnostic Findings</h3>
-                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">Xpert MTB/RIF & Sputum Microscopy</p>
+                  <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-0.5">Xpert MTB/RIF & AFB Microscopy</p>
                 </div>
               </div>
 
@@ -274,14 +310,18 @@ const TBResultForm: React.FC = () => {
                     </div>
                     <div className="space-y-4">
                         {xpertResults.map((x, i) => (
-                            <div key={i} className="bg-white p-4 rounded-2xl border border-blue-50 shadow-sm relative animate-in slide-in-from-top-2">
-                                <div className="grid grid-cols-1 gap-3">
-                                  <div className="grid grid-cols-2 gap-3">
-                                    <Input label="Date" type="date" value={x.date} onChange={e => updateResultRow('xpert', i, 'date', e.target.value)} />
-                                    <Input label="Specimen" value={x.specimen} onChange={e => updateResultRow('xpert', i, 'specimen', e.target.value)} />
-                                  </div>
-                                  <Select label="Result" options={['MTB Detected; Rif Sens', 'MTB Detected; Rif Res', 'MTB Detected; Rif Indet', 'MTB Not Detected', 'Invalid/No Result']} value={x.result} onChange={e => updateResultRow('xpert', i, 'result', e.target.value)} />
+                            <div key={i} className="bg-white p-4 rounded-2xl border border-blue-50 shadow-sm relative animate-in slide-in-from-top-2 flex flex-col gap-3">
+                                <div className="grid grid-cols-2 gap-3">
+                                  <Input label="Date" type="date" value={x.date} onChange={e => updateResultRow('xpert', i, 'date', e.target.value)} />
+                                  <Input label="Specimen" value={x.specimen} onChange={e => updateResultRow('xpert', i, 'specimen', e.target.value)} />
                                 </div>
+                                <Select label="MTB Result" options={['MTB Detected', 'MTB Not Detected', 'Invalid/No Result']} value={x.mtbResult} onChange={e => updateResultRow('xpert', i, 'mtbResult', e.target.value)} />
+                                {x.mtbResult === 'MTB Detected' && (
+                                    <div className="grid grid-cols-1 gap-3 animate-in fade-in slide-in-from-top-1">
+                                        <Select label="MTB Level" options={['Very low', 'Low', 'Medium', 'Intermediate', 'High', 'Very High']} value={x.mtbLevel || ''} onChange={e => updateResultRow('xpert', i, 'mtbLevel', e.target.value)} />
+                                        <Select label="Rif Resistance" options={['Rif Resistance not detected', 'Indeterminate', 'Sensitive', 'Resistant']} value={x.rifResistance || ''} onChange={e => updateResultRow('xpert', i, 'rifResistance', e.target.value)} />
+                                    </div>
+                                )}
                                 <button type="button" onClick={() => removeResultRow('xpert', i)} className="absolute -top-2 -right-2 p-1.5 bg-white border border-red-100 text-red-500 rounded-full shadow-sm hover:bg-red-50"><Trash2 size={12}/></button>
                             </div>
                         ))}
@@ -289,10 +329,10 @@ const TBResultForm: React.FC = () => {
                     </div>
                 </div>
 
-                {/* DSSM Section */}
+                {/* AFB Section */}
                 <div className="flex flex-col gap-5 p-6 bg-amber-50/50 rounded-3xl border border-amber-100">
                     <div className="flex items-center justify-between">
-                        <h4 className="text-[11px] font-black text-amber-700 uppercase tracking-wider flex items-center gap-2"><Activity size={16}/> Sputum Smear</h4>
+                        <h4 className="text-[11px] font-black text-amber-700 uppercase tracking-wider flex items-center gap-2"><Activity size={16}/> AFB</h4>
                         <button type="button" onClick={() => addResultRow('smear')} className="p-2 bg-amber-600 text-white rounded-xl hover:bg-amber-700 transition-colors shadow-lg shadow-amber-600/20"><Plus size={16}/></button>
                     </div>
                     <div className="space-y-4">
@@ -303,7 +343,7 @@ const TBResultForm: React.FC = () => {
                                     <Input label="Date" type="date" value={s.date} onChange={e => updateResultRow('smear', i, 'date', e.target.value)} />
                                     <Input label="Specimen" value={s.specimen} onChange={e => updateResultRow('smear', i, 'specimen', e.target.value)} />
                                   </div>
-                                  <Select label="AFB Result" options={['Negative', 'Scanty', '1+', '2+', '3+']} value={s.result} onChange={e => updateResultRow('smear', i, 'result', e.target.value)} />
+                                  <Select label="AFB Result" options={['Negative', 'Scanty', '1+', '2+', '3+', '4+', '5+', '6+']} value={s.result} onChange={e => updateResultRow('smear', i, 'result', e.target.value)} />
                                 </div>
                                 <button type="button" onClick={() => removeResultRow('smear', i)} className="absolute -top-2 -right-2 p-1.5 bg-white border border-red-100 text-red-500 rounded-full shadow-sm hover:bg-red-50"><Trash2 size={12}/></button>
                             </div>
@@ -316,7 +356,7 @@ const TBResultForm: React.FC = () => {
               <div className="flex flex-col md:flex-row md:items-center justify-between pt-8 border-t border-slate-100 gap-4">
                 <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-50 border border-slate-100">
                     <Database size={16} className="text-slate-400" />
-                    <span className="text-[10px] font-black uppercase text-slate-500">Target Type: {selectedPatient ? 'Registry Update' : 'Ad-hoc Lab Record'}</span>
+                    <span className="text-[10px] font-black uppercase text-slate-50">Target Type: {selectedPatient ? 'Registry Update' : 'Ad-hoc Lab Record'}</span>
                 </div>
                 <button 
                   type="submit" 

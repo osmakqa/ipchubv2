@@ -218,7 +218,7 @@ import { initializeApp } from 'firebase/app';
     const entry = { 
       ...sanitizedData, 
       dateReported: data.date || new Date().toISOString().split('T')[0], 
-      validationStatus: 'pending',
+      validationStatus: data.validationStatus || 'pending',
       created_at: serverTimestamp()
     };
     
@@ -331,7 +331,7 @@ import { initializeApp } from 'firebase/app';
   
   const updateGenericRecord = async (collectionName: string, data: any) => {
     const { id, ...rest } = data;
-    if (!id) return false;
+    if (!id) throw new Error("Missing document ID for update.");
     const sanitized = sanitizeData(rest);
     const docRef = doc(db, collectionName, id);
     try {
@@ -339,7 +339,7 @@ import { initializeApp } from 'firebase/app';
       return true;
     } catch (e) { 
       console.error(`Update failed for ${collectionName}:`, e);
-      return false; 
+      throw e;
     }
   };
   

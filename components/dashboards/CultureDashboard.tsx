@@ -24,12 +24,18 @@ const CultureDashboard: React.FC<Props> = ({ isNested }) => {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'analysis'>('list');
 
+  // Dynamic Current Dates
+  const now = new Date();
+  const currentYear = now.getFullYear().toString();
+  const currentMonth = (now.getMonth() + 1).toString().padStart(2, '0');
+  const currentQuarter = `Q${Math.floor(now.getMonth() / 3) + 1}`;
+
   // Standardized Unified Filters
   const [filterType, setFilterType] = useState('');
   const [filterArea, setFilterArea] = useState('');
-  const [selectedYear, setSelectedYear] = useState('2025');
-  const [selectedMonth, setSelectedMonth] = useState('');
-  const [selectedQuarter, setSelectedQuarter] = useState('');
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [selectedMonth, setSelectedMonth] = useState(currentMonth);
+  const [selectedQuarter, setSelectedQuarter] = useState(currentQuarter);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => { loadData(); }, []);
@@ -104,15 +110,15 @@ const CultureDashboard: React.FC<Props> = ({ isNested }) => {
                     <option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option>
                 </select>
                 <select className="w-24 text-[10px] border border-slate-200 rounded-lg px-2 py-2 focus:ring-1 focus:ring-teal-600 outline-none font-black uppercase bg-slate-50/50" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
-                    <option value="">Month</option>
+                    <option value="">All Months</option>
                     {Array.from({length: 12}, (_, i) => <option key={i} value={(i+1).toString().padStart(2, '0')}>{new Date(0, i).toLocaleString('en', {month:'short'})}</option>)}
                 </select>
                 <select className="w-24 text-[10px] border border-slate-200 rounded-lg px-2 py-2 focus:ring-1 focus:ring-teal-600 outline-none font-black uppercase bg-slate-50/50" value={selectedQuarter} onChange={(e) => setSelectedQuarter(e.target.value)}>
-                    <option value="">Quarter</option>
+                    <option value="">All Quarters</option>
                     <option value="Q1">Q1</option><option value="Q2">Q2</option><option value="Q3">Q3</option><option value="Q4">Q4</option>
                 </select>
                 <div className="relative w-64"><Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input className="w-full text-[10px] border border-slate-200 rounded-lg pl-10 pr-2 py-2 focus:ring-1 focus:ring-teal-600 outline-none font-black uppercase bg-slate-50/50" placeholder="Search Result..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
-                <button onClick={() => { setFilterArea(''); setFilterType(''); setSelectedMonth(''); setSelectedQuarter(''); setSearchQuery(''); }} className="p-1.5 text-slate-400 hover:text-teal-600 transition-all"><RotateCcw size={14} /></button>
+                <button onClick={() => { setFilterArea(''); setFilterType(''); setSelectedMonth(currentMonth); setSelectedQuarter(currentQuarter); setSelectedYear(currentYear); setSearchQuery(''); }} className="p-1.5 text-slate-400 hover:text-teal-600 transition-all"><RotateCcw size={14} /></button>
             </div>
         </div>
 

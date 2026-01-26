@@ -6,13 +6,13 @@ import Input from '../ui/Input';
 import Select from '../ui/Select';
 import ThankYouModal from '../ui/ThankYouModal';
 import { 
-  AREAS, BARANGAYS, EMBO_BARANGAYS, PTB_OUTCOMES, COMORBIDITIES 
+  AREAS, BARANGAYS, EMBO_BARANGAYS, PTB_INITIAL_DISPOSITIONS, PTB_FINAL_DISPOSITIONS, COMORBIDITIES 
 } from '../../constants';
-import { submitReport, calculateAge } from '../../services/ipcService';
+import { submitReport, updateTBReport, calculateAge } from '../../services/ipcService';
 import { 
   ChevronLeft, Send, Loader2, Activity, MapPin, 
   Beaker, FileText, Plus, Trash2, Users, Pill, Clock, Heart, 
-  Sparkles, AlertCircle
+  Sparkles, AlertCircle, Save, Edit3
 } from 'lucide-react';
 
 const PTBForm: React.FC = () => {
@@ -22,19 +22,22 @@ const PTBForm: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showThankYou, setShowThankYou] = useState(false);
   const [isOutsideMakati, setIsOutsideMakati] = useState(false);
+  const [editMode, setEditMode] = useState(false);
 
   const initialFormData = {
     lastName: '', firstName: '', middleName: '', dob: '', age: '', sex: '', hospitalNumber: '', 
     barangay: '', city: 'Makati', 
     dateOfAdmission: '', area: '', areaOther: '', 
     movementHistory: [] as { area: string, date: string }[],
-    xpertResults: [] as { date: string, specimen: string, result: string }[],
+    xpertResults: [] as { date: string, specimen: string, mtbResult: string, mtbLevel?: string, rifResistance?: string }[],
     smearResults: [] as { date: string, specimen: string, result: string }[],
     cxrDate: '',
     classification: '', classificationOther: '', anatomicalSite: 'Pulmonary', drugSusceptibility: '', treatmentHistory: '', 
     emergencySurgicalProcedure: '',
-    outcome: 'Admitted', outcomeDate: '',
-    treatmentStarted: '', treatmentStartDate: '', 
+    initialDisposition: 'Admitted',
+    finalDisposition: 'Currently Admitted',
+    outcomeDate: '',
+    treatmentStarted: '', treatmentStartedDate: '', 
     comorbidities: [] as string[], 
     hivTestResult: '', startedOnArt: '', 
     reporterName: '', designation: ''
@@ -42,13 +45,43 @@ const PTBForm: React.FC = () => {
 
   const [formData, setFormData] = useState<any>(initialFormData);
 
-  // Pre-population logic from Lab Registry
+  // Pre-population logic for both New and Edit modes
   useEffect(() => {
-    if (location.state?.prefill) {
+    if (location.state?.editPatient) {
+      const patient = location.state.editPatient;
+      // Ensure arrays are initialized to avoid .map errors
+      setFormData({ 
+        ...initialFormData, 
+        ...patient,
+        xpertResults: (patient.xpertResults || []).map((x: any) => ({
+            ...x,
+            mtbResult: x.mtbResult || (x.result?.includes('Not Detected') ? 'MTB Not Detected' : x.result?.includes('Detected') ? 'MTB Detected' : ''),
+            mtbLevel: x.mtbLevel || '',
+            rifResistance: x.rifResistance || ''
+        })),
+        smearResults: patient.smearResults || [],
+        movementHistory: patient.movementHistory || [],
+        comorbidities: patient.comorbidities || [],
+        // Backward compatibility for old records
+        initialDisposition: patient.initialDisposition || patient.outcome || 'Admitted',
+        finalDisposition: patient.finalDisposition || 'Currently Admitted'
+      });
+      setEditMode(true);
+      if (patient.city !== 'Makati' && patient.city !== 'Embo') {
+        setIsOutsideMakati(true);
+      }
+    } else if (location.state?.prefill) {
       const { lastName, firstName, hospitalNumber, initialLab } = location.state.prefill;
       
-      const newXpert = initialLab?.type === 'GeneXpert' ? [{ date: initialLab.date, specimen: initialLab.specimen, result: initialLab.result }] : [];
-      const newSmear = initialLab?.type === 'Smear' ? [{ date: initialLab.date, specimen: initialLab.specimen, result: initialLab.result }] : [];
+      const isXpert = initialLab?.type === 'GeneXpert';
+      const newXpert = isXpert ? [{ 
+        date: initialLab.date, 
+        specimen: initialLab.specimen, 
+        mtbResult: initialLab.result.includes('Not Detected') ? 'MTB Not Detected' : initialLab.result.includes('Detected') ? 'MTB Detected' : '',
+        mtbLevel: '',
+        rifResistance: initialLab.result.includes('Res') ? 'Resistant' : initialLab.result.includes('Sens') ? 'Sensitive' : ''
+      }] : [];
+      const newSmear = (!isXpert && (initialLab?.type === 'AFB' || initialLab?.type === 'Smear')) ? [{ date: initialLab.date, specimen: initialLab.specimen, result: initialLab.result }] : [];
       
       setFormData(prev => ({
         ...prev,
@@ -97,14 +130,22 @@ const PTBForm: React.FC = () => {
       anatomicalSite: 'Pulmonary',
       drugSusceptibility: 'RR',
       treatmentHistory: 'Relapse',
-      xpertResults: [{ date: today, specimen: 'Sputum', result: 'MTB Detected; Rif Res' }],
+      xpertResults: [{ 
+        date: today, 
+        specimen: 'Sputum', 
+        mtbResult: 'MTB Detected',
+        mtbLevel: 'High',
+        rifResistance: 'Resistant'
+      }],
       smearResults: [{ date: today, specimen: 'Sputum', result: '2+' }],
       treatmentStarted: 'Yes',
-      treatmentStartDate: today,
+      treatmentStartedDate: today,
       comorbidities: ['Diabetes Mellitus', 'Liver Disease'],
       hivTestResult: 'Non-Reactive',
       reporterName: 'Nurse J. Reyes',
-      designation: 'Nurse'
+      designation: 'Nurse',
+      initialDisposition: 'Admitted',
+      finalDisposition: 'Currently Admitted'
     });
   };
 
@@ -117,6 +158,7 @@ const PTBForm: React.FC = () => {
     setFormData(initialFormData);
     setIsOutsideMakati(false);
     setShowThankYou(false);
+    setEditMode(false);
   };
 
   const handleOutsideMakatiChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -139,19 +181,19 @@ const PTBForm: React.FC = () => {
   const addListItem = (field: string) => {
     setFormData((prev: any) => ({
       ...prev,
-      [field]: [...prev[field], field === 'movementHistory' ? { area: '', date: '' } : { date: '', specimen: '', result: '' }]
+      [field]: [...(prev[field] || []), field === 'movementHistory' ? { area: '', date: '' } : field === 'xpertResults' ? { date: '', specimen: '', mtbResult: '', mtbLevel: '', rifResistance: '' } : { date: '', specimen: '', result: '' }]
     }));
   };
 
   const removeListItem = (field: string, index: number) => {
     setFormData((prev: any) => ({
       ...prev,
-      [field]: prev[field].filter((_: any, i: number) => i !== index)
+      [field]: (prev[field] || []).filter((_: any, i: number) => i !== index)
     }));
   };
 
   const updateListItem = (field: string, index: number, key: string, value: string) => {
-    const newList = [...formData[field]];
+    const newList = [...(formData[field] || [])];
     newList[index] = { ...newList[index], [key]: value };
     setFormData((prev: any) => ({ ...prev, [field]: newList }));
   };
@@ -192,8 +234,14 @@ const PTBForm: React.FC = () => {
     }
 
     try {
-      await submitReport("TB Report", submissionData);
-      setShowThankYou(true);
+      if (editMode) {
+        await updateTBReport(submissionData);
+        alert("Record updated successfully.");
+        navigate('/surveillance?module=tb');
+      } else {
+        await submitReport("TB Report", submissionData);
+        setShowThankYou(true);
+      }
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : "An unexpected error occurred.";
       alert(`Submission Failed: ${errorMsg}`);
@@ -203,19 +251,25 @@ const PTBForm: React.FC = () => {
   };
 
   return (
-    <Layout title="TB Case Registration">
+    <Layout title={editMode ? "Modify TB Record" : "TB Case Registration"}>
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 max-w-5xl mx-auto px-4">
         <button onClick={() => navigate('/surveillance?module=tb')} className="flex items-center text-xs font-bold text-gray-500 hover:text-primary transition-colors">
           <ChevronLeft size={14} /> Back
         </button>
         <div className="flex items-center gap-3">
+          {editMode && (
+             <div className="flex items-center gap-2 bg-amber-50 px-4 py-2 rounded-xl border border-amber-100 animate-in slide-in-from-right-2">
+               <Edit3 size={14} className="text-amber-600" />
+               <span className="text-[10px] font-black text-amber-700 uppercase">Updating Existing Record</span>
+             </div>
+          )}
           {location.state?.prefill && (
              <div className="flex items-center gap-2 bg-indigo-50 px-4 py-2 rounded-xl border border-indigo-100 animate-in slide-in-from-right-2">
                <AlertCircle size={14} className="text-indigo-600" />
                <span className="text-[10px] font-black text-indigo-700 uppercase">Pre-filled from Lab Registry</span>
              </div>
           )}
-          {user === 'Max' && (
+          {!editMode && user === 'Max' && (
             <button 
               type="button" 
               onClick={handleMagicFill}
@@ -239,7 +293,7 @@ const PTBForm: React.FC = () => {
                 <Input label="Hosp #" name="hospitalNumber" value={formData.hospitalNumber} onChange={handleChange} required />
                 <Input label="Last Name" name="lastName" value={formData.lastName} onChange={handleChange} required />
                 <Input label="First Name" name="firstName" value={formData.firstName} onChange={handleChange} required />
-                <Input label="Middle" name="middleName" value={formData.middleName} onChange={handleChange} />
+                <Input label="Middle Name" name="middleName" value={formData.middleName} onChange={handleChange} />
                 <Input label="DOB" name="dob" type="date" value={formData.dob} onChange={handleChange} required />
                 <Input label="Age" name="age" value={formData.age} readOnly className="bg-slate-50 font-bold" />
                 <Select label="Sex" name="sex" options={['Male', 'Female']} value={formData.sex} onChange={handleChange} required />
@@ -277,7 +331,7 @@ const PTBForm: React.FC = () => {
                     <button type="button" onClick={() => addListItem('movementHistory')} className="text-[10px] font-black uppercase text-primary flex items-center gap-1 hover:underline"><Plus size={12}/> Add Ward</button>
                 </div>
                 <div className="space-y-2">
-                    {formData.movementHistory.map((m: any, i: number) => (
+                    {(formData.movementHistory || []).map((m: any, i: number) => (
                         <div key={i} className="flex items-center gap-3 animate-in slide-in-from-right-1">
                             <div className="flex-1 grid grid-cols-2 gap-2">
                                 <Select label={`Area ${i+1}`} options={AREAS} value={m.area} onChange={e => updateListItem('movementHistory', i, 'area', e.target.value)} />
@@ -286,7 +340,7 @@ const PTBForm: React.FC = () => {
                             <button type="button" onClick={() => removeListItem('movementHistory', i)} className="mt-6 p-2 text-red-400 hover:bg-red-50 rounded-lg"><Trash2 size={16}/></button>
                         </div>
                     ))}
-                    {formData.movementHistory.length === 0 && <p className="text-[10px] text-slate-300 font-bold italic">No transfer records added.</p>}
+                    {(formData.movementHistory || []).length === 0 && <p className="text-[10px] text-slate-300 font-bold italic">No transfer records added.</p>}
                 </div>
             </div>
         </section>
@@ -305,29 +359,37 @@ const PTBForm: React.FC = () => {
                         <button type="button" onClick={() => addListItem('xpertResults')} className="p-1.5 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-sm"><Plus size={14}/></button>
                     </div>
                     <div className="space-y-3">
-                        {formData.xpertResults.map((x: any, i: number) => (
-                            <div key={i} className="grid grid-cols-1 md:grid-cols-3 gap-2 bg-white p-3 rounded-2xl border border-blue-50 shadow-sm relative animate-in zoom-in-95">
-                                <Input label="Date" type="date" value={x.date} onChange={e => updateListItem('xpertResults', i, 'date', e.target.value)} />
-                                <Input label="Specimen" value={x.specimen} onChange={e => updateListItem('xpertResults', i, 'specimen', e.target.value)} placeholder="Sputum..." />
-                                <Select label="Result" options={['MTB Detected; Rif Sens', 'MTB Detected; Rif Res', 'MTB Detected; Rif Indet', 'MTB Not Detected', 'Invalid/No Result']} value={x.result} onChange={e => updateListItem('xpertResults', i, 'result', e.target.value)} />
+                        {(formData.xpertResults || []).map((x: any, i: number) => (
+                            <div key={i} className="grid grid-cols-1 gap-3 bg-white p-4 rounded-2xl border border-blue-50 shadow-sm relative animate-in zoom-in-95">
+                                <div className="grid grid-cols-2 gap-2">
+                                    <Input label="Date" type="date" value={x.date} onChange={e => updateListItem('xpertResults', i, 'date', e.target.value)} />
+                                    <Input label="Specimen" value={x.specimen} onChange={e => updateListItem('xpertResults', i, 'specimen', e.target.value)} placeholder="Sputum..." />
+                                </div>
+                                <Select label="MTB Result" options={['MTB Detected', 'MTB Not Detected', 'Invalid/No Result']} value={x.mtbResult} onChange={e => updateListItem('xpertResults', i, 'mtbResult', e.target.value)} />
+                                {x.mtbResult === 'MTB Detected' && (
+                                    <div className="grid grid-cols-2 gap-2 animate-in fade-in slide-in-from-top-1">
+                                        <Select label="MTB Level" options={['Very low', 'Low', 'Medium', 'Intermediate', 'High', 'Very High']} value={x.mtbLevel || ''} onChange={e => updateListItem('xpertResults', i, 'mtbLevel', e.target.value)} />
+                                        <Select label="Rif Resistance" options={['Rif Resistance not detected', 'Indeterminate', 'Sensitive', 'Resistant']} value={x.rifResistance || ''} onChange={e => updateListItem('xpertResults', i, 'rifResistance', e.target.value)} />
+                                    </div>
+                                )}
                                 <button type="button" onClick={() => removeListItem('xpertResults', i)} className="absolute -top-2 -right-2 p-1.5 bg-white border border-red-100 text-red-500 rounded-full shadow-sm hover:bg-red-50"><Trash2 size={12}/></button>
                             </div>
                         ))}
                     </div>
                 </div>
 
-                {/* DSSM Section */}
+                {/* AFB Section */}
                 <div className="flex flex-col gap-4 p-5 bg-amber-50/50 rounded-3xl border border-amber-100">
                     <div className="flex items-center justify-between">
-                        <h4 className="text-[11px] font-black text-amber-700 uppercase tracking-wider flex items-center gap-2"><Activity size={14}/> Sputum Smear (AFB)</h4>
+                        <h4 className="text-[11px] font-black text-amber-700 uppercase tracking-wider flex items-center gap-2"><Activity size={14}/> AFB</h4>
                         <button type="button" onClick={() => addListItem('smearResults')} className="p-1.5 bg-amber-600 text-white rounded-lg hover:bg-amber-700 transition-colors shadow-sm"><Plus size={14}/></button>
                     </div>
                     <div className="space-y-3">
-                        {formData.smearResults.map((s: any, i: number) => (
+                        {(formData.smearResults || []).map((s: any, i: number) => (
                             <div key={i} className="grid grid-cols-1 md:grid-cols-3 gap-2 bg-white p-3 rounded-2xl border border-amber-50 shadow-sm relative animate-in zoom-in-95">
                                 <Input label="Date" type="date" value={s.date} onChange={e => updateListItem('smearResults', i, 'date', e.target.value)} />
                                 <Input label="Specimen" value={s.specimen} onChange={e => updateListItem('smearResults', i, 'specimen', e.target.value)} />
-                                <Select label="Result" options={['Negative', 'Scanty', '1+', '2+', '3+']} value={s.result} onChange={e => updateListItem('smearResults', i, 'result', e.target.value)} />
+                                <Select label="Result" options={['Negative', 'Scanty', '1+', '2+', '3+', '4+', '5+', '6+']} value={s.result} onChange={e => updateListItem('smearResults', i, 'result', e.target.value)} />
                                 <button type="button" onClick={() => removeListItem('smearResults', i)} className="absolute -top-2 -right-2 p-1.5 bg-white border border-red-100 text-red-500 rounded-full shadow-sm hover:bg-red-50"><Trash2 size={12}/></button>
                             </div>
                         ))}
@@ -339,7 +401,7 @@ const PTBForm: React.FC = () => {
                 <Input label="CXR Date (if any)" name="cxrDate" type="date" value={formData.cxrDate} onChange={handleChange} />
                 <Select label="Anatomical Site" name="anatomicalSite" options={['Pulmonary', 'Extra-pulmonary']} value={formData.anatomicalSite} onChange={handleChange} />
                 <div className="flex flex-col gap-2">
-                    <Select label="Registration Class" name="classification" options={['Bacteriological Confirmed', 'Clinically Diagnosed', 'Presumptive TB', 'Others (Specify)']} value={formData.classification} onChange={handleChange} required />
+                    <Select label="Registration Class" name="classification" options={['Please Update', 'Bacteriological Confirmed', 'Clinically Diagnosed', 'Presumptive TB', 'Cleared', 'Others (Specify)']} value={formData.classification} onChange={handleChange} required />
                     {formData.classification === 'Others (Specify)' && <Input label="Specify Classification" name="classificationOther" value={formData.classificationOther} onChange={handleChange} required />}
                 </div>
             </div>
@@ -359,7 +421,7 @@ const PTBForm: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                 <Select label="TB Treatment Started?" name="treatmentStarted" options={['Yes', 'No']} value={formData.treatmentStarted} onChange={handleChange} />
-                {formData.treatmentStarted === 'Yes' && <Input label="Start Date" name="treatmentStartDate" type="date" value={formData.treatmentStartDate} onChange={handleChange} required />}
+                {formData.treatmentStarted === 'Yes' && <Input label="Start Date" name="treatmentStartedDate" type="date" value={formData.treatmentStartedDate} onChange={handleChange} required />}
                 <Select label="HIV Test Result" name="hivTestResult" options={['Non-Reactive', 'Reactive', 'Awaiting Result', 'Declined', 'Not Offered']} value={formData.hivTestResult} onChange={handleChange} />
                 {formData.hivTestResult === 'Reactive' && <Select label="Started on ART?" name="startedOnArt" options={['Yes', 'No']} value={formData.startedOnArt} onChange={handleChange} />}
             </div>
@@ -391,16 +453,17 @@ const PTBForm: React.FC = () => {
                 <FileText size={18} className="text-primary" /> Registry Finalization
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <Select label="Registry Disposition" name="outcome" options={PTB_OUTCOMES} value={formData.outcome} onChange={handleChange} required />
-                {formData.outcome !== 'Admitted' && formData.outcome !== 'For Admission' && <Input label="Date of Outcome" name="outcomeDate" type="date" value={formData.outcomeDate} onChange={handleChange} required />}
+                <Select label="Initial Disposition" name="initialDisposition" options={PTB_INITIAL_DISPOSITIONS} value={formData.initialDisposition} onChange={handleChange} required />
+                <Select label="Final Disposition" name="finalDisposition" options={PTB_FINAL_DISPOSITIONS} value={formData.finalDisposition} onChange={handleChange} required />
+                {(formData.finalDisposition !== 'Currently Admitted') && <Input label="Date of Outcome" name="outcomeDate" type="date" value={formData.outcomeDate} onChange={handleChange} required />}
                 <Input label="Name of Reporter" name="reporterName" value={formData.reporterName} onChange={handleChange} required />
                 <Select label="Designation" name="designation" options={['Doctor', 'Nurse', 'IPC Staff', 'DOTS Coordinator', 'Other']} value={formData.designation} onChange={handleChange} required />
             </div>
         </section>
 
         <button type="submit" disabled={loading} className="w-full h-14 bg-primary text-white rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-xl hover:bg-osmak-green-dark transition-all flex items-center justify-center gap-3 active:scale-[0.98] disabled:opacity-50 mb-10">
-          {loading ? <Loader2 size={24} className="animate-spin" /> : <Send size={24} />} 
-          Register TB Patient(s)
+          {loading ? <Loader2 size={24} className="animate-spin" /> : editMode ? <Save size={24} /> : <Send size={24} />} 
+          {editMode ? 'Save Changes' : 'Register TB Patient(s)'}
         </button>
       </form>
 

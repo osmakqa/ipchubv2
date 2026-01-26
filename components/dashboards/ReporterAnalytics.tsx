@@ -33,8 +33,14 @@ import {
 const ReporterAnalytics: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState<any[]>([]);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear().toString());
-  const [selectedQuarter, setSelectedQuarter] = useState('');
+
+  // Dynamic Current Dates
+  const now = new Date();
+  const currentYear = now.getFullYear().toString();
+  const currentQuarter = `Q${Math.floor(now.getMonth() / 3) + 1}`;
+
+  const [selectedYear, setSelectedYear] = useState(currentYear);
+  const [selectedQuarter, setSelectedQuarter] = useState(currentQuarter);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
@@ -145,7 +151,7 @@ const ReporterAnalytics: React.FC = () => {
             <option value="Q3">Q3</option>
             <option value="Q4">Q4</option>
           </select>
-          <button onClick={() => { setSelectedYear('2025'); setSelectedQuarter(''); setSearchQuery(''); }} className="p-2.5 text-slate-400 hover:text-primary transition-colors"><RotateCcw size={20}/></button>
+          <button onClick={() => { setSelectedYear(currentYear); setSelectedQuarter(currentQuarter); setSearchQuery(''); }} className="p-2.5 text-slate-400 hover:text-primary transition-colors"><RotateCcw size={20}/></button>
         </div>
       </div>
 
