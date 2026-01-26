@@ -49,7 +49,6 @@ const PTBForm: React.FC = () => {
   useEffect(() => {
     if (location.state?.editPatient) {
       const patient = location.state.editPatient;
-      // Ensure arrays are initialized to avoid .map errors
       setFormData({ 
         ...initialFormData, 
         ...patient,
@@ -62,7 +61,6 @@ const PTBForm: React.FC = () => {
         smearResults: patient.smearResults || [],
         movementHistory: patient.movementHistory || [],
         comorbidities: patient.comorbidities || [],
-        // Backward compatibility for old records
         initialDisposition: patient.initialDisposition || patient.outcome || 'Admitted',
         finalDisposition: patient.finalDisposition || 'Currently Admitted'
       });
@@ -214,7 +212,6 @@ const PTBForm: React.FC = () => {
 
     const submissionData = { ...formData };
     
-    // Clean up "Other" admission area
     if (submissionData.area === 'Other (specify)') {
       submissionData.area = submissionData.areaOther || 'Other Area';
     }
@@ -225,7 +222,6 @@ const PTBForm: React.FC = () => {
     }
     delete submissionData.classificationOther;
 
-    // Clean up transfer history "Other" areas
     if (submissionData.movementHistory) {
       submissionData.movementHistory = submissionData.movementHistory.map((m: any) => ({
         ...m,

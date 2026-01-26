@@ -72,35 +72,35 @@ const Header: React.FC = () => {
   return (
     <>
       <header className={`sticky top-0 z-[100] flex items-center justify-between gap-4 ${getThemeColors()} px-4 md:px-8 py-3 shadow-xl transition-all duration-500 h-16`}>
-        <div className="flex items-center gap-3 cursor-pointer group shrink-0" onClick={() => navigate('/')}>
+        <div className="flex items-center gap-2 md:gap-3 cursor-pointer group shrink-0" onClick={() => navigate('/')}>
           <div className="transition-transform group-hover:scale-110 shrink-0">
-            <img src="https://maxterrenal-hash.github.io/justculture/osmak-logo.png" alt="OsMak" className="h-9 md:h-10 w-auto" />
+            <img src="https://maxterrenal-hash.github.io/justculture/osmak-logo.png" alt="OsMak" className="h-8 md:h-10 w-auto" />
           </div>
-          <div className="flex flex-col">
-            <h1 className="text-sm md:text-lg font-black tracking-tighter uppercase leading-none">Ospital ng Makati</h1>
+          <div className="hidden sm:flex flex-col">
+            <h1 className="text-xs md:text-lg font-black tracking-tighter uppercase leading-none">Ospital ng Makati</h1>
             <span className="text-[8px] md:text-[10px] opacity-70 font-black uppercase tracking-widest mt-0.5">IPC Hub</span>
           </div>
         </div>
 
         {isAuthenticated && (
-          <div className="hidden lg:flex items-center bg-black/20 rounded-full p-1.5 backdrop-blur-xl border border-white/10 shadow-inner">
+          <div className="flex items-center bg-black/20 rounded-full p-1 backdrop-blur-xl border border-white/10 shadow-inner">
             <button 
               onClick={() => handleModeSwitch('report')}
-              className={`flex items-center gap-2 px-6 py-2 rounded-full text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${appMode === 'report' ? 'bg-white text-osmak-green shadow-xl scale-105' : 'text-white/60 hover:text-white'}`}
+              className={`flex items-center gap-1.5 px-3 md:px-6 py-1.5 md:py-2 rounded-full text-[9px] md:text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${appMode === 'report' ? 'bg-white text-osmak-green shadow-xl scale-105' : 'text-white/60 hover:text-white'}`}
             >
-              <Activity size={14} /> Surveillance
+              <Activity size={12} className="md:w-3.5 md:h-3.5" /> <span className="hidden xs:inline">Surv.</span>
             </button>
             <button 
               onClick={() => handleModeSwitch('audit')}
-              className={`flex items-center gap-2 px-6 py-2 rounded-full text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${appMode === 'audit' ? 'bg-white text-teal-600 shadow-xl scale-105' : 'text-white/60 hover:text-white'}`}
+              className={`flex items-center gap-1.5 px-3 md:px-6 py-1.5 md:py-2 rounded-full text-[9px] md:text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${appMode === 'audit' ? 'bg-white text-teal-600 shadow-xl scale-105' : 'text-white/60 hover:text-white'}`}
             >
-              <ShieldCheck size={14} /> Audit
+              <ShieldCheck size={12} className="md:w-3.5 md:h-3.5" /> <span className="hidden xs:inline">Audit</span>
             </button>
             <button 
               onClick={() => handleModeSwitch('present')}
-              className={`flex items-center gap-2 px-6 py-2 rounded-full text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${appMode === 'present' ? 'bg-white text-slate-800 shadow-xl scale-105' : 'text-white/60 hover:text-white'}`}
+              className={`flex items-center gap-1.5 px-3 md:px-6 py-1.5 md:py-2 rounded-full text-[9px] md:text-[11px] font-black uppercase tracking-widest transition-all duration-300 ${appMode === 'present' ? 'bg-white text-slate-800 shadow-xl scale-105' : 'text-white/60 hover:text-white'}`}
             >
-              <MonitorPlay size={14} /> Present
+              <MonitorPlay size={12} className="md:w-3.5 md:h-3.5" /> <span className="hidden xs:inline">Data</span>
             </button>
           </div>
         )}
@@ -110,12 +110,12 @@ const Header: React.FC = () => {
             <>
               <button 
                 onClick={() => navigate('/pending')}
-                className="relative p-2.5 bg-white/10 rounded-xl hover:bg-white/20 transition-all border border-white/5"
+                className="relative p-2 md:p-2.5 bg-white/10 rounded-xl hover:bg-white/20 transition-all border border-white/5"
                 title="Pending Validations"
               >
-                <Bell size={20} />
+                <Bell size={18} className="md:w-5 md:h-5" />
                 {pendingCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-[9px] font-black w-5 h-5 rounded-full flex items-center justify-center border-2 border-current shadow-lg animate-bounce">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-[8px] md:text-[9px] font-black w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center border-2 border-current shadow-lg animate-bounce">
                     {pendingCount}
                   </span>
                 )}
@@ -123,18 +123,18 @@ const Header: React.FC = () => {
               <div className="hidden sm:flex items-center gap-3 bg-white/10 pl-3 pr-1 py-1 rounded-xl border border-white/5">
                 <div className="flex flex-col items-end">
                     <span className="text-[10px] font-black uppercase leading-none">{user}</span>
-                    <span className="text-[8px] font-bold opacity-50 uppercase tracking-tighter">Coordinator</span>
+                    <span className="text-[8px] font-bold opacity-50 uppercase tracking-tighter">Coord.</span>
                 </div>
                 <button onClick={logout} className="p-2 bg-white/20 hover:bg-rose-500 hover:text-white rounded-lg transition-all"><LogOut size={16} /></button>
               </div>
-              <button onClick={logout} className="sm:hidden p-2.5 bg-white/10 rounded-xl border border-white/5"><LogOut size={18} /></button>
+              <button onClick={logout} className="sm:hidden p-2 bg-white/10 rounded-xl border border-white/5"><LogOut size={16} /></button>
             </>
           ) : (
             <button 
               onClick={() => setShowLogin(true)}
-              className="bg-white text-osmak-green px-5 py-2.5 rounded-xl text-[11px] font-black uppercase tracking-[0.1em] hover:bg-slate-50 transition-all shadow-xl active:scale-95"
+              className="bg-white text-osmak-green px-3 md:px-5 py-2 rounded-xl text-[9px] md:text-[11px] font-black uppercase tracking-[0.1em] hover:bg-slate-50 transition-all shadow-xl active:scale-95"
             >
-              Security Login
+              Login
             </button>
           )}
         </div>
@@ -160,7 +160,7 @@ const Header: React.FC = () => {
                       onClick={handleQuickLoginMax}
                       className="w-full py-4 bg-amber-50 text-amber-700 border border-amber-200 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] hover:bg-amber-100 transition-all flex items-center justify-center gap-3 shadow-sm group"
                     >
-                      <Sparkles size={16} className="text-amber-500 group-hover:scale-125 transition-transform" /> Quick Login as Max (Beta)
+                      <Sparkles size={16} className="text-amber-500 group-hover:scale-125 transition-transform" /> Quick Login (Beta)
                     </button>
 
                     <div className="flex items-center gap-4 py-2 opacity-30">

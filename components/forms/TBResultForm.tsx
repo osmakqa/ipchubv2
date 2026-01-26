@@ -2,7 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../AuthContext';
 import Layout from '../ui/Layout';
-import { getTBReports, updateTBReport, submitReport, getPendingReports } from '../../services/ipcService';
+import { getTBReports, updateTBReport, submitReport, getPendingReports, formatDisplayDate } from '../../services/ipcService';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import { 
@@ -47,7 +47,6 @@ const TBResultForm: React.FC = () => {
   const loadRegistry = async () => {
     setFetching(true);
     try {
-      // Lab results should be linkable to any patient, even if they are still "pending" validation
       const validated = await getTBReports();
       const allPending = await getPendingReports();
       const combined = [...validated, ...allPending.tb];
@@ -120,16 +119,14 @@ const TBResultForm: React.FC = () => {
     setLoading(true);
     try {
       if (selectedPatient) {
-        // Update existing record and promote to "validated" status
         const updatedPatient = {
           ...selectedPatient,
           xpertResults: [...(selectedPatient.xpertResults || []), ...xpertResults],
           smearResults: [...(selectedPatient.smearResults || []), ...smearResults],
-          validationStatus: 'validated', // Auto-validate when results are added
+          validationStatus: 'validated',
           validatedBy: user || 'Laboratory'
         };
         
-        // Auto-update classification if positive
         const hasPositiveXpert = xpertResults.some(r => r.mtbResult === 'MTB Detected');
         const hasPositiveSmear = smearResults.some(r => r.result?.includes('+'));
         
@@ -137,7 +134,6 @@ const TBResultForm: React.FC = () => {
 
         await updateTBReport(updatedPatient);
       } else {
-        // Create a new auto-validated report for manual entry
         const payload = {
           ...patientData,
           xpertResults,
@@ -171,7 +167,7 @@ const TBResultForm: React.FC = () => {
           </div>
           <h2 className="text-3xl font-black text-slate-900 uppercase tracking-tighter">Results Recorded</h2>
           <p className="text-slate-500 font-medium leading-relaxed">
-            Laboratory findings have been linked and published for <span className="text-amber-700 font-black uppercase">{patientData.lastName}, {patientData.firstName}</span>.
+            Findings published for <span className="text-amber-700 font-black uppercase">{patientData.lastName}, {patientData.firstName}</span>.
           </p>
           <button onClick={() => navigate('/surveillance?module=tb')} className="mt-4 px-12 py-4 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-[0.2em] hover:bg-black transition-all shadow-xl">Return to Hub</button>
         </div>
@@ -247,7 +243,7 @@ const TBResultForm: React.FC = () => {
                     <div className="p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 flex flex-col gap-4">
                       <div className="flex flex-col gap-1 items-center">
                         <AlertCircle size={24} className="text-slate-300" />
-                        <p className="text-[10px] font-bold text-slate-400 uppercase">Patient not found in registry</p>
+                        <p className="text-[10px] font-bold text-slate-400 uppercase">Patient not found</p>
                       </div>
                       <button 
                         onClick={switchToManual}
@@ -257,21 +253,9 @@ const TBResultForm: React.FC = () => {
                       </button>
                     </div>
                   )}
-                  
-                  {!searchTerm && !selectedPatient && (
-                    <button 
-                      onClick={switchToManual}
-                      className="w-full py-4 border-2 border-dashed border-slate-200 rounded-2xl text-slate-400 text-[10px] font-black uppercase tracking-widest hover:border-amber-400 hover:text-amber-600 transition-all flex items-center justify-center gap-2"
-                    >
-                      <Plus size={14}/> Add New Patient
-                    </button>
-                  )}
                 </div>
               ) : (
                 <div className="flex flex-col gap-4 animate-in fade-in">
-                  <div className="bg-amber-50 p-4 rounded-2xl border border-amber-100 mb-2">
-                    <p className="text-[10px] font-black text-amber-800 uppercase leading-relaxed">Enter basic identification for patients not yet in the treatment registry.</p>
-                  </div>
                   <Input label="Last Name" value={patientData.lastName} onChange={e => setPatientData({...patientData, lastName: e.target.value})} required placeholder="Surname" />
                   <Input label="First Name" value={patientData.firstName} onChange={e => setPatientData({...patientData, firstName: e.target.value})} required placeholder="Given Name" />
                   <Input label="Hospital #" value={patientData.hospitalNumber} onChange={e => setPatientData({...patientData, hospitalNumber: e.target.value})} required placeholder="25-XXXXX" />
@@ -356,15 +340,14 @@ const TBResultForm: React.FC = () => {
               <div className="flex flex-col md:flex-row md:items-center justify-between pt-8 border-t border-slate-100 gap-4">
                 <div className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-50 border border-slate-100">
                     <Database size={16} className="text-slate-400" />
-                    <span className="text-[10px] font-black uppercase text-slate-50">Target Type: {selectedPatient ? 'Registry Update' : 'Ad-hoc Lab Record'}</span>
+                    <span className="text-[10px] font-black uppercase text-slate-500">Target: {selectedPatient ? 'Registry Sync' : 'Ad-hoc Entry'}</span>
                 </div>
                 <button 
                   type="submit" 
                   disabled={loading}
                   className="h-16 bg-slate-900 text-white px-12 rounded-2xl font-black uppercase text-sm tracking-[0.2em] shadow-2xl hover:bg-black transition-all flex items-center justify-center gap-3 disabled:opacity-50 active:scale-[0.98]"
                 >
-                  {loading ? <Loader2 size={24} className="animate-spin" /> : <Save size={24} />} 
-                  Transmit & Finalize
+                  {loading ? <Loader2 size={24} className="animate-spin" /> : <Save size={24} />} Transmit & Publish
                 </button>
               </div>
             </form>

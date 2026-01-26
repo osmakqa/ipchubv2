@@ -5,7 +5,7 @@ import Layout from '../ui/Layout';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import PasswordConfirmModal from '../ui/PasswordConfirmModal';
-import { getTBReports, getCensusLogs, deleteRecord } from '../../services/ipcService';
+import { getTBReports, getCensusLogs, deleteRecord, formatDisplayDate } from '../../services/ipcService';
 import { AREAS, PTB_FINAL_DISPOSITIONS } from '../../constants';
 import { 
   ChevronLeft, List, BarChart2, Filter, RotateCcw, PlusCircle, Download, Activity, Stethoscope, ChevronRight, Search, AlertCircle, TrendingUp, PieChart as PieIcon, Beaker, FileText, UserPlus, Users, X, ArrowRight, CheckCircle2, Edit3, Trash2, MoreVertical, ArrowUpDown, ArrowUp, ArrowDown
@@ -123,11 +123,8 @@ const PTBDashboard: React.FC<Props> = ({ isNested }) => {
       }
     });
 
-    // Apply filters to labs as well
     const filteredLabs = results.filter(lab => {
       const p = lab.patientObj;
-      const date = new Date(p.dateReported);
-      const q = Math.floor(date.getMonth() / 3) + 1;
       const matchesFinalDisposition = filterFinalDisposition ? (p.finalDisposition === filterFinalDisposition) : true;
       const matchesSearch = searchQuery ? 
         lab.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -217,33 +214,32 @@ const PTBDashboard: React.FC<Props> = ({ isNested }) => {
   const content = (
     <div className="flex flex-col gap-6 animate-in fade-in duration-300">
         <div className="flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
-            <div className="flex gap-4 items-center">
+            <div className="flex gap-4 items-center w-full md:w-auto">
                 {!isNested && <button onClick={() => navigate('/')} className="h-10 flex items-center text-sm text-gray-600 hover:text-amber-700 font-bold"><ChevronLeft size={16} /> Hub</button>}
-                <div className="flex bg-gray-100 p-1 rounded-lg h-10">
+                <div className="flex bg-gray-100 p-1 rounded-lg h-10 w-full md:w-auto overflow-x-auto no-scrollbar">
                     <button 
                       onClick={() => setViewMode('list')} 
-                      className={`px-4 rounded-md text-[10px] font-black uppercase transition-all flex items-center gap-2 ${viewMode === 'list' ? 'bg-white text-amber-700 shadow-sm' : 'text-gray-500'}`}
+                      className={`px-4 rounded-md text-[10px] font-black uppercase transition-all flex items-center gap-2 whitespace-nowrap ${viewMode === 'list' ? 'bg-white text-amber-700 shadow-sm' : 'text-gray-500'}`}
                     >
                       <List size={14} /> Patients
                     </button>
                     <button 
                       onClick={() => { setViewMode('labs'); setFilterFinalDisposition(''); }} 
-                      className={`px-4 rounded-md text-[10px] font-black uppercase transition-all flex items-center gap-2 ${viewMode === 'labs' ? 'bg-white text-amber-700 shadow-sm' : 'text-gray-500'}`}
+                      className={`px-4 rounded-md text-[10px] font-black uppercase transition-all flex items-center gap-2 whitespace-nowrap ${viewMode === 'labs' ? 'bg-white text-amber-700 shadow-sm' : 'text-gray-500'}`}
                     >
                       <Beaker size={14} /> Lab Registry
                     </button>
                     <button 
                       onClick={() => setViewMode('analysis')} 
-                      className={`px-4 rounded-md text-[10px] font-black uppercase transition-all flex items-center gap-2 ${viewMode === 'analysis' ? 'bg-white text-amber-700 shadow-sm' : 'text-gray-500'}`}
+                      className={`px-4 rounded-md text-[10px] font-black uppercase transition-all flex items-center gap-2 whitespace-nowrap ${viewMode === 'analysis' ? 'bg-white text-amber-700 shadow-sm' : 'text-gray-500'}`}
                     >
                       <BarChart2 size={14} /> Analysis
                     </button>
                 </div>
             </div>
-            <div className="flex gap-2">
-                <button className="h-10 w-44 bg-white text-slate-600 rounded-lg font-black uppercase tracking-widest border border-slate-200 shadow-sm hover:bg-slate-50 flex items-center justify-center gap-2 transition-all text-[10px]"><Download size={14} /> Export CSV</button>
-                {isAuthenticated && <button onClick={() => navigate('/report-tb-result')} className="h-10 w-44 bg-slate-900 text-white rounded-lg font-black uppercase tracking-widest shadow hover:bg-black flex items-center justify-center gap-2 transition-all text-[10px]"><Beaker size={14} /> Add Lab Result</button>}
-                <button onClick={() => navigate('/report-ptb')} className="h-10 w-44 bg-amber-700 text-white rounded-lg font-black uppercase tracking-widest shadow hover:brightness-110 flex items-center justify-center gap-2 transition-all text-[10px]"><PlusCircle size={14} /> Register TB</button>
+            <div className="flex gap-2 w-full md:w-auto">
+                {isAuthenticated && <button onClick={() => navigate('/report-tb-result')} className="flex-1 md:flex-none h-10 px-4 bg-slate-900 text-white rounded-lg font-black uppercase tracking-widest shadow hover:bg-black flex items-center justify-center gap-2 transition-all text-[9px] md:text-[10px]"><Beaker size={14} /> Result</button>}
+                <button onClick={() => navigate('/report-ptb')} className="flex-1 md:flex-none h-10 px-4 bg-amber-700 text-white rounded-lg font-black uppercase tracking-widest shadow hover:brightness-110 flex items-center justify-center gap-2 transition-all text-[9px] md:text-[10px]"><PlusCircle size={14} /> Register</button>
             </div>
         </div>
 
@@ -256,6 +252,7 @@ const PTBDashboard: React.FC<Props> = ({ isNested }) => {
                 </select>
                 <select className="w-44 text-[10px] border border-slate-200 rounded-lg px-2 py-2 focus:ring-1 focus:ring-amber-700 outline-none font-black uppercase bg-slate-50/50" value={filterType} onChange={(e) => setFilterType(e.target.value)}>
                     <option value="">Classification</option>
+                    <option value="Please Update">Please Update</option>
                     <option value="Bacteriological Confirmed">Bacteriological Confirmed</option>
                     <option value="Clinically Diagnosed">Clinically Diagnosed</option>
                     <option value="Presumptive TB">Presumptive TB</option>
@@ -265,15 +262,8 @@ const PTBDashboard: React.FC<Props> = ({ isNested }) => {
                     <option value="">Hospital Area</option>
                     {AREAS.map(a => <option key={a} value={a}>{a}</option>)}
                 </select>
-                <select className="w-20 text-[10px] border border-slate-200 rounded-lg px-2 py-2 focus:ring-1 focus:ring-amber-700 outline-none font-black uppercase bg-slate-50/50" value={selectedYear} onChange={(e) => setSelectedYear(e.target.value)}>
-                    <option value="2024">2024</option><option value="2025">2025</option><option value="2026">2026</option>
-                </select>
-                <select className="w-20 text-[10px] border border-slate-200 rounded-lg px-2 py-2 focus:ring-1 focus:ring-amber-700 outline-none font-black uppercase bg-slate-50/50" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)}>
-                    <option value="">All Months</option>
-                    {Array.from({length: 12}, (_, i) => <option key={i} value={(i+1).toString().padStart(2, '0')}>{new Date(0, i).toLocaleString('en', {month:'short'})}</option>)}
-                </select>
-                <div className="relative w-64"><Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input className="w-full text-[10px] border border-slate-200 rounded-lg pl-10 pr-2 py-2 focus:ring-1 focus:ring-amber-700 outline-none font-black uppercase bg-slate-50/50" placeholder="Search Patients..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
-                <button onClick={() => { setFilterType(''); setFilterArea(''); setFilterFinalDisposition(viewMode === 'labs' ? '' : 'Currently Admitted'); setSelectedMonth(currentMonth); setSelectedQuarter(currentQuarter); setSelectedYear(currentYear); setSearchQuery(''); }} className="p-1.5 text-slate-400 hover:text-amber-700 transition-all"><RotateCcw size={14} /></button>
+                <div className="relative w-64"><Search size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" /><input className="w-full text-[10px] border border-slate-200 rounded-lg pl-10 pr-2 py-2 focus:ring-1 focus:ring-amber-700 outline-none font-black uppercase bg-slate-50/50" placeholder="Search..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+                <button onClick={() => { setFilterType(''); setFilterArea(''); setFilterFinalDisposition(viewMode === 'labs' ? '' : 'Currently Admitted'); setSearchQuery(''); }} className="p-1.5 text-slate-400 hover:text-amber-700 transition-all"><RotateCcw size={14} /></button>
             </div>
         </div>
 
@@ -289,13 +279,9 @@ const PTBDashboard: React.FC<Props> = ({ isNested }) => {
                             <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-2 border-b pb-2"><Activity size={14}/> Ward Census Trend</h3>
                             <div className="h-64"><ResponsiveContainer width="100%" height="100%"><AreaChart data={stats.censusTrend}><defs><linearGradient id="colorTb" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#b45309" stopOpacity={0.2}/><stop offset="95%" stopColor="#b45309" stopOpacity={0}/></linearGradient></defs><CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} /><XAxis dataKey="date" tick={{fontSize: 10}} /><YAxis tick={{fontSize: 10}} /><RechartsTooltip /><Area type="monotone" dataKey="days" stroke="#b45309" strokeWidth={3} fillOpacity={1} fill="url(#colorTb)" /></AreaChart></ResponsiveContainer></div>
                         </div>
-                        <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col gap-6 md:col-span-2">
-                            <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-2 border-b pb-2"><Users size={14}/> Diagnostic Volume by Ward</h3>
-                            <div className="h-64"><ResponsiveContainer width="100%" height="100%"><BarChart data={AREAS.map(a => ({ name: a, count: sortedData.filter(d => d.area === a).length })).filter(d => d.count > 0)}><CartesianGrid strokeDasharray="3 3" vertical={false} opacity={0.1} /><XAxis dataKey="name" tick={{fontSize: 9, fontWeight: 'bold'}} /><YAxis tick={{fontSize: 9}} /><RechartsTooltip /><Bar dataKey="count" fill="#b45309" radius={[4, 4, 0, 0]} /></BarChart></ResponsiveContainer></div>
-                        </div>
                     </div>
                 ) : viewMode === 'labs' ? (
-                  <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
+                  <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 overflow-x-auto">
                     <table className="w-full text-sm text-left">
                         <thead className="bg-gray-50 text-gray-700 font-bold border-b text-[10px] uppercase tracking-wider">
                           <tr>
@@ -323,12 +309,12 @@ const PTBDashboard: React.FC<Props> = ({ isNested }) => {
                                   className="hover:bg-amber-50/50 transition-colors cursor-pointer group"
                                 >
                                   <td className="px-4 py-3 text-center text-slate-300 font-black">{idx + 1}</td>
-                                  <td className="px-4 py-3 font-medium text-slate-600">{res.date}</td>
-                                  <td className="px-6 py-3 font-black text-amber-800 uppercase">{res.patientName}</td>
-                                  <td className="px-4 py-3 font-bold text-indigo-600 text-xs">{res.type}</td>
+                                  <td className="px-4 py-3 font-medium text-slate-600 whitespace-nowrap">{formatDisplayDate(res.date)}</td>
+                                  <td className="px-6 py-3 font-black text-amber-800 uppercase whitespace-nowrap">{res.patientName}</td>
+                                  <td className="px-4 py-3 font-bold text-indigo-600 text-xs whitespace-nowrap">{res.type}</td>
                                   <td className="px-4 py-3 font-black text-[10px] uppercase">
-                                    <span className={`px-2 py-0.5 rounded-full border ${res.mtbResult === 'MTB Detected' || res.result?.includes('+') ? 'bg-red-50 text-red-600 border-red-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
-                                      {res.mtbResult || res.result} {res.rifResistance ? `(${res.rifResistance})` : ''}
+                                    <span className={`px-2 py-0.5 rounded-full border whitespace-nowrap ${res.mtbResult === 'MTB Detected' || res.result?.includes('+') ? 'bg-red-50 text-red-600 border-red-100' : 'bg-emerald-50 text-emerald-600 border-emerald-100'}`}>
+                                      {res.mtbResult || res.result} {res.mtbLevel ? `(${res.mtbLevel})` : ''} {res.rifResistance ? `[${res.rifResistance}]` : ''}
                                     </span>
                                   </td>
                                   <td className="px-4 py-3 text-center">
@@ -350,39 +336,39 @@ const PTBDashboard: React.FC<Props> = ({ isNested }) => {
                     </table>
                   </div>
                 ) : (
-                    <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
+                    <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 overflow-x-auto">
                         <table className="w-full text-sm text-left">
                             <thead className="bg-gray-50 text-gray-700 font-bold border-b text-[10px] uppercase tracking-wider">
                               <tr>
                                 <th className="px-4 py-4 w-12 text-center">#</th>
                                 <th className="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('dateOfAdmission')}>
-                                  <div className="flex items-center">Admission Date <SortIcon colKey="dateOfAdmission" currentConfig={sortConfig} /></div>
+                                  <div className="flex items-center">Admit Date <SortIcon colKey="dateOfAdmission" currentConfig={sortConfig} /></div>
                                 </th>
                                 <th className="px-6 py-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('name')}>
                                   <div className="flex items-center">Patient Name <SortIcon colKey="name" currentConfig={sortConfig} /></div>
                                 </th>
                                 <th className="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('hospitalNumber')}>
-                                  <div className="flex items-center">Hospital # <SortIcon colKey="hospitalNumber" currentConfig={sortConfig} /></div>
+                                  <div className="flex items-center">Hosp # <SortIcon colKey="hospitalNumber" currentConfig={sortConfig} /></div>
                                 </th>
                                 <th className="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('classification')}>
-                                  <div className="flex items-center">TB Classification <SortIcon colKey="classification" currentConfig={sortConfig} /></div>
+                                  <div className="flex items-center">Classification <SortIcon colKey="classification" currentConfig={sortConfig} /></div>
                                 </th>
                                 <th className="px-4 py-4 cursor-pointer hover:bg-gray-100 transition-colors text-center" onClick={() => handleSort('finalDisposition')}>
-                                  <div className="flex items-center justify-center">Disposition <SortIcon colKey="finalDisposition" currentConfig={sortConfig} /></div>
+                                  <div className="flex items-center justify-center">Disp. <SortIcon colKey="finalDisposition" currentConfig={sortConfig} /></div>
                                 </th>
                                 <th className="px-4 py-4 text-center">Actions</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {loading ? <tr><td colSpan={7} className="p-10 text-center uppercase text-[10px] font-black text-slate-400 animate-pulse">Loading TB Registry...</td></tr> : sortedData.length === 0 ? <tr><td colSpan={7} className="p-10 text-center uppercase text-[10px] font-black text-slate-400">No matching records</td></tr> : sortedData.map((report, idx) => (
+                                {loading ? <tr><td colSpan={7} className="p-10 text-center uppercase text-[10px] font-black text-slate-400 animate-pulse">Loading...</td></tr> : sortedData.length === 0 ? <tr><td colSpan={7} className="p-10 text-center uppercase text-[10px] font-black text-slate-400">No records</td></tr> : sortedData.map((report, idx) => (
                                     <tr key={report.id} className="hover:bg-amber-50/50 transition-colors cursor-pointer group">
                                       <td className="px-4 py-3 text-center text-slate-300 font-black">{idx + 1}</td>
-                                      <td className="px-4 py-3 font-medium text-slate-600">{report.dateOfAdmission}</td>
-                                      <td className="px-6 py-3 font-black text-amber-800 uppercase">{isAuthenticated ? `${report.lastName}, ${report.firstName}` : `${report.lastName[0]}.${report.firstName[0]}.`}</td>
-                                      <td className="px-4 py-3 text-slate-500 font-bold">{report.hospitalNumber}</td>
-                                      <td className="px-4 py-3 font-bold text-slate-700 text-xs">{report.classification}</td>
+                                      <td className="px-4 py-3 font-medium text-slate-600 whitespace-nowrap">{formatDisplayDate(report.dateOfAdmission)}</td>
+                                      <td className="px-6 py-3 font-black text-amber-800 uppercase whitespace-nowrap">{isAuthenticated ? `${report.lastName}, ${report.firstName}` : `${report.lastName[0]}.${report.firstName[0]}.`}</td>
+                                      <td className="px-4 py-3 text-slate-500 font-bold whitespace-nowrap">{report.hospitalNumber}</td>
+                                      <td className="px-4 py-3 font-bold text-slate-700 text-xs whitespace-nowrap">{report.classification}</td>
                                       <td className="px-4 py-3 text-center">
-                                        <span className={`px-2 py-1 rounded-full text-[9px] font-black border uppercase ${report.finalDisposition === 'Currently Admitted' ? "bg-green-100 text-green-700 border-green-200" : report.finalDisposition === 'Cleared' ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-blue-100 text-blue-700 border-blue-200"}`}>
+                                        <span className={`px-2 py-1 rounded-full text-[9px] font-black border uppercase whitespace-nowrap ${report.finalDisposition === 'Currently Admitted' ? "bg-green-100 text-green-700 border-green-200" : report.finalDisposition === 'Cleared' ? "bg-emerald-100 text-emerald-700 border-emerald-200" : "bg-blue-100 text-blue-700 border-blue-200"}`}>
                                             {report.finalDisposition || "Currently Admitted"}
                                         </span>
                                       </td>
@@ -393,14 +379,14 @@ const PTBDashboard: React.FC<Props> = ({ isNested }) => {
                                                     <button 
                                                         onClick={(e) => { e.stopPropagation(); handleEditRecord(report); }}
                                                         className="p-2 text-slate-300 hover:text-amber-600 hover:bg-white rounded-lg transition-all"
-                                                        title="Edit Patient"
+                                                        title="Edit"
                                                     >
                                                         <Edit3 size={16} />
                                                     </button>
                                                     <button 
                                                         onClick={(e) => { e.stopPropagation(); handleDeleteClick(report); }}
                                                         className="p-2 text-slate-300 hover:text-rose-600 hover:bg-white rounded-lg transition-all"
-                                                        title="Delete Patient"
+                                                        title="Delete"
                                                     >
                                                         <Trash2 size={16} />
                                                     </button>
@@ -419,12 +405,12 @@ const PTBDashboard: React.FC<Props> = ({ isNested }) => {
             
             <div className="w-full lg:w-64 flex flex-col gap-3 print:hidden">
               <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-                  <div className="px-4 py-2.5 border-b border-slate-50 bg-slate-50/30"><span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Registry Snapshot</span></div>
+                  <div className="px-4 py-2.5 border-b border-slate-50 bg-slate-50/30"><span className="text-[9px] font-black uppercase tracking-widest text-slate-400">Snapshot</span></div>
                   <div className="flex flex-col divide-y divide-slate-50">
                     {[
-                      { label: 'Total Filtered', value: stats.total, icon: Activity, color: 'text-amber-700' },
-                      { label: 'Missing Results', value: stats.missingDx, icon: AlertCircle, color: 'text-red-600' },
-                      { label: 'GeneXpert Pos', value: sortedLabData.filter(l => l.type === 'GeneXpert' && (l.mtbResult === 'MTB Detected')).length, icon: Beaker, color: 'text-indigo-600' }
+                      { label: 'Total', value: stats.total, icon: Activity, color: 'text-amber-700' },
+                      { label: 'Unlinked', value: stats.missingDx, icon: AlertCircle, color: 'text-red-600' },
+                      { label: 'GeneXpert+', value: sortedLabData.filter(l => l.type === 'GeneXpert' && (l.mtbResult === 'MTB Detected')).length, icon: Beaker, color: 'text-indigo-600' }
                     ].map(card => (
                       <div key={card.label} className="p-4 flex flex-col gap-1 text-left">
                         <div className="flex items-center justify-between"><span className="text-[8px] font-black uppercase text-slate-400">{card.label}</span><card.icon size={12} className="opacity-30" /></div>
@@ -459,32 +445,22 @@ const PTBDashboard: React.FC<Props> = ({ isNested }) => {
                     </span>
                     {selectedLab.mtbLevel && <span className="text-xs font-bold text-slate-600">Level: {selectedLab.mtbLevel}</span>}
                     {selectedLab.rifResistance && <span className="text-xs font-bold text-red-600">Resistance: {selectedLab.rifResistance}</span>}
-                    <span className="text-[10px] font-bold text-slate-400 uppercase mt-1">Released: {selectedLab.date} • {selectedLab.specimen}</span>
+                    <span className="text-[10px] font-bold text-slate-400 uppercase mt-1">Released: {formatDisplayDate(selectedLab.date)} • {selectedLab.specimen}</span>
                   </div>
                 </div>
 
                 <div className="flex flex-col gap-3">
                   {selectedLab.patientObj.isLabOnly ? (
-                    <>
-                      <div className="p-4 bg-amber-50 rounded-2xl border border-amber-100 flex gap-3 items-start">
-                        <AlertCircle size={18} className="text-amber-600 shrink-0 mt-0.5" />
-                        <p className="text-xs font-bold text-amber-900 leading-snug">
-                          This result is not yet linked to a treatment record. Would you like to register this patient for full TB monitoring?
-                        </p>
-                      </div>
-                      <button 
-                        onClick={() => handleRegisterPatient(selectedLab)}
-                        className="w-full h-14 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-black transition-all flex items-center justify-center gap-3 shadow-lg"
-                      >
-                        <UserPlus size={18}/> Convert to Treatment Registry
-                      </button>
-                    </>
+                    <button 
+                      onClick={() => handleRegisterPatient(selectedLab)}
+                      className="w-full h-14 bg-slate-900 text-white rounded-2xl font-black uppercase text-xs tracking-widest hover:bg-black transition-all flex items-center justify-center gap-3 shadow-lg"
+                    >
+                      <UserPlus size={18}/> Convert to Treatment Registry
+                    </button>
                   ) : (
                     <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100 flex gap-3 items-start">
                       <CheckCircle2 size={18} className="text-emerald-600 shrink-0 mt-0.5" />
-                      <p className="text-xs font-bold text-emerald-900 leading-snug">
-                        Linked to an active Treatment Registry entry.
-                      </p>
+                      <p className="text-xs font-bold text-emerald-900 leading-snug">Linked to treatment registry.</p>
                     </div>
                   )}
                   <button 
@@ -511,7 +487,7 @@ const PTBDashboard: React.FC<Props> = ({ isNested }) => {
             onConfirm={handleConfirmDelete}
             loading={passwordConfirmLoading}
             title="Confirm Registry Deletion"
-            description={`Permanently delete the record for ${itemToDelete?.lastName || ''}? This will also remove associated lab history.`}
+            description={`Permanently delete the record for ${itemToDelete?.lastName || ''}?`}
         />
     </div>
   );

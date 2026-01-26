@@ -47,6 +47,19 @@ import { initializeApp } from 'firebase/app';
       word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
     ).join(' ');
   };
+
+  /**
+   * Standardizes date display to MM/DD/YYYY
+   */
+  export const formatDisplayDate = (dateStr: string) => {
+    if (!dateStr) return "";
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return dateStr;
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    const year = date.getFullYear();
+    return `${month}/${day}/${year}`;
+  };
   
   const sanitizeData = (data: any) => {
     const sanitized = { ...data };
