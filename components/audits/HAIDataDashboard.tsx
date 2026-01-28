@@ -47,7 +47,8 @@ const EXCLUDED_FROM_SURVEILLANCE = [
     "Dialysis Unit",
     "Surgery Isolation Room",
     "Medicine Isolation Room",
-    "ER Isolation Room"
+    "ER Isolation Room",
+    "Pedia ICU"
 ];
 
 const ALL_WARDS = AREAS.filter(a => a !== 'Other (specify)' && !EXCLUDED_FROM_SURVEILLANCE.includes(a));
