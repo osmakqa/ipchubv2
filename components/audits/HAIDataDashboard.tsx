@@ -84,8 +84,7 @@ const HAIDataDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode
         icuCensus: '',
         picuCensus: '',
         nicuCensus: '',
-        medicineCensus: '',
-        cohortCensus: ''
+        medicineCensus: ''
     });
 
     // Initialize grid for all wards
@@ -113,8 +112,7 @@ const HAIDataDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode
                     icuCensus: existingLog.icu?.toString() || '',
                     picuCensus: existingLog.picu?.toString() || '',
                     nicuCensus: existingLog.nicu?.toString() || '',
-                    medicineCensus: existingLog.medicine?.toString() || '',
-                    cohortCensus: existingLog.cohort?.toString() || ''
+                    medicineCensus: existingLog.medicine?.toString() || ''
                 }));
                 
                 const newGrid: any = {};
@@ -130,7 +128,7 @@ const HAIDataDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode
             } else {
                 setFormData(prev => ({
                     ...prev,
-                    overallCensus: '', icuCensus: '', picuCensus: '', nicuCensus: '', medicineCensus: '', cohortCensus: ''
+                    overallCensus: '', icuCensus: '', picuCensus: '', nicuCensus: '', medicineCensus: ''
                 }));
                 const resetGrid: any = {};
                 ALL_WARDS.forEach(w => {
@@ -171,7 +169,6 @@ const HAIDataDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode
             picu: parseInt(formData.picuCensus || '0', 10),
             nicu: parseInt(formData.nicuCensus || '0', 10),
             medicine: parseInt(formData.medicineCensus || '0', 10),
-            cohort: parseInt(formData.cohortCensus || '0', 10),
         };
         
         let totalVent = 0, totalIfc = 0, totalCentral = 0;
@@ -683,12 +680,11 @@ const HAIDataDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
                         <RateCard title="Intensive Care (ICU)" rates={stats.icu} />
                         <RateCard title="Pedia ICU (PICU)" rates={stats.picu} />
                         <RateCard title="Neonatal ICU (NICU)" rates={stats.nicu} />
                         <RateCard title="Medicine Ward" rates={stats.medicine} />
-                        <RateCard title="Cohort Unit" rates={stats.cohort} />
                     </div>
                 </div>
             )}
@@ -722,7 +718,6 @@ const HAIDataDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode
                                     <Input label="PICU" type="number" value={editingLog.picu} onChange={e => setEditingLog({...editingLog, picu: e.target.value})} placeholder="0" />
                                     <Input label="NICU" type="number" value={editingLog.nicu} onChange={e => setEditingLog({...editingLog, nicu: e.target.value})} placeholder="0" />
                                     <Input label="Med Ward" type="number" value={editingLog.medicine} onChange={e => setEditingLog({...editingLog, medicine: e.target.value})} placeholder="0" />
-                                    <Input label="Cohort" type="number" value={editingLog.cohort} onChange={e => setEditingLog({...editingLog, cohort: e.target.value})} placeholder="0" />
                                 </div>
                             </div>
 

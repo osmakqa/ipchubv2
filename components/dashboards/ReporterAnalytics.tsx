@@ -59,7 +59,14 @@ const ReporterAnalytics: React.FC = () => {
         ...needle.map(r => ({ ...r, module: 'Sharps', reporterName: r.hcwName })), // Needle uses hcwName
         ...cult.map(r => ({ ...r, module: 'Culture' }))
       ];
-      setData(combined);
+
+      // CRITICAL: Filter out reports submitted by IPC Staff to highlight clinical contributions
+      const filteredForClinical = combined.filter(r => 
+        r.designation !== 'IPC Staff' && 
+        r.designation?.toLowerCase() !== 'dots coordinator'
+      );
+
+      setData(filteredForClinical);
       setLoading(false);
     };
     fetchAll();
