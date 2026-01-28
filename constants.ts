@@ -1,4 +1,3 @@
-
 export const AREAS = [
   "OBGyne Ward",
   "NICU",
@@ -6,6 +5,7 @@ export const AREAS = [
   "Pedia Ward",
   "Pedia ICU",
   "Cohort",
+  "Pedia Cohort",
   "Surgery Ward",
   "6th Floor Ward",
   "7th Floor",

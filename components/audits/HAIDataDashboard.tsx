@@ -43,7 +43,11 @@ const EXCLUDED_FROM_SURVEILLANCE = [
     "Chemotherapy Unit", 
     "Ambulatory Care Medicine Complex", 
     "Surgical Care Complex", 
-    "LRDR"
+    "LRDR",
+    "Dialysis Unit",
+    "Surgery Isolation Room",
+    "Medicine Isolation Room",
+    "ER Isolation Room"
 ];
 
 const ALL_WARDS = AREAS.filter(a => a !== 'Other (specify)' && !EXCLUDED_FROM_SURVEILLANCE.includes(a));
@@ -343,8 +347,7 @@ const HAIDataDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode
                                                 { label: 'Intensive Care (ICU)', key: 'icuCensus' },
                                                 { label: 'Pedia ICU (PICU)', key: 'picuCensus' },
                                                 { label: 'Neonatal ICU (NICU)', key: 'nicuCensus' },
-                                                { label: 'Medicine Ward', key: 'medicineCensus' },
-                                                { label: 'Cohort Area', key: 'cohortCensus' }
+                                                { label: 'Medicine Ward', key: 'medicineCensus' }
                                             ].map((row) => (
                                                 <tr key={row.key} className="hover:bg-white transition-colors group">
                                                     <td className="px-4 md:px-6 py-3 md:py-4">
