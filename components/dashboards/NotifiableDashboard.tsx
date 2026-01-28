@@ -2,10 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../AuthContext';
 import Layout from '../ui/Layout';
-import { getNotifiableReports, getCensusLogs } from '../../services/ipcService';
+import PasswordConfirmModal from '../ui/PasswordConfirmModal';
+import { getNotifiableReports, getCensusLogs, deleteRecord } from '../../services/ipcService';
 import { AREAS, NOTIFIABLE_DISEASES } from '../../constants';
 import { 
-  ChevronLeft, ChevronRight, List, BarChart2, Filter, RotateCcw, PlusCircle, Download, Bell, Search, TrendingUp, Users, Activity
+  ChevronLeft, ChevronRight, List, BarChart2, Filter, RotateCcw, PlusCircle, Download, Bell, Search, TrendingUp, Users, Activity, Trash2
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, 
@@ -18,11 +19,16 @@ interface Props {
 
 const NotifiableDashboard: React.FC<Props> = ({ isNested }) => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, validatePassword } = useAuth();
   const [data, setData] = useState<any[]>([]);
   const [census, setCensus] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'analysis'>('list');
+
+  // Deletion state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<any | null>(null);
+  const [passwordConfirmLoading, setPasswordConfirmLoading] = useState(false);
 
   // Dynamic Current Dates
   const now = new Date();
@@ -47,6 +53,33 @@ const NotifiableDashboard: React.FC<Props> = ({ isNested }) => {
     setData(reports);
     setCensus(censusLogs);
     setLoading(false);
+  };
+
+  const handleDeleteClick = (report: any) => {
+    setItemToDelete(report);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async (password: string) => {
+    if (!itemToDelete || !user) return;
+    setPasswordConfirmLoading(true);
+    if (!validatePassword(user, password)) {
+      alert("Incorrect password.");
+      setPasswordConfirmLoading(false);
+      return;
+    }
+    try {
+      const success = await deleteRecord('reports_notifiable', itemToDelete.id);
+      if (success) {
+        setShowDeleteConfirm(false);
+        setItemToDelete(null);
+        loadData();
+      } else {
+        alert("Failed to delete record.");
+      }
+    } finally {
+      setPasswordConfirmLoading(false);
+    }
   };
 
   const filteredData = useMemo(() => {
@@ -153,17 +186,27 @@ const NotifiableDashboard: React.FC<Props> = ({ isNested }) => {
                                 <th className="px-4 py-4">Hospital #</th>
                                 <th className="px-4 py-4">Disease Type</th>
                                 <th className="px-4 py-4 text-center">Status</th>
+                                <th className="px-4 py-4 text-center">Actions</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {loading ? <tr><td colSpan={6} className="p-10 text-center uppercase text-[10px] font-black text-slate-400 animate-pulse">Loading Notifiable...</td></tr> : filteredData.length === 0 ? <tr><td colSpan={6} className="p-10 text-center uppercase text-[10px] font-black text-slate-400">No matching records</td></tr> : filteredData.map((report, idx) => (
-                                    <tr key={report.id} className="hover:bg-red-50/50 transition-colors cursor-pointer group">
+                                {loading ? <tr><td colSpan={7} className="p-10 text-center uppercase text-[10px] font-black text-slate-400 animate-pulse">Loading Notifiable...</td></tr> : filteredData.length === 0 ? <tr><td colSpan={7} className="p-10 text-center uppercase text-[10px] font-black text-slate-400">No matching records</td></tr> : filteredData.map((report, idx) => (
+                                    <tr key={report.id} className="hover:bg-red-50/50 transition-colors group">
                                       <td className="px-4 py-3 text-center text-slate-300 font-black">{idx + 1}</td>
                                       <td className="px-4 py-3 font-medium text-slate-600">{report.dateOfAdmission}</td>
                                       <td className="px-6 py-3 font-black text-red-600 uppercase">{isAuthenticated ? `${report.lastName}, ${report.firstName}` : `${report.lastName[0]}.${report.firstName[0]}.`}</td>
                                       <td className="px-4 py-3 text-slate-500 font-bold">{report.hospitalNumber}</td>
                                       <td className="px-4 py-3 font-bold text-slate-700 text-xs">{report.disease}</td>
                                       <td className="px-4 py-3 text-center"><span className={`px-2 py-1 rounded-full text-[9px] font-black border uppercase ${!report.outcome || report.outcome === 'Admitted' ? "bg-green-100 text-green-700 border-green-200" : "bg-blue-100 text-blue-700 border-blue-200"}`}>{report.outcome || "Admitted"}</span></td>
+                                      <td className="px-4 py-3">
+                                          <div className="flex items-center justify-center">
+                                              {isAuthenticated && (
+                                                  <button onClick={() => handleDeleteClick(report)} className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all" title="Remove Record">
+                                                      <Trash2 size={16} />
+                                                  </button>
+                                              )}
+                                          </div>
+                                      </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -190,6 +233,15 @@ const NotifiableDashboard: React.FC<Props> = ({ isNested }) => {
               </div>
             </div>
         </div>
+
+        <PasswordConfirmModal
+            show={showDeleteConfirm}
+            onClose={() => setShowDeleteConfirm(false)}
+            onConfirm={handleConfirmDelete}
+            loading={passwordConfirmLoading}
+            title="Remove Notifiable Entry"
+            description={`Proceed with permanent removal of the record for ${itemToDelete?.lastName || 'this case'}?`}
+        />
     </div>
   );
 

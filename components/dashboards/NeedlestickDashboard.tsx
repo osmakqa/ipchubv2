@@ -2,10 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../AuthContext';
 import Layout from '../ui/Layout';
-import { getNeedlestickReports, getCensusLogs } from '../../services/ipcService';
+import PasswordConfirmModal from '../ui/PasswordConfirmModal';
+import { getNeedlestickReports, getCensusLogs, deleteRecord } from '../../services/ipcService';
 import { AREAS } from '../../constants';
 import { 
-  ChevronLeft, List, BarChart2, Filter, RotateCcw, PlusCircle, Download, ShieldAlert, Droplets, Search, ChevronRight, TrendingUp, Users, Briefcase, Activity
+  ChevronLeft, List, BarChart2, Filter, RotateCcw, PlusCircle, Download, ShieldAlert, Droplets, Search, ChevronRight, TrendingUp, Users, Briefcase, Activity, Trash2
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, 
@@ -18,11 +19,16 @@ interface Props {
 
 const NeedlestickDashboard: React.FC<Props> = ({ isNested }) => {
   const navigate = useNavigate();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user, validatePassword } = useAuth();
   const [data, setData] = useState<any[]>([]);
   const [census, setCensus] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'analysis'>('list');
+
+  // Deletion state
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<any | null>(null);
+  const [passwordConfirmLoading, setPasswordConfirmLoading] = useState(false);
 
   // Dynamic Current Dates
   const now = new Date();
@@ -43,10 +49,37 @@ const NeedlestickDashboard: React.FC<Props> = ({ isNested }) => {
   const loadData = async () => {
     setLoading(true);
     const [reports, censusLogs] = await Promise.all([getNeedlestickReports(), getCensusLogs()]);
-    reports.sort((a, b) => new Date(a.dateOfInjury).getTime() - new Date(a.dateOfInjury).getTime());
+    reports.sort((a, b) => new Date(b.dateOfInjury).getTime() - new Date(a.dateOfInjury).getTime());
     setData(reports);
     setCensus(censusLogs);
     setLoading(false);
+  };
+
+  const handleDeleteClick = (report: any) => {
+    setItemToDelete(report);
+    setShowDeleteConfirm(true);
+  };
+
+  const handleConfirmDelete = async (password: string) => {
+    if (!itemToDelete || !user) return;
+    setPasswordConfirmLoading(true);
+    if (!validatePassword(user, password)) {
+      alert("Incorrect password.");
+      setPasswordConfirmLoading(false);
+      return;
+    }
+    try {
+      const success = await deleteRecord('reports_needlestick', itemToDelete.id);
+      if (success) {
+        setShowDeleteConfirm(false);
+        setItemToDelete(null);
+        loadData();
+      } else {
+        alert("Failed to delete record.");
+      }
+    } finally {
+      setPasswordConfirmLoading(false);
+    }
   };
 
   const filteredData = useMemo(() => {
@@ -146,7 +179,7 @@ const NeedlestickDashboard: React.FC<Props> = ({ isNested }) => {
                         </div>
                     </div>
                 ) : (
-                    <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
+                    <div className="bg-white rounded-xl shadow-md overflow-hidden border border-gray-200 overflow-x-auto">
                         <table className="w-full text-sm text-left">
                             <thead className="bg-gray-50 text-gray-700 font-bold border-b text-[10px] uppercase tracking-wider">
                               <tr>
@@ -156,17 +189,27 @@ const NeedlestickDashboard: React.FC<Props> = ({ isNested }) => {
                                 <th className="px-4 py-4">Employee #</th>
                                 <th className="px-4 py-4">Exposure</th>
                                 <th className="px-4 py-4 text-center">Location</th>
+                                <th className="px-4 py-4 text-center">Actions</th>
                               </tr>
                             </thead>
                             <tbody className="divide-y divide-gray-100">
-                                {loading ? <tr><td colSpan={6} className="p-10 text-center uppercase text-[10px] font-black text-slate-400 animate-pulse">Loading Log...</td></tr> : filteredData.length === 0 ? <tr><td colSpan={6} className="p-10 text-center uppercase text-[10px] font-black text-slate-400">No matching reports</td></tr> : filteredData.map((report, idx) => (
-                                    <tr key={report.id} className="hover:bg-red-50/50 transition-colors cursor-pointer group">
+                                {loading ? <tr><td colSpan={7} className="p-10 text-center uppercase text-[10px] font-black text-slate-400 animate-pulse">Loading Log...</td></tr> : filteredData.length === 0 ? <tr><td colSpan={7} className="p-10 text-center uppercase text-[10px] font-black text-slate-400">No matching reports</td></tr> : filteredData.map((report, idx) => (
+                                    <tr key={report.id} className="hover:bg-red-50/50 transition-colors group">
                                       <td className="px-4 py-3 text-center text-slate-300 font-black">{idx + 1}</td>
                                       <td className="px-4 py-3 font-medium text-slate-600">{report.dateOfInjury}</td>
                                       <td className="px-6 py-3 font-black text-red-600 uppercase">{isAuthenticated ? report.hcwName : `${report.hcwName?.split(', ')[0][0]}. ${report.hcwName?.split(', ')[1]?.[0]}.`}</td>
                                       <td className="px-4 py-3 text-slate-500 font-bold">{report.hospitalNumber}</td>
                                       <td className="px-4 py-3 font-black text-amber-600 text-[10px] uppercase">{report.exposureType}</td>
                                       <td className="px-4 py-3 text-slate-500 font-bold text-xs uppercase text-center">{report.workLocation}</td>
+                                      <td className="px-4 py-3">
+                                          <div className="flex items-center justify-center">
+                                              {isAuthenticated && (
+                                                  <button onClick={() => handleDeleteClick(report)} className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all" title="Remove Log">
+                                                      <Trash2 size={16} />
+                                                  </button>
+                                              )}
+                                          </div>
+                                      </td>
                                     </tr>
                                 ))}
                             </tbody>
@@ -191,6 +234,15 @@ const NeedlestickDashboard: React.FC<Props> = ({ isNested }) => {
               </div>
             </div>
         </div>
+
+        <PasswordConfirmModal
+            show={showDeleteConfirm}
+            onClose={() => setShowDeleteConfirm(false)}
+            onConfirm={handleConfirmDelete}
+            loading={passwordConfirmLoading}
+            title="Remove Sharps Log Entry"
+            description={`Proceed with permanent removal of the record for ${itemToDelete?.hcwName || 'this employee'}?`}
+        />
     </div>
   );
 
