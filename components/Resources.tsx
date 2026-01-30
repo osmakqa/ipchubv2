@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
@@ -92,7 +93,7 @@ const ManualReader: React.FC<{ title: string }> = ({ title }) => {
     if (selectedItem) {
         return (
             <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-3xl mx-auto pb-20">
-                <div className="flex items-center justify-between sticky top-16 bg-slate-50/90 backdrop-blur-md py-4 z-10 border-b border-slate-200 -mx-4 px-4">
+                <div className="flex items-center justify-between sticky top-14 bg-slate-50/90 backdrop-blur-md py-4 z-10 border-b border-slate-200 -mx-4 px-4">
                     <button 
                         onClick={() => setSelectedItem(null)}
                         className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-emerald-600 transition-colors"

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth, AppMode } from '../AuthContext';
@@ -56,6 +57,7 @@ const Header: React.FC = () => {
       } else {
         alert("Quick login failed.");
       }
+      // Fix: changed setLogin to setLoading as setLogin is not defined in this scope
       setLoading(false);
     }, 500);
   };
@@ -71,36 +73,36 @@ const Header: React.FC = () => {
 
   return (
     <>
-      <header className={`sticky top-0 z-[100] flex items-center justify-between gap-4 ${getThemeColors()} px-4 md:px-8 py-3 shadow-xl transition-all duration-500 h-20`}>
-        <div className="flex items-center gap-2 md:gap-4 cursor-pointer group shrink-0" onClick={() => navigate('/')}>
-          <div className="transition-transform group-hover:scale-110 shrink-0">
-            <img src="https://maxterrenal-hash.github.io/justculture/osmak-logo.png" alt="OsMak" className="h-10 md:h-12 w-auto" />
+      <header className={`sticky top-0 z-[100] flex items-center justify-between gap-4 ${getThemeColors()} px-4 md:px-8 py-2 shadow-xl transition-all duration-500 h-14`}>
+        <div className="flex items-center gap-2 md:gap-3 cursor-pointer group shrink-0" onClick={() => navigate('/')}>
+          <div className="transition-transform group-hover:scale-105 shrink-0">
+            <img src="https://maxterrenal-hash.github.io/justculture/osmak-logo.png" alt="OsMak" className="h-7 md:h-9 w-auto" />
           </div>
           <div className="hidden sm:flex flex-col">
-            <h1 className="text-sm md:text-xl font-black tracking-tighter uppercase leading-none">Ospital ng Makati</h1>
-            <span className="text-[8px] md:text-xs opacity-70 font-black uppercase tracking-widest mt-0.5">IPC Hub</span>
+            <h1 className="text-xs md:text-base font-black tracking-tighter uppercase leading-none">Ospital ng Makati</h1>
+            <span className="text-[7px] md:text-[9px] opacity-70 font-black uppercase tracking-widest mt-0.5">IPC Hub</span>
           </div>
         </div>
 
         {isAuthenticated && (
-          <div className="flex items-center bg-black/20 rounded-full p-1.5 backdrop-blur-xl border border-white/10 shadow-inner">
+          <div className="flex items-center bg-black/20 rounded-full p-0.5 backdrop-blur-xl border border-white/10 shadow-inner">
             <button 
               onClick={() => handleModeSwitch('report')}
-              className={`flex items-center gap-2 px-4 md:px-10 py-2 md:py-3 rounded-full text-[10px] md:text-xs font-black uppercase tracking-[0.15em] transition-all duration-300 ${appMode === 'report' ? 'bg-white text-osmak-green shadow-xl scale-105' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+              className={`flex items-center gap-1.5 px-3 md:px-5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.1em] transition-all duration-300 ${appMode === 'report' ? 'bg-white text-osmak-green shadow-lg scale-105' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
             >
-              <Activity size={14} className="md:w-4 md:h-4" /> <span className="hidden xs:inline">Surveillance</span>
+              <Activity size={10} className="md:w-3 md:h-3" /> <span className="hidden xs:inline">Surveillance</span>
             </button>
             <button 
               onClick={() => handleModeSwitch('audit')}
-              className={`flex items-center gap-2 px-4 md:px-10 py-2 md:py-3 rounded-full text-[10px] md:text-xs font-black uppercase tracking-[0.15em] transition-all duration-300 ${appMode === 'audit' ? 'bg-white text-teal-600 shadow-xl scale-105' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+              className={`flex items-center gap-1.5 px-3 md:px-5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.1em] transition-all duration-300 ${appMode === 'audit' ? 'bg-white text-teal-600 shadow-lg scale-105' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
             >
-              <ShieldCheck size={14} className="md:w-4 md:h-4" /> <span className="hidden xs:inline">Audit</span>
+              <ShieldCheck size={10} className="md:w-3 md:h-3" /> <span className="hidden xs:inline">Audit</span>
             </button>
             <button 
               onClick={() => handleModeSwitch('present')}
-              className={`flex items-center gap-2 px-4 md:px-10 py-2 md:py-3 rounded-full text-[10px] md:text-xs font-black uppercase tracking-[0.15em] transition-all duration-300 ${appMode === 'present' ? 'bg-white text-slate-800 shadow-xl scale-105' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
+              className={`flex items-center gap-1.5 px-3 md:px-5 py-1.5 rounded-full text-[9px] font-black uppercase tracking-[0.1em] transition-all duration-300 ${appMode === 'present' ? 'bg-white text-slate-800 shadow-lg scale-105' : 'text-white/60 hover:text-white hover:bg-white/5'}`}
             >
-              <MonitorPlay size={14} className="md:w-4 md:h-4" /> <span className="hidden xs:inline">Data</span>
+              <MonitorPlay size={10} className="md:w-3 md:h-3" /> <span className="hidden xs:inline">Data</span>
             </button>
           </div>
         )}
@@ -110,29 +112,29 @@ const Header: React.FC = () => {
             <>
               <button 
                 onClick={() => navigate('/pending')}
-                className="relative p-2.5 md:p-3 bg-white/10 rounded-xl hover:bg-white/20 transition-all border border-white/5"
+                className="relative p-1.5 bg-white/10 rounded-xl hover:bg-white/20 transition-all border border-white/5"
                 title="Pending Validations"
               >
-                <Bell size={20} className="md:w-6 md:h-6" />
+                <Bell size={16} className="md:w-4 md:h-4" />
                 {pendingCount > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-[8px] md:text-[9px] font-black w-4 h-4 md:w-5 md:h-5 rounded-full flex items-center justify-center border-2 border-current shadow-lg animate-bounce">
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-[7px] font-black w-3.5 h-3.5 rounded-full flex items-center justify-center border border-current shadow-lg animate-bounce">
                     {pendingCount}
                   </span>
                 )}
               </button>
-              <div className="hidden sm:flex items-center gap-3 bg-white/10 pl-4 pr-1.5 py-1.5 rounded-xl border border-white/5">
+              <div className="hidden sm:flex items-center gap-2 bg-white/10 pl-3 pr-1 py-0.5 rounded-xl border border-white/5">
                 <div className="flex flex-col items-end">
-                    <span className="text-xs font-black uppercase leading-none">{user}</span>
-                    <span className="text-[9px] font-bold opacity-50 uppercase tracking-tighter">Coordinator</span>
+                    <span className="text-[9px] font-black uppercase leading-none">{user}</span>
+                    <span className="text-[7px] font-bold opacity-50 uppercase tracking-tighter">Coordinator</span>
                 </div>
-                <button onClick={logout} className="p-2.5 bg-white/20 hover:bg-rose-500 hover:text-white rounded-lg transition-all"><LogOut size={18} /></button>
+                <button onClick={logout} className="p-1.5 bg-white/20 hover:bg-rose-500 hover:text-white rounded-lg transition-all"><LogOut size={14} /></button>
               </div>
-              <button onClick={logout} className="sm:hidden p-2.5 bg-white/10 rounded-xl border border-white/5"><LogOut size={18} /></button>
+              <button onClick={logout} className="sm:hidden p-1.5 bg-white/10 rounded-xl border border-white/5"><LogOut size={14} /></button>
             </>
           ) : (
             <button 
               onClick={() => setShowLogin(true)}
-              className="bg-white text-osmak-green px-4 md:px-8 py-2.5 md:py-3 rounded-xl text-xs md:text-sm font-black uppercase tracking-[0.1em] hover:bg-slate-50 transition-all shadow-xl active:scale-95"
+              className="bg-white text-osmak-green px-4 md:px-5 py-1.5 rounded-xl text-[9px] md:text-xs font-black uppercase tracking-[0.1em] hover:bg-slate-50 transition-all shadow-xl active:scale-95"
             >
               Login
             </button>

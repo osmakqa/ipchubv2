@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
@@ -308,7 +309,7 @@ const SurveillanceHub: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[calc(100vh-64px)] flex bg-slate-50 relative">
+    <div className="min-h-[calc(100vh-56px)] flex bg-slate-50 relative">
       {/* Sidebar Backdrop for Mobile */}
       {isSidebarOpen && window.innerWidth < 1024 && (
         <div 
@@ -319,7 +320,7 @@ const SurveillanceHub: React.FC = () => {
 
       {/* Sidebar - Conditional Items */}
       <aside className={`
-        fixed lg:sticky top-0 lg:top-16 z-[120] lg:z-50 h-screen lg:h-[calc(100vh-64px)] bg-slate-900 text-white transition-all duration-300 flex flex-col overflow-hidden
+        fixed lg:sticky top-0 lg:top-14 z-[120] lg:z-50 h-screen lg:h-[calc(100vh-56px)] bg-slate-900 text-white transition-all duration-300 flex flex-col overflow-hidden
         ${isSidebarOpen ? 'w-72 lg:w-64 translate-x-0' : 'w-0 lg:w-20 -translate-x-full lg:translate-x-0'}
       `}>
         <div className="p-6 flex items-center justify-between">
@@ -366,7 +367,7 @@ const SurveillanceHub: React.FC = () => {
       </aside>
 
       <main className="flex-1 min-w-0 flex flex-col">
-        <header className="sticky top-16 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 py-3 flex items-center justify-between h-16">
+        <header className="sticky top-14 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 py-3 flex items-center justify-between h-14">
            <div className="flex items-center gap-2 md:gap-3 overflow-hidden">
               <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 hover:bg-slate-100 rounded-lg text-slate-400 shrink-0">
                 <Menu size={20} />
@@ -378,7 +379,7 @@ const SurveillanceHub: React.FC = () => {
                 <span className="text-[8px] md:text-[9px] font-black uppercase text-slate-400 leading-none mb-1 truncate">
                     {appMode === 'report' ? 'Institutional Surveillance' : appMode === 'audit' ? 'Quality & Compliance' : 'Executive Data'} Hub
                 </span>
-                <h1 className="text-sm md:text-lg font-black text-slate-900 uppercase tracking-tight truncate leading-tight">{currentModule.label}</h1>
+                <h1 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-tight truncate leading-tight">{currentModule.label}</h1>
               </div>
            </div>
         </header>
