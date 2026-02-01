@@ -29,7 +29,8 @@ import {
     Sparkles,
     Filter,
     ChevronRight,
-    LayoutGrid
+    LayoutGrid,
+    BarChart3
 } from 'lucide-react';
 import { 
     BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, ResponsiveContainer, 
@@ -285,13 +286,33 @@ const HAIDataDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode
         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-4">
             <h4 className="text-[10px] font-black uppercase text-slate-400 tracking-[0.2em] border-b border-slate-50 pb-2">{title}</h4>
             <div className="grid grid-cols-2 gap-4">
-                <div className="flex flex-col"><span className="text-[8px] font-black uppercase text-slate-400">HAP</span><span className="text-xl font-black text-slate-800">{rates.hap}</span></div>
-                <div className="flex flex-col"><span className="text-[8px] font-black uppercase text-slate-400">VAP</span><span className="text-xl font-black text-blue-600">{rates.vap}</span></div>
-                <div className="flex flex-col"><span className="text-[8px] font-black uppercase text-slate-400">CAUTI</span><span className="text-xl font-black text-amber-600">{rates.cauti}</span></div>
-                <div className="flex flex-col"><span className="text-[8px] font-black uppercase text-slate-400">CLABSI</span><span className="text-xl font-black text-red-600">{rates.clabsi}</span></div>
+                <div className="flex flex-col"><span className="text-[8px] font-black uppercase text-slate-400">HAP Rate</span><span className="text-xl font-black text-slate-800">{rates.hap}</span></div>
+                <div className="flex flex-col"><span className="text-[8px] font-black uppercase text-slate-400">VAP Rate</span><span className="text-xl font-black text-blue-600">{rates.vap}</span></div>
+                <div className="flex flex-col"><span className="text-[8px] font-black uppercase text-slate-400">CAUTI Rate</span><span className="text-xl font-black text-amber-600">{rates.cauti}</span></div>
+                <div className="flex flex-col"><span className="text-[8px] font-black uppercase text-slate-400">CLABSI Rate</span><span className="text-xl font-black text-red-600">{rates.clabsi}</span></div>
             </div>
+            
+            <div className="mt-2 pt-3 border-t border-slate-50 flex flex-col gap-2">
+                <div className="flex items-center justify-between">
+                    <span className="text-[8px] font-black uppercase text-slate-400">Patient Days</span>
+                    <span className="text-xs font-black text-slate-600">{rates.patientDays}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                    <span className="text-[8px] font-black uppercase text-blue-400">Vent Days</span>
+                    <span className="text-xs font-black text-blue-600">{rates.ventDays}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                    <span className="text-[8px] font-black uppercase text-amber-400">IFC Days</span>
+                    <span className="text-xs font-black text-amber-600">{rates.ifcDays}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                    <span className="text-[8px] font-black uppercase text-rose-400">Central Days</span>
+                    <span className="text-xs font-black text-rose-600">{rates.centralDays}</span>
+                </div>
+            </div>
+
             <div className="mt-2 pt-3 border-t border-slate-50 flex items-center justify-between">
-                <span className="text-[8px] font-black uppercase text-slate-500">Aggregate</span>
+                <span className="text-[8px] font-black uppercase text-slate-500">Aggregate Rate</span>
                 <span className="px-3 py-0.5 rounded-full bg-slate-900 text-white text-[10px] font-black">{rates.overall}</span>
             </div>
         </div>
@@ -637,6 +658,36 @@ const HAIDataDashboard: React.FC<Props> = ({ isNested, viewMode: initialViewMode
                             <div className="mt-4 flex flex-col items-center">
                                 <span className="text-[11px] font-bold text-slate-400 uppercase tracking-[0.2em]">Institutional Index</span>
                                 <div className="mt-4 flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 text-emerald-600 text-[10px] font-black uppercase tracking-widest"><TrendingUp size={14}/> Quality Validated</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* New Totals Section */}
+                    <div className="flex flex-col gap-4">
+                        <div className="flex items-center gap-3 px-2">
+                           <div className="p-2 bg-blue-50 text-blue-600 rounded-xl"><BarChart3 size={20}/></div>
+                           <h3 className="text-lg font-black text-slate-900 uppercase tracking-tight">Institutional Surveillance Totals</h3>
+                        </div>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-1 hover:border-primary transition-colors">
+                                <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">Total Patient Days</span>
+                                <span className="text-3xl font-black text-slate-900 leading-none">{stats.overall.patientDays}</span>
+                                <span className="text-[8px] font-bold text-slate-300 uppercase mt-1">Aggregated Census</span>
+                            </div>
+                            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-1 hover:border-blue-500 transition-colors">
+                                <span className="text-[10px] font-black uppercase text-blue-500 tracking-widest">Total Vent Days</span>
+                                <span className="text-3xl font-black text-blue-600 leading-none">{stats.overall.ventDays}</span>
+                                <span className="text-[8px] font-bold text-slate-300 uppercase mt-1">Device Utilization</span>
+                            </div>
+                            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-1 hover:border-amber-500 transition-colors">
+                                <span className="text-[10px] font-black uppercase text-amber-500 tracking-widest">Total IFC Days</span>
+                                <span className="text-3xl font-black text-amber-600 leading-none">{stats.overall.ifcDays}</span>
+                                <span className="text-[8px] font-bold text-slate-300 uppercase mt-1">Catheter Exposure</span>
+                            </div>
+                            <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm flex flex-col gap-1 hover:border-rose-500 transition-colors">
+                                <span className="text-[10px] font-black uppercase text-rose-500 tracking-widest">Total Central Days</span>
+                                <span className="text-3xl font-black text-rose-600 leading-none">{stats.overall.centralDays}</span>
+                                <span className="text-[8px] font-bold text-slate-300 uppercase mt-1">Line Duration</span>
                             </div>
                         </div>
                     </div>
