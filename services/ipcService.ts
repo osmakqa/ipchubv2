@@ -30,6 +30,8 @@ import { initializeApp } from 'firebase/app';
   
   const app = initializeApp(firebaseConfig);
   export const db = getFirestore(app);
+
+  const APPS_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxvDD6l5s2PYam2v7gmxRSQlw6T32w0Cw_XtQgz2WOGr3_KjOq0J8z4N8hAdegzUQ2n/exec";
   
   export const TYPE_TO_COLLECTION: Record<string, string> = {
     'hai': 'reports_hai',
@@ -90,7 +92,6 @@ import { initializeApp } from 'firebase/app';
     }));
   };
   
-  // Helper to safely stringify objects that might contain circular references (like Firestore refs)
   const safeStringify = (obj: any) => {
     const cache = new Set();
     return JSON.stringify(obj, (key, value) => {
@@ -98,7 +99,6 @@ import { initializeApp } from 'firebase/app';
         if (cache.has(value)) return;
         cache.add(value);
       }
-      // Convert Timestamps to ISO strings for the AI
       if (value && typeof value.toDate === 'function') {
         return value.toDate().toISOString();
       }
@@ -221,6 +221,24 @@ import { initializeApp } from 'firebase/app';
   export const updatePocketGuide = (data: any) => updateGenericRecord('clinical_pocket_guides', data);
   export const deletePocketGuide = (id: string) => deleteRecord('clinical_pocket_guides', id);
   
+  /**
+   * Syncs data to Google Sheet via App Script
+   */
+  export const syncToGoogleSheet = async (record: any) => {
+    try {
+      await fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors', // standard for apps script cross-origin posts
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ record })
+      });
+      return true;
+    } catch (error) {
+      console.error("Sheet Sync Error:", error);
+      return false;
+    }
+  };
+
   export const submitReport = async (formType: string, data: any): Promise<boolean> => {
     const typeKey = formType.toLowerCase().split(' ')[0];
     const collectionName = TYPE_TO_COLLECTION[typeKey] || TYPE_TO_COLLECTION[formType.toLowerCase()];
@@ -237,6 +255,12 @@ import { initializeApp } from 'firebase/app';
     
     try {
       await addDoc(collection(db, collectionName), entry);
+      
+      // Auto-sync NTP to sheet
+      if (typeKey === 'ntp') {
+        await syncToGoogleSheet(sanitizedData);
+      }
+      
       return true;
     } catch (error) {
       console.error("Submission error:", error);
@@ -498,7 +522,6 @@ import { initializeApp } from 'firebase/app';
       const ai = new GoogleGenAI({apiKey: process.env.API_KEY});
       const response = await ai.models.generateContent({
         model: 'gemini-3-pro-preview',
-        // Fix: Use safeStringify to prevent circular structure errors
         contents: `Perform an expert epidemiological analysis on this hospital data: ${safeStringify(dataSnapshot)}. 
         Return a strategic executive briefing with a status summary, risk assessment, and 3 specific actionable recommendations.`,
         config: {
@@ -585,7 +608,8 @@ import { initializeApp } from 'firebase/app';
       const docSnap = await getDoc(docRef);
       if (!docSnap.exists()) return false;
       
-      const currentData = docSnap.data();
+      // Fix: cast currentData to any to fix property access errors on unknown type.
+      const currentData = docSnap.data() as any;
       const newEntry = {
         date: resultData.testDate,
         specimen: resultData.specimen || 'Sputum',
@@ -594,9 +618,11 @@ import { initializeApp } from 'firebase/app';
   
       const update: any = {};
       if (resultData.testType === 'GeneXpert') {
-        update.xpertResults = [...(currentData.xpertResults || []), newEntry];
+        // Fix: cast currentData to any to fix property access errors on unknown type and added safety navigation.
+        update.xpertResults = [...(currentData?.xpertResults || []), newEntry];
       } else {
-        update.smearResults = [...(currentData.smearResults || []), newEntry];
+        // Fix: cast currentData to any to fix property access errors on unknown type and added safety navigation.
+        update.smearResults = [...(currentData?.smearResults || []), newEntry];
       }
   
       const isPositive = !resultData.resultValue.toLowerCase().includes('not detected') && 

@@ -1,3 +1,4 @@
+
 export const AREAS = [
   "OBGyne Ward",
   "NICU",
@@ -26,31 +27,46 @@ export const AREAS = [
 ];
 
 export const CLINICAL_DEPARTMENTS = [
-  "Internal Medicine",
   "Emergency Medicine",
-  "Surgery",
+  "Internal Medicine",
   "Pediatrics",
+  "Surgery",
   "Obstetrics and Gynecology",
+  "Otorhinolaryngology HNS",
   "Ophthalmology",
-  "Otorhinolaryngology - Head and Neck Surgery",
-  "Family Medicine",
-  "Others (Specify)"
+  "Dermatology",
+  "Physical and Rehabilitation Medicine",
+  "Anesthesiology",
+  "Radiology",
+  "Pathology",
+  "Industrial Clinic",
+  "Others (specify)"
 ];
 
-export const NTP_PATIENT_TYPES = ["Inpatient", "Outpatient", "Emergency Room"];
+export const NTP_PATIENT_TYPES = ["Outpatient", "Inpatient", "Emergency Room"];
 
 export const NTP_REASONS_FOR_REFERRAL = [
-  "for Direct Sputum Smear Microscopy or GeneXpert",
-  "For start of TB treatment",
-  "For continuation of treatment"
+  "For Screening",
+  "For Registration and Treatment",
+  "For Continuation of Treatment",
+  "For Isoniazid Preventive Treatment (children 0-4 yrs)",
+  "For evaluation of Presumptive Drug Resistant Tuberculosis"
 ];
 
 export const NTP_TB_DIAGNOSES = [
   "Presumptive Tuberculosis",
   "Clinically Diagnosed Tuberculosis",
-  "Bacteriologically Confirmed Tuberculosis",
+  "Bacteriologically-Confirmed Tuberculosis",
   "Extrapulmonary Tuberculosis",
-  "Others (Specify)"
+  "Others (specify)"
+];
+
+export const NTP_TB_TYPES = ["New", "Relapse", "Unknown"];
+
+export const NTP_REGIMENS = [
+  "Regimen 1 - 2HRZE/4HR",
+  "Regimen 2 - 2HRZE/10HR",
+  "Others (specify)"
 ];
 
 export const NOTIFIABLE_DISEASES = [
@@ -237,7 +253,7 @@ export const CLINICAL_SIGNS = ["Fever (>38C)", "Chills", "Hypotension", "Infant 
 
 // SSI Specific Constants
 export const SURGICAL_PROCEDURES = [
-  "APPY – Appendectomy", "BILI – Biliary tract surgery", "CHOL – Cholecystectomy", "COLO – Colon surgery", "REC – Rectal surgery", "SB – Small bowel surgery", "GAST – Gastric surgery", "HYST – Abdominal hysterectomy", "VHYS – Vaginal hysterectomy", "HER – Herniorrhaphy", "VENT – Ventral hernia repair (no mesh left)", "SPLE – Splenectomy", "LIVER – Liver surgery", "PAN – Pancreatic surgery", "CSEC – Cesarean section", "OVRY – Ovarian surgery", "NECK – Neck surgery", "THYR – Thyroid surgery", "LAM – Lamectomy (no implant)", "HPRO – Hip prosthesis", "KPRO – Knee prosthesis", "FX – Fracture repair", "FUSN – Spinal fusion", "LAM – Lamectomy with implant", "CABG – Coronary artery bypass graft", "CARD – Cardiac surgery", "VASC – Vascular surgery", "AAA – Abdominal aortic aneurysm repair", "THOR – Thoracic surgery", "CRAN – Craniotomy", "VSHN – Ventricular shunt", "BRST – Breast surgery with implant or expander"
+  "APPY – Appendectomy", "BILI – Biliary tract surgery", "CHOL – Cholecystectomy", "COLO – Colon surgery", "REC – Rectal surgery", "SB – Small bowel surgery", "GAST – Gastric surgery", "HYST – Abdominal hysterectomy", "VHYS – Vaginal hysterectomy", "HER – Herniorrhaphy", "VENT – Ventral hernia repair (no mesh left)", "SPLE – Splenectomy", "LIVER – Liver surgery", "PAN – Pancreatic surgery", "CSEC – Cesarean section", "OVRY – Ovarian surgery", "NECK – Neck surgery", "THYR – Thyroid surgery", "LAM – Lamectomy (no implant)", "HPRO – Hip prosthesis", "KPRO – K-pro prosthesis", "FX – Fracture repair", "FUSN – Spinal fusion", "LAM – Lamectomy with implant", "CABG – Coronary artery bypass graft", "CARD – Cardiac surgery", "VASC – Vascular surgery", "AAA – Abdominal aortic aneurysm repair", "THOR – Thoracic surgery", "CRAN – Craniotomy", "VSHN – Ventricular shunt", "BRST – Breast surgery with implant or expander"
 ];
 
 export const SSI_TISSUE_LEVELS = ["Skin and subcutaneous tissue only", "Deep soft tissue (fascia and/or muscle)", "Organ/space deeper than fascia or muscle"];

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { 
@@ -27,7 +26,8 @@ import {
   UserPlus,
   X,
   FileBadge,
-  Sparkles
+  Sparkles,
+  FileStack
 } from 'lucide-react';
 import { useAuth } from '../AuthContext';
 
@@ -41,6 +41,7 @@ import NeedlestickDashboard from './dashboards/NeedlestickDashboard';
 import CultureDashboard from './dashboards/CultureDashboard';
 import Resources from './Resources';
 import ReporterAnalytics from './dashboards/ReporterAnalytics';
+import CIFForms from './CIFForms';
 
 // Import Audit dashboards
 import HandHygieneAudit from './audits/HandHygieneAudit';
@@ -100,11 +101,13 @@ const OverviewModule: React.FC = () => {
       { label: 'Report HAI', path: '/report-hai', icon: <Activity size={18}/>, color: 'bg-blue-600' },
       { label: 'Register TB', path: '/report-ptb', icon: <Stethoscope size={18}/>, color: 'bg-amber-700' },
       { label: 'New Notifiable', path: '/report-disease', icon: <Bell size={18}/>, color: 'bg-red-600' },
-      { label: 'Log Injury', path: '/report-needlestick', icon: <ShieldAlert size={18}/>, color: 'bg-red-500' },
-      { label: 'Isolation Admit', path: '/report-isolation', icon: <ShieldCheck size={18}/>, color: 'bg-indigo-600' },
+      { label: 'Log Sharps Injury', path: '/report-needlestick', icon: <ShieldAlert size={18}/>, color: 'bg-red-500' },
+      { label: 'Isolation Admit', path: '/report-isolation', icon: <Bed size={18}/>, color: 'bg-indigo-600' },
+      { label: 'Register NTP', path: '/report-ntp', icon: <FileText size={18}/>, color: 'bg-amber-800' },
     ];
 
     const resourceActions = [
+      { label: 'CIF / CRF', module: 'cif-crf', icon: <FileStack size={18}/>, color: 'bg-blue-600' },
       { label: 'Antibiogram', module: 'culture', icon: <FlaskConical size={18}/>, color: 'bg-teal-600' },
       { label: 'IPC Manual', module: 'manual', icon: <BookOpen size={18}/>, color: 'bg-emerald-600' },
       { label: 'Pocket Guides', module: 'pocket-guides', icon: <FileBadge size={18}/>, color: 'bg-amber-600' },
@@ -132,7 +135,7 @@ const OverviewModule: React.FC = () => {
                       <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest">Incident reporting & patient registration</p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
                     {registryActions.map((action, i) => (
                       <button 
                         key={i} 
@@ -156,7 +159,7 @@ const OverviewModule: React.FC = () => {
                       <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest">Official IPC documents & antibiogram</p>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 md:gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 md:gap-4">
                     {resourceActions.map((action, i) => (
                       <button 
                         key={i} 
@@ -246,6 +249,7 @@ const SurveillanceHub: React.FC = () => {
   const activeModule = searchParams.get('module') || 'overview';
 
   const universalModules: ModuleConfig[] = [
+    { id: 'cif-crf', label: 'CIF / CRF', icon: <FileStack size={20} />, color: 'text-blue-600', component: CIFForms },
     { id: 'culture', label: 'Antibiogram', icon: <FlaskConical size={20} />, color: 'text-teal-600', component: CultureDashboard },
     { id: 'manual', label: 'IPC Manual', icon: <BookOpen size={20} />, color: 'text-emerald-600', component: Resources },
     { id: 'pocket-guides', label: 'Pocket Guides', icon: <FileBadge size={20} />, color: 'text-amber-600', component: Resources },
@@ -349,7 +353,7 @@ const SurveillanceHub: React.FC = () => {
               <button 
                 key={module.id} 
                 onClick={() => handleModuleSelect(module.id)} 
-                className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all group ${activeModule === module.id ? (module.id === 'pocket-guides' ? 'bg-amber-600' : 'bg-teal-600') + ' text-white shadow-lg' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
+                className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all group ${activeModule === module.id ? (module.id === 'pocket-guides' ? 'bg-amber-600' : module.id === 'cif-crf' ? 'bg-blue-600' : 'bg-teal-600') + ' text-white shadow-lg' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
                 title={module.label}
               >
                 <div className="shrink-0">{module.icon}</div>
