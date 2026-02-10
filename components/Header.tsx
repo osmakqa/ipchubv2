@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth, AppMode } from '../AuthContext';
@@ -57,7 +56,6 @@ const Header: React.FC = () => {
       } else {
         alert("Quick login failed.");
       }
-      // Fix: changed setLogin to setLoading as setLogin is not defined in this scope
       setLoading(false);
     }, 500);
   };
@@ -73,7 +71,7 @@ const Header: React.FC = () => {
 
   return (
     <>
-      <header className={`sticky top-0 z-[100] flex items-center justify-between gap-4 ${getThemeColors()} px-4 md:px-8 py-2 shadow-xl transition-all duration-500 h-14`}>
+      <header className={`sticky top-0 z-[100] flex items-center justify-between gap-4 ${getThemeColors()} px-4 md:px-8 py-2 shadow-xl transition-all duration-500 h-14 relative`}>
         <div className="flex items-center gap-2 md:gap-3 cursor-pointer group shrink-0" onClick={() => navigate('/')}>
           <div className="transition-transform group-hover:scale-105 shrink-0">
             <img src="https://maxterrenal-hash.github.io/justculture/osmak-logo.png" alt="OsMak" className="h-7 md:h-9 w-auto" />
@@ -83,6 +81,12 @@ const Header: React.FC = () => {
             <span className="text-[7px] md:text-[9px] opacity-70 font-black uppercase tracking-widest mt-0.5">IPC Hub</span>
           </div>
         </div>
+
+        {!isAuthenticated && (
+          <div className="absolute left-1/2 -translate-x-1/2 sm:hidden flex flex-col items-center">
+            <span className="text-sm font-black uppercase tracking-[0.2em]">IPC Hub</span>
+          </div>
+        )}
 
         {isAuthenticated && (
           <div className="flex items-center bg-black/20 rounded-full p-0.5 backdrop-blur-xl border border-white/10 shadow-inner">
@@ -144,7 +148,7 @@ const Header: React.FC = () => {
 
       {showLogin && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/70 backdrop-blur-md p-4 animate-in fade-in duration-300">
-            <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-500">
+            <div className="bg-white rounded-[3rem] shadow-2xl w-full max-md overflow-hidden animate-in zoom-in-95 duration-500">
                 <div className="bg-slate-900 p-10 text-white text-center relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(255,255,255,0.1)_0%,_transparent_50%)] animate-pulse"></div>

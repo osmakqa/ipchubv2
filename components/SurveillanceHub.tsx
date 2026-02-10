@@ -104,7 +104,7 @@ const OverviewModule: React.FC = () => {
       { label: 'Log Sharps Injury', path: '/report-needlestick', icon: <ShieldAlert size={18}/>, color: 'bg-red-500' },
       { label: 'Isolation Admit', path: '/report-isolation', icon: <Bed size={18}/>, color: 'bg-indigo-600' },
       { label: 'Register NTP', path: '/report-ntp', icon: <FileText size={18}/>, color: 'bg-amber-800' },
-    ];
+    ].filter(action => action.label !== 'Register NTP' || isAuthenticated);
 
     const resourceActions = [
       { label: 'CIF / CRF', module: 'cif-crf', icon: <FileStack size={18}/>, color: 'bg-blue-600' },
@@ -290,9 +290,8 @@ const SurveillanceHub: React.FC = () => {
   // Logic to hide specific registries when not logged in
   const filterModules = (mods: ModuleConfig[]) => {
     if (isAuthenticated) return mods;
-    // Hide registry dashboards from non-logged in users
-    // Contributors (analytics) remains visible
-    const restrictedIds = ['hai', 'notifiable', 'tb', 'isolation', 'needlestick'];
+    // Hide registry dashboards and NTP from non-logged in users
+    const restrictedIds = ['hai', 'notifiable', 'tb', 'isolation', 'needlestick', 'ntp'];
     return mods.filter(m => !restrictedIds.includes(m.id));
   };
 
@@ -314,79 +313,83 @@ const SurveillanceHub: React.FC = () => {
 
   return (
     <div className="min-h-[calc(100vh-56px)] flex bg-slate-50 relative">
-      {/* Sidebar Backdrop for Mobile */}
-      {isSidebarOpen && window.innerWidth < 1024 && (
+      {/* Sidebar Backdrop for Mobile - Only if authenticated */}
+      {isAuthenticated && isSidebarOpen && window.innerWidth < 1024 && (
         <div 
           className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[110] transition-opacity animate-in fade-in"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
-      {/* Sidebar - Conditional Items */}
-      <aside className={`
-        fixed lg:sticky top-0 lg:top-14 z-[120] lg:z-50 h-screen lg:h-[calc(100vh-56px)] bg-slate-900 text-white transition-all duration-300 flex flex-col overflow-hidden
-        ${isSidebarOpen ? 'w-72 lg:w-64 translate-x-0' : 'w-0 lg:w-20 -translate-x-full lg:translate-x-0'}
-      `}>
-        <div className="p-6 flex items-center justify-between">
-          <span className={`text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'}`}>Navigation</span>
-          <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-white/10 rounded-lg text-slate-400">
-            {isSidebarOpen ? <ChevronLeft size={20} /> : <Menu size={20} />}
-          </button>
-        </div>
-        
-        <nav className="flex-1 px-3 space-y-6 overflow-y-auto no-scrollbar pb-10">
-          <div className="space-y-1">
-            {mainModules.map(module => (
-              <button 
-                key={module.id} 
-                onClick={() => handleModuleSelect(module.id)} 
-                className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all group ${activeModule === module.id ? getModeColor() + ' text-white shadow-lg' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
-                title={module.label}
-              >
-                <div className="shrink-0">{module.icon}</div>
-                <span className={`text-sm font-bold truncate transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'}`}>{module.label}</span>
-              </button>
-            ))}
-          </div>
-          <div className="space-y-1 pt-4 border-t border-slate-800">
-            {universalModules.map(module => (
-              <button 
-                key={module.id} 
-                onClick={() => handleModuleSelect(module.id)} 
-                className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all group ${activeModule === module.id ? (module.id === 'pocket-guides' ? 'bg-amber-600' : module.id === 'cif-crf' ? 'bg-blue-600' : 'bg-teal-600') + ' text-white shadow-lg' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
-                title={module.label}
-              >
-                <div className="shrink-0">{module.icon}</div>
-                <span className={`text-sm font-bold truncate transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'}`}>{module.label}</span>
-              </button>
-            ))}
-          </div>
-        </nav>
-
-        <div className={`p-4 lg:hidden transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
-            <button onClick={() => setIsSidebarOpen(false)} className="w-full py-3 bg-white/5 rounded-xl text-[10px] font-black uppercase text-slate-500 hover:text-white flex items-center justify-center gap-2">
-                <X size={14}/> Close Sidebar
+      {/* Sidebar - Conditional Items and Visibility */}
+      {isAuthenticated && (
+        <aside className={`
+          fixed lg:sticky top-0 lg:top-14 z-[120] lg:z-50 h-screen lg:h-[calc(100vh-56px)] bg-slate-900 text-white transition-all duration-300 flex flex-col overflow-hidden
+          ${isSidebarOpen ? 'w-72 lg:w-64 translate-x-0' : 'w-0 lg:w-20 -translate-x-full lg:translate-x-0'}
+        `}>
+          <div className="p-6 flex items-center justify-between">
+            <span className={`text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'}`}>Navigation</span>
+            <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="p-2 hover:bg-white/10 rounded-lg text-slate-400">
+              {isSidebarOpen ? <ChevronLeft size={20} /> : <Menu size={20} />}
             </button>
-        </div>
-      </aside>
+          </div>
+          
+          <nav className="flex-1 px-3 space-y-6 overflow-y-auto no-scrollbar pb-10">
+            <div className="space-y-1">
+              {mainModules.map(module => (
+                <button 
+                  key={module.id} 
+                  onClick={() => handleModuleSelect(module.id)} 
+                  className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all group ${activeModule === module.id ? getModeColor() + ' text-white shadow-lg' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
+                  title={module.label}
+                >
+                  <div className="shrink-0">{module.icon}</div>
+                  <span className={`text-sm font-bold truncate transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'}`}>{module.label}</span>
+                </button>
+              ))}
+            </div>
+            <div className="space-y-1 pt-4 border-t border-slate-800">
+              {universalModules.map(module => (
+                <button 
+                  key={module.id} 
+                  onClick={() => handleModuleSelect(module.id)} 
+                  className={`w-full flex items-center gap-4 px-4 py-3 rounded-xl transition-all group ${activeModule === module.id ? (module.id === 'pocket-guides' ? 'bg-amber-600' : module.id === 'cif-crf' ? 'bg-blue-600' : 'bg-teal-600') + ' text-white shadow-lg' : 'text-slate-400 hover:bg-white/5 hover:text-white'}`}
+                  title={module.label}
+                >
+                  <div className="shrink-0">{module.icon}</div>
+                  <span className={`text-sm font-bold truncate transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0 lg:hidden'}`}>{module.label}</span>
+                </button>
+              ))}
+            </div>
+          </nav>
+
+          <div className={`p-4 lg:hidden transition-opacity duration-300 ${isSidebarOpen ? 'opacity-100' : 'opacity-0'}`}>
+              <button onClick={() => setIsSidebarOpen(false)} className="w-full py-3 bg-white/5 rounded-xl text-[10px] font-black uppercase text-slate-500 hover:text-white flex items-center justify-center gap-2">
+                  <X size={14}/> Close Sidebar
+              </button>
+          </div>
+        </aside>
+      )}
 
       <main className="flex-1 min-w-0 flex flex-col">
-        <header className="sticky top-14 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 py-3 flex items-center justify-between h-14">
-           <div className="flex items-center gap-2 md:gap-3 overflow-hidden">
-              <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 hover:bg-slate-100 rounded-lg text-slate-400 shrink-0">
-                <Menu size={20} />
-              </button>
-              <div className={`p-2 rounded-lg bg-slate-100 ${currentModule.id === 'overview' ? 'text-slate-400' : currentModule.color} shrink-0`}>
-                {currentModule.icon}
-              </div>
-              <div className="flex flex-col min-w-0">
-                <span className="text-[8px] md:text-[9px] font-black uppercase text-slate-400 leading-none mb-1 truncate">
-                    {appMode === 'report' ? 'Institutional Surveillance' : appMode === 'audit' ? 'Quality & Compliance' : 'Executive Data'} Hub
-                </span>
-                <h1 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-tight truncate leading-tight">{currentModule.label}</h1>
-              </div>
-           </div>
-        </header>
+        {isAuthenticated && (
+          <header className="sticky top-14 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200 px-4 md:px-8 py-3 flex items-center justify-between h-14">
+             <div className="flex items-center gap-2 md:gap-3 overflow-hidden">
+                <button onClick={() => setIsSidebarOpen(true)} className="lg:hidden p-2 hover:bg-slate-100 rounded-lg text-slate-400 shrink-0">
+                  <Menu size={20} />
+                </button>
+                <div className={`p-2 rounded-lg bg-slate-100 ${currentModule.id === 'overview' ? 'text-slate-400' : currentModule.color} shrink-0`}>
+                  {currentModule.icon}
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-[8px] md:text-[9px] font-black uppercase text-slate-400 leading-none mb-1 truncate">
+                      {appMode === 'report' ? 'Institutional Surveillance' : appMode === 'audit' ? 'Quality & Compliance' : 'Executive Data'} Hub
+                  </span>
+                  <h1 className="text-sm md:text-base font-black text-slate-900 uppercase tracking-tight truncate leading-tight">{currentModule.label}</h1>
+                </div>
+             </div>
+          </header>
+        )}
         <div className="flex-1 p-4 md:p-8">
            <div className="animate-in fade-in duration-500">
               <ActiveComponent 
