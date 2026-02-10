@@ -56,7 +56,7 @@ const App: React.FC = () => {
           <Route path="/report-needlestick" element={<NeedlestickForm />} />
           <Route path="/report-culture" element={<CultureReportForm />} />
 
-          <Route path="/policies" element={<Resources title="IPC Policies" type="policies" />} />
+          <Route path="/policies" element={<Resources title="IPC Manual" type="policies" />} />
           <Route path="/pathways" element={<Resources title="Clinical Pathways" type="pathways" />} />
           <Route path="/pocket-guides" element={<Resources title="Pocket Guides" type="pocket-guides" />} />
         </Routes>

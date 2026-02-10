@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
@@ -32,9 +31,15 @@ import {
     Download,
     BookOpen,
     ArrowRight,
-    Printer
+    Printer,
+    FilePdf
 } from 'lucide-react';
-import { getReferences, submitReference, updateReference, getPocketGuides, submitPocketGuide, updatePocketGuide, deleteRecord } from '../services/ipcService';
+import { 
+    getReferences, submitReference, updateReference, 
+    getPocketGuides, submitPocketGuide, updatePocketGuide, 
+    getManuals, submitManual, updateManual, deleteManual,
+    deleteRecord 
+} from '../services/ipcService';
 
 interface Resource {
     id: string;
@@ -42,7 +47,7 @@ interface Resource {
     category: string;
     updated: string;
     description: string; 
-    type: 'link' | 'pocket';
+    type: 'link' | 'pocket' | 'manual';
     content?: string;
     link?: string;
 }
@@ -64,134 +69,15 @@ const POCKET_GUIDE_CATEGORIES = [
     "Others (Specify)"
 ];
 
-const MANUAL_ITEMS = [
-    {
-        id: 'hand-hygiene',
-        title: 'Hand Hygiene Practices',
-        description: 'Standard institutional protocols for effective hand decontamination and WHO 5 moments.',
-        content: HAND_HYGIENE_MD,
-        icon: <Hand size={24} />,
-        color: 'bg-emerald-500',
-        textColor: 'text-emerald-600',
-        badge: 'Critical'
-    },
-    {
-        id: 'isolation-precautions',
-        title: 'Isolation Precautions',
-        description: 'Standard and transmission-based precautions for Droplet, Airborne, and Contact isolation.',
-        content: ISOLATION_PRECAUTIONS_MD,
-        icon: <ShieldCheck size={24} />,
-        color: 'bg-indigo-500',
-        textColor: 'text-indigo-600',
-        badge: 'Updated'
-    }
+const MANUAL_CATEGORIES = [
+    "Basic",
+    "Advanced",
+    "HAI Prevention",
+    "Notifiable Diseases",
+    "Tuberculosis",
+    "HACT",
+    "Others (Specify)"
 ];
-
-const ManualReader: React.FC<{ title: string }> = ({ title }) => {
-    const [selectedItem, setSelectedItem] = useState<typeof MANUAL_ITEMS[0] | null>(null);
-
-    if (selectedItem) {
-        return (
-            <div className="flex flex-col gap-6 animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-3xl mx-auto pb-20">
-                <div className="flex items-center justify-between sticky top-14 bg-slate-50/90 backdrop-blur-md py-4 z-10 border-b border-slate-200 -mx-4 px-4">
-                    <button 
-                        onClick={() => setSelectedItem(null)}
-                        className="flex items-center gap-2 text-xs font-black uppercase tracking-widest text-slate-500 hover:text-emerald-600 transition-colors"
-                    >
-                        <ArrowLeft size={16} /> Back
-                    </button>
-                    <div className="flex items-center gap-3">
-                        <div className={`p-2 ${selectedItem.color} bg-opacity-10 ${selectedItem.textColor} rounded-lg`}>
-                            {selectedItem.icon}
-                        </div>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Institutional Protocol</span>
-                    </div>
-                </div>
-
-                <div className="bg-white rounded-[3rem] shadow-2xl border border-slate-200 overflow-hidden">
-                    <div className={`${selectedItem.color} p-10 text-white relative overflow-hidden`}>
-                        <div className="absolute top-0 right-0 p-12 opacity-10 pointer-events-none">
-                            {selectedItem.icon}
-                        </div>
-                        <div className="relative z-10 flex flex-col gap-4">
-                            <div className="flex items-center gap-3">
-                                <img src="https://maxterrenal-hash.github.io/justculture/osmak-logo.png" alt="OsMak" className="h-10 w-auto brightness-0 invert" />
-                                <div className="h-8 w-px bg-white/20"></div>
-                                <div className="flex flex-col">
-                                    <span className="text-[10px] font-black uppercase tracking-[0.3em] text-white/70 leading-none">Ospital ng Makati</span>
-                                    <span className="text-[10px] font-bold opacity-60 uppercase mt-1 leading-none">IPC Hub</span>
-                                </div>
-                            </div>
-                            <h1 className="text-xl md:text-2xl font-black uppercase tracking-tight leading-tight mt-2">{selectedItem.title}</h1>
-                        </div>
-                    </div>
-
-                    <div className="p-10 md:p-12 bg-white prose prose-slate max-w-none">
-                        <style dangerouslySetInnerHTML={{ __html: `
-                            .ipc-markdown h1 { font-size: 1.5rem; font-weight: 900; color: #0f172a; margin-bottom: 1.5rem; text-transform: uppercase; letter-spacing: -0.025em; border-bottom: 3px solid #f1f5f9; padding-bottom: 0.75rem; }
-                            .ipc-markdown h2 { font-size: 1.125rem; font-weight: 900; color: #334155; margin-top: 2.5rem; margin-bottom: 1.25rem; text-transform: uppercase; letter-spacing: 0.05em; }
-                            .ipc-markdown h3 { font-size: 0.9375rem; font-weight: 800; color: #475569; margin-top: 1.75rem; margin-bottom: 0.75rem; text-transform: uppercase; }
-                            .ipc-markdown p { font-size: 0.9375rem; line-height: 1.6; color: #475569; margin-bottom: 1rem; font-weight: 500; }
-                            .ipc-markdown ul { list-style-type: none; padding-left: 0; margin-bottom: 1.5rem; }
-                            .ipc-markdown li { position: relative; padding-left: 1.75rem; margin-bottom: 0.625rem; font-weight: 600; color: #334155; line-height: 1.5; font-size: 0.9375rem; }
-                            .ipc-markdown li::before { content: ""; position: absolute; left: 0.5rem; top: 0.5rem; width: 0.4rem; height: 0.4rem; background-color: #10b981; border-radius: 9999px; }
-                            .ipc-markdown strong { font-weight: 900; color: #0f172a; }
-                            .ipc-markdown blockquote { border-left: 4px solid #10b981; padding-left: 1.25rem; font-style: italic; color: #065f46; margin: 1.5rem 0; background: #f0fdf4; padding-top: 0.75rem; padding-bottom: 0.75rem; border-radius: 0 0.75rem 0.75rem 0; }
-                        `}} />
-                        <div className="ipc-markdown">
-                            <ReactMarkdown>{selectedItem.content}</ReactMarkdown>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className="flex flex-col gap-8 max-w-3xl mx-auto animate-in fade-in duration-500">
-            <div className="flex flex-col gap-2">
-                <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">Manual of Operations</h2>
-                <p className="text-sm font-medium text-slate-500">Select a section to view official hospital guidelines and protocols.</p>
-            </div>
-
-            <div className="grid grid-cols-1 gap-2.5">
-                {MANUAL_ITEMS.map((item) => (
-                    <button 
-                        key={item.id} 
-                        onClick={() => setSelectedItem(item)}
-                        className="bg-white p-3.5 rounded-[1.25rem] border border-slate-200 shadow-sm hover:shadow-xl hover:border-emerald-500 transition-all group flex items-center gap-5 text-left relative overflow-hidden"
-                    >
-                        <div className={`size-10 rounded-xl ${item.color} text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform`}>
-                            {React.cloneElement(item.icon as React.ReactElement<any>, { size: 16 })}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
-                                <span className={`text-[7px] font-black uppercase tracking-widest ${item.textColor}`}>{item.badge}</span>
-                            </div>
-                            <h3 className="text-sm font-black text-slate-900 uppercase group-hover:text-emerald-600 transition-colors leading-tight">{item.title}</h3>
-                            <p className="text-[10px] text-slate-500 font-medium mt-0.5 leading-relaxed line-clamp-1">{item.description}</p>
-                        </div>
-                        <div className="size-7 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-all">
-                            <ArrowRight size={14} />
-                        </div>
-                    </button>
-                ))}
-            </div>
-
-            <div className="bg-emerald-50 p-5 rounded-[2rem] border border-emerald-100 flex items-start gap-4">
-                <div className="p-2.5 bg-white rounded-xl shadow-sm text-emerald-600">
-                    <BookOpen size={18} />
-                </div>
-                <div>
-                    <h4 className="text-xs font-black text-emerald-900 uppercase tracking-tight">Institutional Reference</h4>
-                    <p className="text-[10px] font-bold text-emerald-700/70 mt-1 leading-relaxed">
-                        The contents of this manual are reviewed annually by the IPC Committee. All healthcare workers are required to adhere to the practices outlined herein.
-                    </p>
-                </div>
-            </div>
-        </div>
-    );
-};
 
 const PocketCardViewer: React.FC<{ guide: Resource; onClose: () => void }> = ({ guide, onClose }) => {
     const handlePrint = () => {
@@ -327,23 +213,29 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
     const resourceType = type || 'pathways';
 
     useEffect(() => {
-        if (resourceType !== 'policies') {
-            loadData();
-        }
+        loadData();
     }, [resourceType]);
 
     const loadData = async () => {
+        setDbItems([]); // Clear current view
         setLoading(true);
         try {
-            const fetchFunc = resourceType === 'pocket-guides' ? getPocketGuides : getReferences;
-            const res = await fetchFunc();
+            let res = [];
+            if (resourceType === 'pocket-guides') {
+                res = await getPocketGuides();
+            } else if (resourceType === 'policies') {
+                res = await getManuals();
+            } else {
+                res = await getReferences();
+            }
+
             const mapped: Resource[] = res.map((r: any) => ({
                 id: r.id,
                 title: r.title,
                 category: r.category,
                 updated: r.created_at?.toDate ? r.created_at.toDate().toLocaleDateString('en-US', { month: 'short', year: 'numeric' }) : 'Recently',
                 description: r.description,
-                type: resourceType === 'pocket-guides' ? 'pocket' : 'link',
+                type: resourceType === 'pocket-guides' ? 'pocket' : resourceType === 'policies' ? 'manual' : 'link',
                 link: r.link,
                 content: r.content
             }));
@@ -360,7 +252,7 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
     const filteredItems = items.filter(i => 
         i.title.toLowerCase().includes(search.toLowerCase()) || 
         i.category.toLowerCase().includes(search.toLowerCase()) ||
-        i.description.toLowerCase().includes(search.toLowerCase())
+        (i.description && i.description.toLowerCase().includes(search.toLowerCase()))
     );
 
     const handleAction = (item: Resource) => {
@@ -375,9 +267,14 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
     const handleAddSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
+        const categories = resourceType === 'pocket-guides' ? POCKET_GUIDE_CATEGORIES : resourceType === 'policies' ? MANUAL_CATEGORIES : REFERENCE_CATEGORIES;
         const category = newRef.category === 'Others (Specify)' ? newRef.categoryOther : newRef.category;
         
-        const submitFunc = resourceType === 'pocket-guides' ? submitPocketGuide : submitReference;
+        let submitFunc;
+        if (resourceType === 'pocket-guides') submitFunc = submitPocketGuide;
+        else if (resourceType === 'policies') submitFunc = submitManual;
+        else submitFunc = submitReference;
+
         const payload: any = {
             title: newRef.title,
             description: newRef.description,
@@ -399,7 +296,7 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
     };
 
     const handleEditClick = (item: Resource) => {
-        const categories = resourceType === 'pocket-guides' ? POCKET_GUIDE_CATEGORIES : REFERENCE_CATEGORIES;
+        const categories = resourceType === 'pocket-guides' ? POCKET_GUIDE_CATEGORIES : resourceType === 'policies' ? MANUAL_CATEGORIES : REFERENCE_CATEGORIES;
         const isStandardCategory = categories.includes(item.category);
         setEditingItemData({
             id: item.id,
@@ -418,7 +315,11 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
         setLoading(true);
         const category = editingItemData.category === 'Others (Specify)' ? editingItemData.categoryOther : editingItemData.category;
         
-        const updateFunc = resourceType === 'pocket-guides' ? updatePocketGuide : updateReference;
+        let updateFunc;
+        if (resourceType === 'pocket-guides') updateFunc = updatePocketGuide;
+        else if (resourceType === 'policies') updateFunc = updateManual;
+        else updateFunc = updateReference;
+
         const payload: any = {
             id: editingItemData.id,
             title: editingItemData.title,
@@ -454,7 +355,10 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
             return;
         }
         try {
-            const col = resourceType === 'pocket-guides' ? 'clinical_pocket_guides' : 'clinical_references';
+            let col = 'clinical_references';
+            if (resourceType === 'pocket-guides') col = 'clinical_pocket_guides';
+            else if (resourceType === 'policies') col = 'clinical_manuals';
+            
             const success = await deleteRecord(col, itemToDelete.id);
             if (success) {
                 loadData();
@@ -468,36 +372,48 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
         }
     };
 
-    // If type is policies, we show the fixed Manual Selection / Reader
-    if (resourceType === 'policies') {
-        return <ManualReader title={title || "IPC Manual"} />;
-    }
-
     if (selectedDoc) {
         return <PocketCardViewer guide={selectedDoc} onClose={() => setSelectedDoc(null)} />;
     }
 
-    const ListView = (
-        <div className="flex flex-col gap-6 max-w-3xl mx-auto">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div className="flex items-center gap-4">
+    const modeColors = {
+        'policies': { main: 'bg-emerald-600', hover: 'hover:bg-emerald-700', ring: 'focus:ring-emerald-500', text: 'text-emerald-600', shadow: 'shadow-emerald-600/20' },
+        'pocket-guides': { main: 'bg-amber-600', hover: 'hover:bg-amber-700', ring: 'focus:ring-amber-500', text: 'text-amber-600', shadow: 'shadow-amber-600/20' },
+        'pathways': { main: 'bg-slate-900', hover: 'hover:bg-black', ring: 'focus:ring-slate-900', text: 'text-slate-900', shadow: 'shadow-slate-900/20' }
+    };
+
+    const currentModeColor = modeColors[resourceType] || modeColors['pathways'];
+
+    return (
+        <div className="flex flex-col gap-6 max-w-3xl mx-auto animate-in fade-in duration-500 pb-20">
+            {/* Header info */}
+            <div className="flex flex-col gap-2 mb-2">
+                <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-black text-slate-900 uppercase tracking-tight">{title || "Resources"}</h2>
                     {!isNested && (
-                        <button onClick={() => navigate('/')} className="flex items-center text-sm text-gray-600 hover:text-emerald-600 font-bold">
+                        <button onClick={() => navigate('/')} className="flex items-center text-xs font-bold text-gray-400 hover:text-emerald-600 transition-colors uppercase tracking-widest">
                             <ChevronLeft size={16} /> Hub
                         </button>
                     )}
+                </div>
+                <p className="text-sm font-medium text-slate-500">Official hospital guidelines, manuals, and evidence-based protocols.</p>
+            </div>
+
+            {/* List Controls */}
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div className="flex items-center gap-4">
                     <div className="flex items-center gap-2">
                         <BadgeInfo size={16} className="text-slate-400" />
                         <span className="text-[10px] font-black uppercase text-slate-400 tracking-widest">
-                            {filteredItems.length} resources listed
+                            {filteredItems.length} listed
                         </span>
                     </div>
                     {isAuthenticated && (
                         <button 
                             onClick={() => setShowAddModal(true)}
-                            className={`h-9 px-4 ${resourceType === 'pocket-guides' ? 'bg-amber-600 hover:bg-amber-700' : 'bg-slate-900 hover:bg-black'} text-white rounded-xl font-black uppercase text-[9px] tracking-widest shadow-lg transition-all flex items-center gap-2`}
+                            className={`h-9 px-4 ${currentModeColor.main} ${currentModeColor.hover} text-white rounded-xl font-black uppercase text-[9px] tracking-widest shadow-lg transition-all flex items-center gap-2`}
                         >
-                            <Plus size={12}/> Add {resourceType === 'pocket-guides' ? 'Pocket Guide' : 'Reference'}
+                            <Plus size={12}/> Add {resourceType === 'pocket-guides' ? 'Pocket Guide' : resourceType === 'policies' ? 'Manual' : 'Reference'}
                         </button>
                     )}
                 </div>
@@ -505,7 +421,7 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={16} />
                     <input 
                         type="text" 
-                        className={`w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 focus:ring-2 ${resourceType === 'pocket-guides' ? 'focus:ring-amber-500' : 'focus:ring-slate-900'} outline-none shadow-sm transition-all font-medium text-sm`}
+                        className={`w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 focus:ring-2 ${currentModeColor.ring} outline-none shadow-sm transition-all font-medium text-sm`}
                         placeholder={`Search ${title || 'Resources'}...`}
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
@@ -513,7 +429,8 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-2.5 items-stretch">
+            {/* Grid/List of items */}
+            <div className="grid grid-cols-1 gap-3 items-stretch">
                 {loading ? (
                     <div className="col-span-full py-20 text-center"><Loader2 className="animate-spin mx-auto text-slate-200" size={48} /></div>
                 ) : filteredItems.length === 0 ? (
@@ -525,56 +442,45 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                         <div 
                             key={item.id} 
                             onClick={() => handleAction(item)}
-                            className={`bg-white p-3 md:p-3.5 rounded-xl border border-gray-100 shadow-sm hover:shadow-xl ${resourceType === 'pocket-guides' ? 'hover:border-amber-500' : 'hover:border-slate-900'} transition-all group flex flex-col relative overflow-hidden cursor-pointer h-full`}
+                            className={`bg-white p-4 rounded-2xl border border-gray-200 shadow-sm hover:shadow-xl hover:border-emerald-500 transition-all group flex items-center gap-5 text-left relative overflow-hidden cursor-pointer h-full`}
                         >
-                            <div className="flex justify-between items-start gap-2 mb-0.5">
-                                <div className="flex-1 min-w-0">
-                                    <span className={`text-[7px] md:text-[8px] font-black uppercase ${resourceType === 'pocket-guides' ? 'text-amber-600' : 'text-slate-400'} tracking-widest block truncate`}>{item.category}</span>
-                                    <h3 className={`font-black text-sm md:text-sm text-slate-900 mt-0.5 ${resourceType === 'pocket-guides' ? 'group-hover:text-amber-600' : 'group-hover:text-slate-900'} transition-colors leading-tight truncate`}>{item.title}</h3>
-                                </div>
-                                <div className="flex items-center gap-1 shrink-0">
+                            <div className={`size-12 rounded-2xl ${item.type === 'manual' ? 'bg-emerald-500' : item.type === 'pocket' ? 'bg-amber-600' : 'bg-slate-900'} text-white flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform`}>
+                                {item.type === 'pocket' ? <BookMarked size={20} /> : <BookOpen size={20} />}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2 mb-0.5">
+                                    <span className={`text-[7px] font-black uppercase tracking-widest ${currentModeColor.text}`}>{item.category}</span>
                                     {isAuthenticated && (
                                         <div className="flex items-center gap-1">
                                             <button 
                                                 onClick={(e) => { e.stopPropagation(); handleEditClick(item); }}
-                                                className={`p-1 text-slate-300 ${resourceType === 'pocket-guides' ? 'hover:text-amber-600 hover:bg-amber-50' : 'hover:text-slate-900 hover:bg-slate-50'} rounded-lg transition-all`}
+                                                className={`p-1.5 text-slate-300 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-all`}
                                                 title="Edit"
                                             >
                                                 <Edit3 size={14} />
                                             </button>
                                             <button 
                                                 onClick={(e) => { e.stopPropagation(); handleDeleteClick(item); }}
-                                                className="p-1 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
+                                                className="p-1.5 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all"
                                                 title="Delete"
                                             >
                                                 <Trash2 size={14} />
                                             </button>
                                         </div>
                                     )}
-                                    <div className={`p-1 md:p-1.5 ${resourceType === 'pocket-guides' ? 'bg-amber-50 group-hover:bg-amber-100 text-amber-400' : 'bg-slate-50 group-hover:bg-slate-100 text-slate-400'} rounded-lg transition-colors`}>
-                                        {item.type === 'pocket' ? <BookMarked size={14} /> : <ExternalLink size={14} />}
-                                    </div>
                                 </div>
+                                <h3 className="text-sm font-black text-slate-900 uppercase group-hover:text-emerald-600 transition-colors leading-tight">{item.title}</h3>
+                                <p className="text-[10px] text-slate-500 font-medium mt-1 leading-relaxed line-clamp-1">{item.description}</p>
                             </div>
-                            
-                            <p className="text-[10px] text-slate-500 font-medium leading-relaxed mb-2 line-clamp-1">
-                                {item.description}
-                            </p>
-                            
-                            <div className="flex items-center justify-between pt-1.5 border-t border-slate-50">
-                                <span className="text-[6px] md:text-[7px] font-black text-slate-300 flex items-center gap-1 uppercase tracking-widest">
-                                    <Clock size={8}/> {item.updated}
-                                </span>
-                                <div className={`flex items-center gap-1 text-[7px] md:text-[8px] font-black uppercase tracking-widest ${resourceType === 'pocket-guides' ? 'text-amber-700' : 'text-slate-900'}`}>
-                                    {item.type === 'pocket' ? 'View Pocket Card' : 'Open Reference'}
-                                    <ChevronRight size={10} className="group-hover:translate-x-1 transition-transform"/>
-                                </div>
+                            <div className="size-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-all">
+                                <ChevronRight size={18} />
                             </div>
                         </div>
                     ))
                 )}
             </div>
 
+            {/* Modal Components */}
             <PasswordConfirmModal
                 show={showDeleteConfirm}
                 onClose={() => setShowDeleteConfirm(false)}
@@ -587,14 +493,14 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
             {showAddModal && (
                 <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 max-h-[90vh] flex flex-col">
-                        <div className={`${resourceType === 'pocket-guides' ? 'bg-amber-600' : 'bg-slate-900'} p-8 text-white relative shrink-0`}>
+                        <div className={`${currentModeColor.main} p-8 text-white relative shrink-0`}>
                             <button onClick={() => setShowAddModal(false)} className="absolute top-6 right-6 p-2 hover:bg-white/20 rounded-full transition-colors"><X size={24}/></button>
                             <div className="flex items-center gap-4">
                                 <div className="p-3 bg-white/20 rounded-2xl">
                                     <Plus size={32} />
                                 </div>
                                 <div>
-                                    <h3 className="text-2xl font-black uppercase tracking-tight">New {resourceType === 'pocket-guides' ? 'Pocket Guide' : 'Reference'}</h3>
+                                    <h3 className="text-2xl font-black uppercase tracking-tight">New {resourceType === 'pocket-guides' ? 'Pocket Guide' : resourceType === 'policies' ? 'Manual' : 'Reference'}</h3>
                                     <p className="text-xs opacity-80 font-bold uppercase tracking-widest">Create Institutional Resource</p>
                                 </div>
                             </div>
@@ -611,7 +517,7 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                                 />
                                 <Select 
                                     label="Category" 
-                                    options={resourceType === 'pocket-guides' ? POCKET_GUIDE_CATEGORIES : REFERENCE_CATEGORIES} 
+                                    options={resourceType === 'pocket-guides' ? POCKET_GUIDE_CATEGORIES : resourceType === 'policies' ? MANUAL_CATEGORIES : REFERENCE_CATEGORIES} 
                                     value={newRef.category} 
                                     onChange={e => setNewRef({...newRef, category: e.target.value})} 
                                     required 
@@ -632,7 +538,7 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                                 label="Brief Description" 
                                 value={newRef.description} 
                                 onChange={e => setNewRef({...newRef, description: e.target.value})} 
-                                placeholder="Summary of the resource content"
+                                placeholder="Short summary for the resource list"
                                 required 
                             />
 
@@ -649,7 +555,7 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                                 </div>
                             ) : (
                                 <Input 
-                                    label="External Link / URL" 
+                                    label="External Link / PDF URL" 
                                     type="url"
                                     value={newRef.link} 
                                     onChange={e => setNewRef({...newRef, link: e.target.value})} 
@@ -669,7 +575,7 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                                 <button 
                                     type="submit" 
                                     disabled={loading}
-                                    className={`flex-1 py-4 ${resourceType === 'pocket-guides' ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20' : 'bg-slate-900 hover:bg-black shadow-slate-900/20'} text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2`}
+                                    className={`flex-1 py-4 ${currentModeColor.main} ${currentModeColor.hover} ${currentModeColor.shadow} text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2`}
                                 >
                                     {loading ? <Loader2 size={18} className="animate-spin" /> : <><Save size={18} /> Save Resource</>}
                                 </button>
@@ -682,7 +588,7 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
             {showEditModal && editingItemData && (
                 <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4">
                     <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in-95 max-h-[90vh] flex flex-col">
-                        <div className={`${resourceType === 'pocket-guides' ? 'bg-amber-600' : 'bg-slate-900'} p-8 text-white relative shrink-0`}>
+                        <div className={`${currentModeColor.main} p-8 text-white relative shrink-0`}>
                             <button onClick={() => setShowEditModal(false)} className="absolute top-6 right-6 p-2 hover:bg-white/20 rounded-full transition-colors"><X size={24}/></button>
                             <div className="flex items-center gap-4">
                                 <div className="p-3 bg-white/20 rounded-2xl">
@@ -705,7 +611,7 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                                 />
                                 <Select 
                                     label="Category" 
-                                    options={resourceType === 'pocket-guides' ? POCKET_GUIDE_CATEGORIES : REFERENCE_CATEGORIES} 
+                                    options={resourceType === 'pocket-guides' ? POCKET_GUIDE_CATEGORIES : resourceType === 'policies' ? MANUAL_CATEGORIES : REFERENCE_CATEGORIES} 
                                     value={editingItemData.category} 
                                     onChange={e => setEditingItemData({...editingItemData, category: e.target.value})} 
                                     required 
@@ -731,7 +637,7 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                                 </div>
                             ) : (
                                 <Input 
-                                    label="External Link / URL" 
+                                    label="External Link / PDF URL" 
                                     type="url"
                                     value={editingItemData.link} 
                                     onChange={e => setEditingItemData({...editingItemData, link: e.target.value})} 
@@ -750,7 +656,7 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                                 <button 
                                     type="submit" 
                                     disabled={loading}
-                                    className={`flex-1 py-4 ${resourceType === 'pocket-guides' ? 'bg-amber-600 hover:bg-amber-700 shadow-amber-600/20' : 'bg-slate-900 hover:bg-black shadow-slate-900/20'} text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2`}
+                                    className={`flex-1 py-4 ${currentModeColor.main} ${currentModeColor.hover} ${currentModeColor.shadow} text-white font-black uppercase text-xs tracking-widest rounded-2xl shadow-xl transition-all active:scale-95 flex items-center justify-center gap-2`}
                                 >
                                     {loading ? <Loader2 size={18} className="animate-spin" /> : <><Save size={18} /> Update Resource</>}
                                 </button>
@@ -761,8 +667,6 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
             )}
         </div>
     );
-
-    return isNested ? ListView : <Layout title={title || "Resources"}>{ListView}</Layout>;
 };
 
 export default Resources;

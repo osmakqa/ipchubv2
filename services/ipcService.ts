@@ -220,6 +220,23 @@ import { initializeApp } from 'firebase/app';
 
   export const updatePocketGuide = (data: any) => updateGenericRecord('clinical_pocket_guides', data);
   export const deletePocketGuide = (id: string) => deleteRecord('clinical_pocket_guides', id);
+
+  export const getManuals = async () => {
+    const q = query(collection(db, 'clinical_manuals'), orderBy('created_at', 'desc'));
+    const snapshot = await getDocs(q);
+    return snapshotToArray(snapshot);
+  };
+  
+  export const submitManual = async (data: any) => {
+    const sanitized = sanitizeData(data);
+    try {
+      await addDoc(collection(db, 'clinical_manuals'), { ...sanitized, created_at: serverTimestamp() });
+      return true;
+    } catch (e) { return false; }
+  };
+
+  export const updateManual = (data: any) => updateGenericRecord('clinical_manuals', data);
+  export const deleteManual = (id: string) => deleteRecord('clinical_manuals', id);
   
   /**
    * Syncs data to Google Sheet via App Script
