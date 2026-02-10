@@ -32,7 +32,8 @@ import {
     BookOpen,
     ArrowRight,
     Printer,
-    FilePdf
+    FilePdf,
+    Tag
 } from 'lucide-react';
 import { 
     getReferences, submitReference, updateReference, 
@@ -50,6 +51,7 @@ interface Resource {
     type: 'link' | 'pocket' | 'manual';
     content?: string;
     link?: string;
+    tags?: string[];
 }
 
 const REFERENCE_CATEGORIES = [
@@ -205,7 +207,8 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
         link: '',
         category: '',
         categoryOther: '',
-        content: ''
+        content: '',
+        tags: ''
     });
 
     const [editingItemData, setEditingItemData] = useState<any>(null);
@@ -237,7 +240,8 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                 description: r.description,
                 type: resourceType === 'pocket-guides' ? 'pocket' : resourceType === 'policies' ? 'manual' : 'link',
                 link: r.link,
-                content: r.content
+                content: r.content,
+                tags: r.tags || []
             }));
             setDbItems(mapped);
         } catch (e) {
@@ -249,11 +253,15 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
 
     const items = useMemo(() => dbItems, [dbItems]);
     
-    const filteredItems = items.filter(i => 
-        i.title.toLowerCase().includes(search.toLowerCase()) || 
-        i.category.toLowerCase().includes(search.toLowerCase()) ||
-        (i.description && i.description.toLowerCase().includes(search.toLowerCase()))
-    );
+    const filteredItems = items.filter(i => {
+        const query = search.toLowerCase();
+        return (
+            i.title.toLowerCase().includes(query) || 
+            i.category.toLowerCase().includes(query) ||
+            (i.description && i.description.toLowerCase().includes(query)) ||
+            (i.tags && i.tags.some(tag => tag.toLowerCase().includes(query)))
+        );
+    });
 
     const handleAction = (item: Resource) => {
         if (item.type === 'pocket') {
@@ -267,8 +275,8 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
     const handleAddSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
-        const categories = resourceType === 'pocket-guides' ? POCKET_GUIDE_CATEGORIES : resourceType === 'policies' ? MANUAL_CATEGORIES : REFERENCE_CATEGORIES;
         const category = newRef.category === 'Others (Specify)' ? newRef.categoryOther : newRef.category;
+        const tags = newRef.tags.split(',').map(t => t.trim()).filter(t => t !== '');
         
         let submitFunc;
         if (resourceType === 'pocket-guides') submitFunc = submitPocketGuide;
@@ -280,14 +288,15 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
             description: newRef.description,
             category,
             content: newRef.content,
-            link: newRef.link
+            link: newRef.link,
+            tags
         };
 
         const success = await submitFunc(payload);
 
         if (success) {
             setShowAddModal(false);
-            setNewRef({ title: '', description: '', link: '', category: '', categoryOther: '', content: '' });
+            setNewRef({ title: '', description: '', link: '', category: '', categoryOther: '', content: '', tags: '' });
             loadData();
         } else {
             alert("Failed to save resource.");
@@ -305,7 +314,8 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
             description: item.description,
             content: item.content || '',
             category: isStandardCategory ? item.category : 'Others (Specify)',
-            categoryOther: isStandardCategory ? '' : item.category
+            categoryOther: isStandardCategory ? '' : item.category,
+            tags: (item.tags || []).join(', ')
         });
         setShowEditModal(true);
     };
@@ -314,6 +324,7 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
         e.preventDefault();
         setLoading(true);
         const category = editingItemData.category === 'Others (Specify)' ? editingItemData.categoryOther : editingItemData.category;
+        const tags = editingItemData.tags.split(',').map((t: string) => t.trim()).filter((t: string) => t !== '');
         
         let updateFunc;
         if (resourceType === 'pocket-guides') updateFunc = updatePocketGuide;
@@ -326,7 +337,8 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
             description: editingItemData.description,
             category,
             content: editingItemData.content,
-            link: editingItemData.link
+            link: editingItemData.link,
+            tags
         };
 
         const success = await updateFunc(payload);
@@ -422,7 +434,7 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                     <input 
                         type="text" 
                         className={`w-full pl-9 pr-4 py-2 rounded-xl border border-gray-200 focus:ring-2 ${currentModeColor.ring} outline-none shadow-sm transition-all font-medium text-sm`}
-                        placeholder={`Search ${title || 'Resources'}...`}
+                        placeholder={`Search ${title || 'Resources'} or tags...`}
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
                     />
@@ -471,6 +483,13 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                                 </div>
                                 <h3 className="text-sm font-black text-slate-900 uppercase group-hover:text-emerald-600 transition-colors leading-tight">{item.title}</h3>
                                 <p className="text-[10px] text-slate-500 font-medium mt-1 leading-relaxed line-clamp-1">{item.description}</p>
+                                {item.tags && item.tags.length > 0 && (
+                                    <div className="flex flex-wrap gap-1 mt-2">
+                                        {item.tags.map(tag => (
+                                            <span key={tag} className="text-[7px] font-black uppercase bg-slate-100 text-slate-400 px-1.5 py-0.5 rounded">#{tag}</span>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                             <div className="size-8 rounded-full bg-slate-50 flex items-center justify-center text-slate-300 group-hover:bg-emerald-50 group-hover:text-emerald-600 transition-all">
                                 <ChevronRight size={18} />
@@ -540,6 +559,13 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                                 onChange={e => setNewRef({...newRef, description: e.target.value})} 
                                 placeholder="Short summary for the resource list"
                                 required 
+                            />
+
+                            <Input 
+                                label="Search Tags (comma separated)" 
+                                value={newRef.tags} 
+                                onChange={e => setNewRef({...newRef, tags: e.target.value})} 
+                                placeholder="e.g. pneumonia, triage, antibiotics"
                             />
 
                             {resourceType === 'pocket-guides' ? (
@@ -623,6 +649,13 @@ const Resources: React.FC<Props> = ({ title, type, isNested }) => {
                                 value={editingItemData.description} 
                                 onChange={e => setEditingItemData({...editingItemData, description: e.target.value})} 
                                 required 
+                            />
+
+                            <Input 
+                                label="Search Tags (comma separated)" 
+                                value={editingItemData.tags} 
+                                onChange={e => setEditingItemData({...editingItemData, tags: e.target.value})} 
+                                placeholder="e.g. pneumonia, triage, antibiotics"
                             />
 
                             {resourceType === 'pocket-guides' ? (
