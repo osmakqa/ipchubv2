@@ -83,7 +83,7 @@ const Header: React.FC = () => {
         </div>
 
         {!isAuthenticated && (
-          <div className="absolute left-1/2 -translate-x-1/2 sm:hidden flex flex-col items-center">
+          <div className="absolute left-1/2 -translate-x-1/2 sm:hidden flex flex-col items-center pointer-events-none">
             <span className="text-sm font-black uppercase tracking-[0.2em]">IPC Hub</span>
           </div>
         )}
@@ -148,7 +148,7 @@ const Header: React.FC = () => {
 
       {showLogin && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/70 backdrop-blur-md p-4 animate-in fade-in duration-300">
-            <div className="bg-white rounded-[3rem] shadow-2xl w-full max-md overflow-hidden animate-in zoom-in-95 duration-500">
+            <div className="bg-white rounded-[3rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-500">
                 <div className="bg-slate-900 p-10 text-white text-center relative overflow-hidden">
                     <div className="absolute top-0 left-0 w-full h-full opacity-10 pointer-events-none">
                         <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,_rgba(255,255,255,0.1)_0%,_transparent_50%)] animate-pulse"></div>
