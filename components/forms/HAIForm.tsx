@@ -35,7 +35,8 @@ import {
   Microscope,
   Pill,
   Plus,
-  Trash2
+  Trash2,
+  Bug
 } from 'lucide-react';
 
 interface SensitivityEntry {
@@ -72,6 +73,8 @@ const HAIForm: React.FC = () => {
     ssiProcedureType: '', ssiProcedureDate: '', ssiEventDate: '', ssiTissueLevel: '', ssiOrganSpace: '',
     // HAP
     pneumoniaSymptomOnset: '',
+    // MDRO
+    mdroSpecimenType: '', mdroSpecimenTypeOther: '',
     outcome: 'Admitted', outcomeDate: '',
     reporterName: '', designation: ''
   };
@@ -186,9 +189,14 @@ const HAIForm: React.FC = () => {
     if (submissionData.haiType === 'Other (specify)') {
       submissionData.haiType = submissionData.haiTypeOther || 'Other Infection Type';
     }
+    
+    if (submissionData.mdroSpecimenType === 'Other (specify)') {
+        submissionData.mdroSpecimenType = submissionData.mdroSpecimenTypeOther || 'Other Specimen';
+    }
 
     delete submissionData.areaOther;
     delete submissionData.haiTypeOther;
+    delete submissionData.mdroSpecimenTypeOther;
 
     try {
       await submitReport("HAI", submissionData);
@@ -265,6 +273,28 @@ const HAIForm: React.FC = () => {
             </div>
 
             {/* --- CONDITIONAL SECTIONS --- */}
+
+            {/* Multidrug-resistant organisms (MDROs) */}
+            {formData.haiType === 'Multidrug-resistant organisms (MDROs)' && (
+              <div className="p-6 bg-teal-50 rounded-3xl border border-teal-100 flex flex-col gap-4 animate-in slide-in-from-top-2">
+                <div className="flex items-center gap-2 text-teal-800"><Bug size={18}/> <h4 className="text-xs font-black uppercase tracking-widest">MDRO Specific Data</h4></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="flex flex-col gap-2">
+                    <Select 
+                      label="Specimen Type" 
+                      name="mdroSpecimenType" 
+                      options={['Blood', 'Urine', 'Wound', 'Pleural Fluid', 'Other (specify)']} 
+                      value={formData.mdroSpecimenType} 
+                      onChange={handleChange} 
+                      required 
+                    />
+                    {formData.mdroSpecimenType === 'Other (specify)' && (
+                      <Input label="Specify Specimen" name="mdroSpecimenTypeOther" value={formData.mdroSpecimenTypeOther} onChange={handleChange} required />
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Ventilator Associated Pneumonia (VAP) */}
             {formData.haiType === 'Ventilator Associated Pneumonia' && (

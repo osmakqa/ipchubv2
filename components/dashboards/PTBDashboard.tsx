@@ -8,7 +8,7 @@ import PasswordConfirmModal from '../ui/PasswordConfirmModal';
 import { getTBReports, getCensusLogs, deleteRecord, formatDisplayDate } from '../../services/ipcService';
 import { AREAS, PTB_FINAL_DISPOSITIONS } from '../../constants';
 import { 
-  ChevronLeft, List, BarChart2, Filter, RotateCcw, PlusCircle, Download, Activity, Stethoscope, ChevronRight, Search, AlertCircle, TrendingUp, PieChart as PieIcon, Beaker, FileText, UserPlus, Users, X, ArrowRight, CheckCircle2, Edit3, Trash2, MoreVertical, ArrowUpDown, ArrowUp, ArrowDown
+  ChevronLeft, List, BarChart2, Filter, RotateCcw, PlusCircle, Download, Activity, Stethoscope, ChevronRight, Search, AlertCircle, TrendingUp, PieChart as PieIcon, Beaker, FileText, UserPlus, Users, X, ArrowRight, CheckCircle2, Edit3, Trash2, MoreVertical, ArrowUpDown, ArrowUp, ArrowDown, User, Heart, Pill, ClipboardList, MapPin, Clock
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, 
@@ -32,6 +32,7 @@ const PTBDashboard: React.FC<Props> = ({ isNested }) => {
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'labs' | 'analysis'>('list');
   const [selectedLab, setSelectedLab] = useState<any | null>(null);
+  const [selectedDetailPatient, setSelectedDetailPatient] = useState<any | null>(null);
 
   // Sorting state
   const [sortConfig, setSortConfig] = useState<SortConfig>({ key: 'dateReported', direction: 'desc' });
@@ -166,6 +167,13 @@ const PTBDashboard: React.FC<Props> = ({ isNested }) => {
 
   const COLORS = ['#b45309', '#3b82f6', '#10b981', '#ef4444'];
 
+  const DataField = ({ label, value }: { label: string, value: string | number | undefined }) => (
+    <div className="flex flex-col gap-1">
+      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{label}</span>
+      <span className="text-sm font-bold text-slate-700 uppercase leading-snug">{value || '---'}</span>
+    </div>
+  );
+
   const handleRegisterPatient = (lab: any) => {
     navigate('/report-ptb', { 
       state: { 
@@ -205,6 +213,8 @@ const PTBDashboard: React.FC<Props> = ({ isNested }) => {
       await deleteRecord('reports_tb', itemToDelete.id);
       setShowDeleteConfirm(false);
       setItemToDelete(null);
+      setSelectedDetailPatient(null);
+      setSelectedLab(null);
       loadData();
     } finally {
       setPasswordConfirmLoading(false);
@@ -273,7 +283,7 @@ const PTBDashboard: React.FC<Props> = ({ isNested }) => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-in fade-in">
                         <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col gap-6">
                             <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-2 border-b pb-2"><PieIcon size={14}/> Classification Census</h3>
-                            <div className="h-64"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={stats.classData} cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value" label={({name, value}) => `${name}: ${value}`}>{stats.classData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><RechartsTooltip /><Legend /></PieChart></ResponsiveContainer></div>
+                            <div className="h-64"><ResponsiveContainer width="100%" height="100%"><PieChart><Pie data={stats.classData} cx="50%" cy="50%" innerRadius={60} outerRadius={85} paddingAngle={5} dataKey="value" label={({name, value}) => `${name}: ${value}`}>{stats.classData.map((e, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}</Pie><RechartsTooltip /><Legend /></PieChart></ResponsiveContainer></div>
                         </div>
                         <div className="bg-white p-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-col gap-6">
                             <h3 className="text-xs font-black uppercase tracking-widest text-slate-400 flex items-center gap-2 border-b pb-2"><Activity size={14}/> Ward Census Trend</h3>
@@ -361,7 +371,11 @@ const PTBDashboard: React.FC<Props> = ({ isNested }) => {
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {loading ? <tr><td colSpan={7} className="p-10 text-center uppercase text-[10px] font-black text-slate-400 animate-pulse">Loading...</td></tr> : sortedData.length === 0 ? <tr><td colSpan={7} className="p-10 text-center uppercase text-[10px] font-black text-slate-400">No records</td></tr> : sortedData.map((report, idx) => (
-                                    <tr key={report.id} className="hover:bg-amber-50/50 transition-colors cursor-pointer group">
+                                    <tr 
+                                      key={report.id} 
+                                      className="hover:bg-amber-50/50 transition-colors cursor-pointer group"
+                                      onClick={() => setSelectedDetailPatient(report)}
+                                    >
                                       <td className="px-4 py-3 text-center text-slate-300 font-black">{idx + 1}</td>
                                       <td className="px-4 py-3 font-medium text-slate-600 whitespace-nowrap">{formatDisplayDate(report.dateOfAdmission)}</td>
                                       <td className="px-6 py-3 font-black text-amber-800 uppercase whitespace-nowrap">{isAuthenticated ? `${report.lastName}, ${report.firstName}` : `${report.lastName[0]}.${report.firstName[0]}.`}</td>
@@ -422,7 +436,163 @@ const PTBDashboard: React.FC<Props> = ({ isNested }) => {
             </div>
         </div>
 
-        {/* Result Action Modal */}
+        {/* Patient Detail Modal - MIRROR of TB Form */}
+        {selectedDetailPatient && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+             <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-5xl max-h-[95vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
+                <div className="bg-amber-700 p-8 text-white relative shrink-0">
+                  <button onClick={() => setSelectedDetailPatient(null)} className="absolute top-6 right-6 p-2 hover:bg-white/10 rounded-full transition-all"><X size={24}/></button>
+                  <div className="flex flex-col gap-1">
+                    <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Treatment Registry File</span>
+                    <h3 className="text-3xl font-black uppercase leading-tight">{selectedDetailPatient.lastName}, {selectedDetailPatient.firstName}</h3>
+                    <div className="flex items-center gap-4 mt-2">
+                      <span className="bg-white/20 px-3 py-1 rounded-lg text-xs font-bold">{selectedDetailPatient.hospitalNumber}</span>
+                      <span className="bg-white/20 px-3 py-1 rounded-lg text-xs font-bold">{selectedDetailPatient.sex} • {selectedDetailPatient.age}y/o</span>
+                      <span className={`px-3 py-1 rounded-lg text-xs font-black uppercase border-2 ${selectedDetailPatient.finalDisposition === 'Cleared' ? 'bg-emerald-500 border-emerald-400 text-white' : 'bg-white/20 border-white/20 text-white'}`}>{selectedDetailPatient.finalDisposition}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="p-8 overflow-y-auto custom-scrollbar flex flex-col gap-8 bg-slate-50/50">
+                  
+                  {/* SECTION 1: IDENTITY */}
+                  <section className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200 flex flex-col gap-6">
+                    <h3 className="font-black text-slate-900 flex items-center gap-2 uppercase text-sm tracking-tight border-b border-slate-100 pb-4">
+                      <Users size={18} className="text-amber-700"/> Patient Identification
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                      <DataField label="Hospital #" value={selectedDetailPatient.hospitalNumber} />
+                      <DataField label="Last Name" value={selectedDetailPatient.lastName} />
+                      <DataField label="First Name" value={selectedDetailPatient.firstName} />
+                      <DataField label="Middle Name" value={selectedDetailPatient.middleName} />
+                      <DataField label="Date of Birth" value={selectedDetailPatient.dob} />
+                      <DataField label="Age" value={selectedDetailPatient.age} />
+                      <DataField label="Sex" value={selectedDetailPatient.sex} />
+                      <DataField label="Barangay" value={selectedDetailPatient.barangay} />
+                      <DataField label="City" value={selectedDetailPatient.city} />
+                    </div>
+                  </section>
+
+                  {/* SECTION 2: CLINICAL CONTEXT */}
+                  <section className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200 flex flex-col gap-6">
+                    <h3 className="font-black text-slate-900 flex items-center gap-2 uppercase text-sm tracking-tight border-b border-slate-100 pb-4">
+                      <MapPin size={18} className="text-amber-700"/> Clinical Context
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <DataField label="Admission Date" value={selectedDetailPatient.dateOfAdmission} />
+                      <DataField label="Initial Area" value={selectedDetailPatient.area} />
+                    </div>
+                    {selectedDetailPatient.movementHistory && selectedDetailPatient.movementHistory.length > 0 && (
+                      <div className="mt-4">
+                        <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3">Ward Movement History</span>
+                        <div className="space-y-2">
+                          {selectedDetailPatient.movementHistory.map((m: any, i: number) => (
+                            <div key={i} className="bg-slate-50 p-3 rounded-xl border border-slate-100 flex justify-between items-center">
+                              <span className="text-xs font-black text-slate-700 uppercase">{m.area}</span>
+                              <span className="text-[10px] font-bold text-slate-400">{m.date}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </section>
+
+                  {/* SECTION 3: DIAGNOSTICS */}
+                  <section className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200 flex flex-col gap-6">
+                    <h3 className="font-black text-slate-900 flex items-center gap-2 uppercase text-sm tracking-tight border-b border-slate-100 pb-4">
+                      <Beaker size={18} className="text-amber-700"/> Diagnostic Profile
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                       <div className="flex flex-col gap-3">
+                          <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest px-1">GeneXpert History</span>
+                          {(selectedDetailPatient.xpertResults || []).map((x: any, i: number) => (
+                            <div key={i} className="bg-blue-50/50 p-4 rounded-2xl border border-blue-100">
+                               <div className="flex justify-between items-center mb-1">
+                                  <span className="text-[10px] font-black text-blue-600">{x.date}</span>
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase">{x.specimen}</span>
+                               </div>
+                               <p className={`text-sm font-black ${x.mtbResult?.includes('Detected') && !x.mtbResult?.includes('Not') ? 'text-red-600' : 'text-emerald-600'}`}>{x.mtbResult}</p>
+                               <div className="flex gap-4 mt-1">
+                                  <span className="text-[9px] font-bold text-slate-500 uppercase">Level: {x.mtbLevel || 'N/A'}</span>
+                                  <span className="text-[9px] font-bold text-slate-500 uppercase">Rif: {x.rifResistance || 'N/A'}</span>
+                               </div>
+                            </div>
+                          ))}
+                       </div>
+                       <div className="flex flex-col gap-3">
+                          <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest px-1">AFB Smear History</span>
+                          {(selectedDetailPatient.smearResults || []).map((s: any, i: number) => (
+                            <div key={i} className="bg-amber-50/50 p-4 rounded-2xl border border-amber-100">
+                               <div className="flex justify-between items-center mb-1">
+                                  <span className="text-[10px] font-black text-amber-600">{s.date}</span>
+                                  <span className="text-[10px] font-bold text-slate-400 uppercase">{s.specimen}</span>
+                               </div>
+                               <p className={`text-sm font-black ${s.result?.includes('+') ? 'text-red-600' : 'text-emerald-600'}`}>{s.result}</p>
+                            </div>
+                          ))}
+                       </div>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-4 border-t border-slate-50">
+                      <DataField label="CXR Date" value={selectedDetailPatient.cxrDate} />
+                      <DataField label="Site" value={selectedDetailPatient.anatomicalSite} />
+                      <DataField label="Classification" value={selectedDetailPatient.classification} />
+                      <DataField label="Drug Susceptibility" value={selectedDetailPatient.drugSusceptibility} />
+                      <DataField label="Treatment History" value={selectedDetailPatient.treatmentHistory} />
+                    </div>
+                  </section>
+
+                  {/* SECTION 4: MANAGEMENT & COMORBIDITIES */}
+                  <section className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200 flex flex-col gap-6">
+                    <h3 className="font-black text-slate-900 flex items-center gap-2 uppercase text-sm tracking-tight border-b border-slate-100 pb-4">
+                      <Pill size={18} className="text-amber-700"/> Management & Comorbidities
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                      <DataField label="Treatment Started" value={selectedDetailPatient.treatmentStarted} />
+                      <DataField label="Start Date" value={selectedDetailPatient.treatmentStartedDate} />
+                      <DataField label="HIV Test Result" value={selectedDetailPatient.hivTestResult} />
+                      <DataField label="Started on ART" value={selectedDetailPatient.startedOnArt} />
+                    </div>
+                    <div className="mt-2">
+                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-3">Comorbidities</span>
+                       <div className="flex flex-wrap gap-2">
+                         {(selectedDetailPatient.comorbidities || []).map((c: string) => (
+                           <span key={c} className="bg-slate-100 text-slate-600 px-3 py-1 rounded-full text-[10px] font-black uppercase">{c}</span>
+                         ))}
+                         {(selectedDetailPatient.comorbidities || []).length === 0 && <span className="text-xs font-bold text-slate-300 italic">None recorded</span>}
+                       </div>
+                    </div>
+                  </section>
+
+                  {/* SECTION 5: FINALIZATION */}
+                  <section className="bg-white p-8 rounded-[2rem] shadow-sm border border-slate-200 flex flex-col gap-6">
+                    <h3 className="font-black text-slate-900 flex items-center gap-2 uppercase text-sm tracking-tight border-b border-slate-100 pb-4">
+                      <FileText size={18} className="text-amber-700" /> Registry Finalization
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                      <DataField label="Initial Disposition" value={selectedDetailPatient.initialDisposition} />
+                      <DataField label="Final Disposition" value={selectedDetailPatient.finalDisposition} />
+                      <DataField label="Outcome Date" value={selectedDetailPatient.outcomeDate} />
+                      <DataField label="Reporter" value={selectedDetailPatient.reporterName} />
+                      <DataField label="Designation" value={selectedDetailPatient.designation} />
+                    </div>
+                  </section>
+
+                   <div className="pt-4 flex justify-between items-center px-4">
+                    <div className="flex items-center gap-2 text-slate-400">
+                        <Clock size={16}/>
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Entry Date: {selectedDetailPatient.dateReported || 'N/A'}</span>
+                    </div>
+                    <div className="flex gap-3">
+                        <button onClick={() => setSelectedDetailPatient(null)} className="px-8 py-3 bg-slate-200 text-slate-600 font-black uppercase text-[10px] tracking-widest rounded-2xl hover:bg-slate-300 transition-all">Dismiss</button>
+                        {isAuthenticated && <button onClick={() => handleEditRecord(selectedDetailPatient)} className="px-8 py-3 bg-amber-600 text-white font-black uppercase text-[10px] tracking-widest rounded-2xl shadow-lg hover:bg-amber-700 transition-all flex items-center gap-2"><Edit3 size={14}/> Edit File</button>}
+                    </div>
+                  </div>
+                </div>
+             </div>
+          </div>
+        )}
+
+        {/* Lab Result Action Modal */}
         {selectedLab && (
           <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
             <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-md overflow-hidden animate-in zoom-in-95 duration-300">

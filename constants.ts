@@ -1,4 +1,3 @@
-
 export const AREAS = [
   "OBGyne Ward",
   "NICU",
@@ -181,6 +180,7 @@ export const HAI_TYPES = [
   "Blood Stream Infection",
   "Sepsis Neonatorum",
   "Catheter-Related Blood Stream Infections",
+  "Multidrug-resistant organisms (MDROs)",
   "Other (specify)"
 ];
 

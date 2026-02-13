@@ -6,7 +6,7 @@ import PasswordConfirmModal from '../ui/PasswordConfirmModal';
 import { getNotifiableReports, getCensusLogs, deleteRecord } from '../../services/ipcService';
 import { AREAS, NOTIFIABLE_DISEASES } from '../../constants';
 import { 
-  ChevronLeft, ChevronRight, List, BarChart2, Filter, RotateCcw, PlusCircle, Download, Bell, Search, TrendingUp, Users, Activity, Trash2
+  ChevronLeft, ChevronRight, List, BarChart2, Filter, RotateCcw, PlusCircle, Download, Bell, Search, TrendingUp, Users, Activity, Trash2, X, FileText, User, MapPin, Syringe, Wind, Droplets, ShieldCheck, AlertTriangle, Thermometer, Dog, ClipboardList, Clock
 } from 'lucide-react';
 import { 
   BarChart, Bar, XAxis, YAxis, Tooltip as RechartsTooltip, 
@@ -24,6 +24,7 @@ const NotifiableDashboard: React.FC<Props> = ({ isNested }) => {
   const [census, setCensus] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<'list' | 'analysis'>('list');
+  const [selectedItem, setSelectedItem] = useState<any | null>(null);
 
   // Deletion state
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -73,6 +74,7 @@ const NotifiableDashboard: React.FC<Props> = ({ isNested }) => {
       if (success) {
         setShowDeleteConfirm(false);
         setItemToDelete(null);
+        setSelectedItem(null);
         loadData();
       } else {
         alert("Failed to delete record.");
@@ -114,6 +116,13 @@ const NotifiableDashboard: React.FC<Props> = ({ isNested }) => {
   }, [filteredData, census]);
 
   const COLORS = ['#ef4444', '#f59e0b', '#3b82f6', '#10b981', '#8b5cf6'];
+
+  const DataField = ({ label, value }: { label: string, value: string | number | undefined }) => (
+    <div className="flex flex-col gap-1">
+      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest leading-none">{label}</span>
+      <span className="text-sm font-bold text-slate-700 uppercase leading-snug">{value || '---'}</span>
+    </div>
+  );
 
   const content = (
     <div className="flex flex-col gap-6 animate-in fade-in duration-300">
@@ -191,7 +200,11 @@ const NotifiableDashboard: React.FC<Props> = ({ isNested }) => {
                             </thead>
                             <tbody className="divide-y divide-gray-100">
                                 {loading ? <tr><td colSpan={7} className="p-10 text-center uppercase text-[10px] font-black text-slate-400 animate-pulse">Loading Notifiable...</td></tr> : filteredData.length === 0 ? <tr><td colSpan={7} className="p-10 text-center uppercase text-[10px] font-black text-slate-400">No matching records</td></tr> : filteredData.map((report, idx) => (
-                                    <tr key={report.id} className="hover:bg-red-50/50 transition-colors group">
+                                    <tr 
+                                      key={report.id} 
+                                      className="hover:bg-red-50/50 transition-colors group cursor-pointer"
+                                      onClick={() => setSelectedItem(report)}
+                                    >
                                       <td className="px-4 py-3 text-center text-slate-300 font-black">{idx + 1}</td>
                                       <td className="px-4 py-3 font-medium text-slate-600">{report.dateOfAdmission}</td>
                                       <td className="px-6 py-3 font-black text-red-600 uppercase">{isAuthenticated ? `${report.lastName}, ${report.firstName}` : `${report.lastName[0]}.${report.firstName[0]}.`}</td>
@@ -201,7 +214,7 @@ const NotifiableDashboard: React.FC<Props> = ({ isNested }) => {
                                       <td className="px-4 py-3">
                                           <div className="flex items-center justify-center">
                                               {isAuthenticated && (
-                                                  <button onClick={() => handleDeleteClick(report)} className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all" title="Remove Record">
+                                                  <button onClick={(e) => { e.stopPropagation(); handleDeleteClick(report); }} className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-all" title="Remove Record">
                                                       <Trash2 size={16} />
                                                   </button>
                                               )}
@@ -233,6 +246,181 @@ const NotifiableDashboard: React.FC<Props> = ({ isNested }) => {
               </div>
             </div>
         </div>
+
+        {/* Record Detail Modal - MIRROR of Notifiable Disease Form */}
+        {selectedItem && (
+          <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-900/60 backdrop-blur-sm p-4 animate-in fade-in duration-200">
+            <div className="bg-white rounded-[2.5rem] shadow-2xl w-full max-w-5xl max-h-[95vh] overflow-hidden flex flex-col animate-in zoom-in-95 duration-300">
+              <div className="bg-red-600 p-8 text-white relative shrink-0">
+                <button onClick={() => setSelectedItem(null)} className="absolute top-6 right-6 p-2 hover:bg-white/10 rounded-full transition-all"><X size={24}/></button>
+                <div className="flex flex-col gap-1">
+                  <span className="text-[10px] font-black uppercase tracking-[0.3em] opacity-60">Case Epidemiological Record</span>
+                  <h3 className="text-3xl font-black uppercase leading-tight">{selectedItem.lastName}, {selectedItem.firstName}</h3>
+                  <div className="flex items-center gap-4 mt-2">
+                    <span className="bg-white/20 px-3 py-1 rounded-lg text-xs font-bold">{selectedItem.hospitalNumber}</span>
+                    <span className="bg-white/20 px-3 py-1 rounded-lg text-xs font-bold">{selectedItem.sex} • {selectedItem.age}y/o</span>
+                    <span className="bg-white/20 px-3 py-1 rounded-lg text-xs font-bold uppercase tracking-widest">{selectedItem.area}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="p-8 overflow-y-auto custom-scrollbar flex flex-col gap-8 bg-slate-50/50">
+                
+                {/* SECTION 1: IDENTITY */}
+                <section className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-200 flex flex-col gap-6">
+                    <h3 className="font-black text-slate-900 flex items-center gap-2 uppercase text-sm tracking-tight border-b border-slate-100 pb-4">
+                        <Users size={20} className="text-red-600"/> Patient Identification
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                      <DataField label="Hospital #" value={selectedItem.hospitalNumber} />
+                      <DataField label="Last Name" value={selectedItem.lastName} />
+                      <DataField label="First Name" value={selectedItem.firstName} />
+                      <DataField label="Middle Name" value={selectedItem.middleName} />
+                      <DataField label="Date of Birth" value={selectedItem.dob} />
+                      <DataField label="Age" value={selectedItem.age} />
+                      <DataField label="Sex" value={selectedItem.sex} />
+                      <DataField label="Barangay" value={selectedItem.barangay} />
+                      <DataField label="City/Province" value={selectedItem.city} />
+                    </div>
+                </section>
+
+                {/* SECTION 2: EPIDEMIOLOGICAL DATA */}
+                <section className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-200 flex flex-col gap-6">
+                    <h3 className="font-black text-slate-900 flex items-center gap-2 uppercase text-sm tracking-tight border-b border-slate-100 pb-4">
+                        <FileText size={20} className="text-red-600"/> Epidemiological Context
+                    </h3>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <DataField label="Reporting Disease" value={selectedItem.disease} />
+                        <DataField label="Assigned Ward" value={selectedItem.area} />
+                        <DataField label="Admission Date" value={selectedItem.dateOfAdmission} />
+                    </div>
+
+                    {/* DISEASE SPECIFIC MIRRORING */}
+                    {selectedItem.disease === 'Dengue' && (
+                        <div className="p-6 bg-red-50 rounded-3xl border border-red-100 flex flex-col gap-5">
+                            <h4 className="text-xs font-black text-red-800 uppercase flex items-center gap-2"><Syringe size={16}/> Dengue Specifics</h4>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <DataField label="Vaccinated" value={selectedItem.dengueVaccine} />
+                                <DataField label="1st Dose" value={selectedItem.dengueDose1} />
+                                <DataField label="Last Dose" value={selectedItem.dengueDoseLast} />
+                                <DataField label="Clinical Class" value={selectedItem.dengueClinicalClass} />
+                            </div>
+                        </div>
+                    )}
+
+                    {selectedItem.disease === 'Influenza-like Illness' && (
+                        <div className="p-6 bg-blue-50 rounded-3xl border border-blue-100 flex flex-col gap-5">
+                            <h4 className="text-xs font-black text-blue-800 uppercase flex items-center gap-2"><Wind size={16}/> ILI Context</h4>
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                                <DataField label="Recent Travel" value={selectedItem.iliTravel} />
+                                <DataField label="Destination" value={selectedItem.iliTravelLoc} />
+                                <DataField label="Flu Vaccine" value={selectedItem.iliVaccine} />
+                                <DataField label="Vaccine Date" value={selectedItem.iliVaccineDate} />
+                            </div>
+                        </div>
+                    )}
+
+                    {selectedItem.disease === 'Leptospirosis' && (
+                        <div className="p-6 bg-amber-50 rounded-3xl border border-amber-100 flex flex-col gap-5">
+                            <h4 className="text-xs font-black text-amber-800 uppercase flex items-center gap-2"><Droplets size={16}/> Leptospirosis Specifics</h4>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <DataField label="Exposure History" value={selectedItem.leptoExposure} />
+                                <DataField label="Exposure Place" value={selectedItem.leptoPlace} />
+                            </div>
+                        </div>
+                    )}
+
+                    {selectedItem.disease === 'Hand, Foot and Mouth Disease' && (
+                        <div className="p-6 bg-orange-50 rounded-3xl border border-orange-100 flex flex-col gap-5">
+                            <h4 className="text-xs font-black text-orange-800 uppercase flex items-center gap-2"><Activity size={16}/> HFMD Clinical Data</h4>
+                            <div>
+                                <span className="text-[10px] font-black text-orange-400 uppercase tracking-widest block mb-2">Symptoms</span>
+                                <div className="flex flex-wrap gap-2">
+                                    {(selectedItem.hfmdSymptoms || []).map((s: string) => (
+                                        <span key={s} className="bg-white px-2 py-1 rounded-lg border border-orange-200 text-[10px] font-bold text-orange-700">{s}</span>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 pt-2">
+                                <DataField label="Community Cases" value={selectedItem.hfmdCommunityCases} />
+                                <DataField label="Exposure Type" value={selectedItem.hfmdExposureType} />
+                            </div>
+                        </div>
+                    )}
+
+                    {selectedItem.disease === 'Rabies' && (
+                        <div className="p-6 bg-slate-900 rounded-3xl text-white flex flex-col gap-5">
+                            <h4 className="text-xs font-black text-emerald-400 uppercase flex items-center gap-2"><Dog size={16}/> Rabies Exposure History</h4>
+                            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                                <DataField label="RIG Received" value={selectedItem.rabiesRIG} />
+                                <DataField label="Prior Vaccine" value={selectedItem.rabiesVaccinePrior} />
+                                <DataField label="Vaccine Date" value={selectedItem.rabiesVaccineDate} />
+                            </div>
+                        </div>
+                    )}
+
+                    {selectedItem.disease === 'Bacterial Meningitis' && (
+                      <div className="p-6 bg-indigo-50 rounded-3xl border border-indigo-100 flex flex-col gap-6">
+                        <h4 className="text-xs font-black text-indigo-800 uppercase flex items-center gap-2"><ShieldCheck size={16}/> AMES / Meningitis Data</h4>
+                        <div>
+                          <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest block mb-2">Clinical Presentation</span>
+                          <div className="flex flex-wrap gap-2">
+                            {(selectedItem.amesSymptoms || []).map((s: string) => (
+                              <span key={s} className="bg-white px-3 py-1 rounded-full text-[10px] font-black text-indigo-600 border border-indigo-200">{s}</span>
+                            ))}
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <DataField label="Recent Travel" value={selectedItem.amesTravel} />
+                          <DataField label="Location" value={selectedItem.amesTravelLoc} />
+                        </div>
+                        {selectedItem.amesVaccines && Object.keys(selectedItem.amesVaccines).length > 0 && (
+                          <div className="bg-white p-4 rounded-2xl border border-indigo-100">
+                             <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.2em] block mb-3">Vaccination Registry Grid</span>
+                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {Object.entries(selectedItem.amesVaccines).map(([v, data]: [string, any]) => (
+                                  <div key={v} className="flex justify-between items-center p-2 bg-slate-50 rounded-xl border border-slate-100">
+                                     <span className="text-[10px] font-black text-slate-600 uppercase">{v}</span>
+                                     <div className="text-[10px] font-bold text-indigo-700">Doses: {data.doses} • {data.lastDate}</div>
+                                  </div>
+                                ))}
+                             </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    <div className="grid grid-cols-2 gap-6 bg-slate-50 p-6 rounded-3xl border border-slate-200 mt-4">
+                        <DataField label="Disposition" value={selectedItem.outcome} />
+                        <DataField label="Disposition Date" value={selectedItem.outcomeDate} />
+                    </div>
+                </section>
+
+                {/* SECTION 3: REPORTER */}
+                <section className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-200 flex flex-col gap-6">
+                    <h3 className="font-black text-slate-900 flex items-center gap-2 uppercase text-sm tracking-tight border-b border-slate-100 pb-4">
+                        <User size={20} className="text-red-600"/> Finalization & Reporter
+                    </h3>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
+                        <DataField label="Reporter Name" value={selectedItem.reporterName} />
+                        <DataField label="Designation" value={selectedItem.designation} />
+                    </div>
+                </section>
+
+                <div className="pt-4 flex justify-between items-center px-4">
+                   <div className="flex items-center gap-2 text-slate-400">
+                      <Clock size={16}/>
+                      <span className="text-[10px] font-bold uppercase tracking-widest">Logged: {selectedItem.created_at?.toDate ? selectedItem.created_at.toDate().toLocaleString() : 'N/A'}</span>
+                   </div>
+                   <div className="flex gap-4">
+                      <button onClick={() => setSelectedItem(null)} className="px-8 py-3 bg-slate-200 text-slate-600 font-black uppercase text-[10px] tracking-widest rounded-2xl hover:bg-slate-300 transition-all">Dismiss</button>
+                      {isAuthenticated && <button onClick={() => { setItemToDelete(selectedItem); setShowDeleteConfirm(true); }} className="px-8 py-3 bg-rose-500 text-white font-black uppercase text-[10px] tracking-widest rounded-2xl shadow-lg hover:bg-rose-600 transition-all flex items-center gap-2"><Trash2 size={14}/> Remove</button>}
+                   </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         <PasswordConfirmModal
             show={showDeleteConfirm}
