@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Layout from './ui/Layout';
@@ -40,7 +39,7 @@ const Dashboard: React.FC = () => {
       desc: "Mandatory Government Registry",
       path: "/surveillance?module=notifiable",
       reportPath: "/report-disease",
-      reportLabel: "Report New Case",
+      reportLabel: "REPORT NOTIFIABLE",
       icon: "coronavirus",
       colorClass: "bg-red-100 text-red-700",
       reportIcon: "campaign"
@@ -70,7 +69,7 @@ const Dashboard: React.FC = () => {
       desc: "Current Admission Tracking",
       path: "/surveillance?module=isolation",
       reportPath: "/report-isolation",
-      reportLabel: "Register Admission",
+      reportLabel: "ISOLATION ADMISSIONS",
       icon: "bedroom_child",
       colorClass: "bg-purple-100 text-purple-700",
       reportIcon: "meeting_room"
@@ -80,7 +79,7 @@ const Dashboard: React.FC = () => {
       desc: "Occupational Exposure Log",
       path: "/surveillance?module=needlestick",
       reportPath: "/report-needlestick",
-      reportLabel: "Report Sharp Injury",
+      reportLabel: "REPORT SHARPS INJURY",
       icon: "vaccines",
       colorClass: "bg-amber-100 text-amber-700",
       reportIcon: "add_alert"

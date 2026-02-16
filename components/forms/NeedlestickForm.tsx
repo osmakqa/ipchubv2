@@ -12,7 +12,7 @@ import {
   DEVICES_SURGICAL 
 } from '../../constants';
 import { submitReport } from '../../services/ipcService';
-import { ChevronLeft, Send, Loader2, ClipboardCheck, AlertTriangle, ShieldAlert, Droplets, Printer, Sparkles } from 'lucide-react';
+import { ChevronLeft, Send, Loader2, ClipboardCheck, AlertTriangle, ShieldAlert, Droplets, Printer, Sparkles, UserCheck, Info } from 'lucide-react';
 
 const JOB_CATEGORIES_NS = [
   "Doctor", 
@@ -182,6 +182,18 @@ const NeedlestickForm: React.FC = () => {
           )}
         </div>
 
+        <div className="bg-white p-6 rounded-[2rem] border-2 border-indigo-100 shadow-sm flex items-start gap-4 mb-6">
+          <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
+            <UserCheck size={28} />
+          </div>
+          <div>
+            <h4 className="text-sm font-black text-indigo-900 uppercase tracking-tight">Self-Reporting Instruction</h4>
+            <p className="text-xs font-medium text-indigo-700 mt-1 leading-relaxed">
+              This registry is for <strong>Employees / Healthcare Workers</strong> only. This report must be logged by the <strong>actual employee</strong> who sustained the needlestick or sharps injury to ensure accurate occupational health tracking.
+            </p>
+          </div>
+        </div>
+
         <div className="bg-red-50 border-2 border-red-200 p-4 mb-6 rounded-xl flex items-center gap-4 shadow-sm animate-pulse">
           <div className="bg-red-500 text-white p-2 rounded-full">
             <Droplets size={24} />
@@ -199,8 +211,8 @@ const NeedlestickForm: React.FC = () => {
               <ShieldAlert size={18} className="text-red-500"/> Incident Identification
             </h3>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <Input label="Staff Name" name="hcwName" value={formData.hcwName} onChange={handleChange} placeholder="Last, First" required />
-              <Input label="Hospital/Employee Number" name="hospitalNumber" value={formData.hospitalNumber} onChange={handleChange} required />
+              <Input label="Exposed Staff Name" name="hcwName" value={formData.hcwName} onChange={handleChange} placeholder="Last, First" required />
+              <Input label="Employee Number (Hosp ID)" name="hospitalNumber" value={formData.hospitalNumber} onChange={handleChange} required />
               <div className="flex flex-col gap-2">
                 <Select label="Job Title" name="jobTitle" options={JOB_CATEGORIES_NS} value={formData.jobTitle} onChange={handleChange} required />
                 {formData.jobTitle === 'Others (specify)' && <Input label="Specify Job Title" name="jobTitleOther" value={formData.jobTitleOther} onChange={handleChange} required />}

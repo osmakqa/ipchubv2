@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import ReactMarkdown from 'react-markdown';
@@ -32,7 +33,7 @@ import {
     BookOpen,
     ArrowRight,
     Printer,
-    FilePdf,
+    // Fix: Removed non-existent FilePdf export from lucide-react
     Tag
 } from 'lucide-react';
 import { 

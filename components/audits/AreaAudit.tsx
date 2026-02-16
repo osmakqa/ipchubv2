@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
@@ -37,12 +38,10 @@ import {
     CheckCircle2,
     AlertCircle,
     FileUp,
-    AddTask,
+    // Fix: Removed non-existent AddTask, Warning, PriorityHigh imports from lucide-react
     Timer,
     ChevronDown,
     ChevronUp,
-    Warning,
-    PriorityHigh,
     Settings,
     Calendar
 } from 'lucide-react';

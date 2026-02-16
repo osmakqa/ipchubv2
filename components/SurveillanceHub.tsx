@@ -100,9 +100,9 @@ const OverviewModule: React.FC = () => {
     const registryActions = [
       { label: 'Report HAI', path: '/report-hai', icon: <Activity size={18}/>, color: 'bg-blue-600' },
       { label: 'Register TB', path: '/report-ptb', icon: <Stethoscope size={18}/>, color: 'bg-amber-700' },
-      { label: 'New Notifiable', path: '/report-disease', icon: <Bell size={18}/>, color: 'bg-red-600' },
-      { label: 'Log Sharps Injury', path: '/report-needlestick', icon: <ShieldAlert size={18}/>, color: 'bg-red-500' },
-      { label: 'Isolation Admit', path: '/report-isolation', icon: <Bed size={18}/>, color: 'bg-indigo-600' },
+      { label: 'REPORT NOTIFIABLE', path: '/report-disease', icon: <Bell size={18}/>, color: 'bg-red-600' },
+      { label: 'REPORT SHARPS INJURY', path: '/report-needlestick', icon: <ShieldAlert size={18}/>, color: 'bg-red-500' },
+      { label: 'ISOLATION ADMISSIONS', path: '/report-isolation', icon: <Bed size={18}/>, color: 'bg-indigo-600' },
       { label: 'Register NTP', path: '/report-ntp', icon: <FileText size={18}/>, color: 'bg-amber-800' },
     ].filter(action => action.label !== 'Register NTP' || isAuthenticated);
 

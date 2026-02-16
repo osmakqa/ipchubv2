@@ -249,7 +249,7 @@ const PTBDashboard: React.FC<Props> = ({ isNested }) => {
             </div>
             <div className="flex gap-2 w-full md:w-auto">
                 {isAuthenticated && <button onClick={() => navigate('/report-tb-result')} className="flex-1 md:flex-none h-10 px-4 bg-slate-900 text-white rounded-lg font-black uppercase tracking-widest shadow hover:bg-black flex items-center justify-center gap-2 transition-all text-[9px] md:text-[10px]"><Beaker size={14} /> Result</button>}
-                <button onClick={() => navigate('/report-ptb')} className="flex-1 md:flex-none h-10 px-4 bg-amber-700 text-white rounded-lg font-black uppercase tracking-widest shadow hover:brightness-110 flex items-center justify-center gap-2 transition-all text-[9px] md:text-[10px]"><PlusCircle size={14} /> Register</button>
+                <button onClick={() => navigate('/report-ptb')} className="flex-1 md:flex-none h-10 px-4 bg-amber-700 text-white rounded-lg font-black uppercase tracking-widest shadow hover:brightness-110 flex items-center justify-center gap-2 transition-all text-[9px] md:text-[10px]"><PlusCircle size={14} /> Register TB Case</button>
             </div>
         </div>
 

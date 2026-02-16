@@ -136,7 +136,7 @@ const NotifiableDashboard: React.FC<Props> = ({ isNested }) => {
             </div>
             <div className="flex gap-2">
                 <button className="h-10 w-44 bg-white text-slate-600 rounded-lg font-black uppercase tracking-widest border border-slate-200 shadow-sm hover:bg-slate-50 flex items-center justify-center gap-2 transition-all text-[10px]"><Download size={14} /> Export CSV</button>
-                <button onClick={() => navigate('/report-disease')} className="h-10 w-44 bg-red-600 text-white rounded-lg font-black uppercase tracking-widest shadow hover:bg-red-700 flex items-center justify-center gap-2 transition-all text-[10px]"><PlusCircle size={14} /> New Case</button>
+                <button onClick={() => navigate('/report-disease')} className="h-10 w-44 bg-red-600 text-white rounded-lg font-black uppercase tracking-widest shadow hover:bg-red-700 flex items-center justify-center gap-2 transition-all text-[10px]"><PlusCircle size={14} /> REPORT NOTIFIABLE</button>
             </div>
         </div>
 
@@ -414,7 +414,7 @@ const NotifiableDashboard: React.FC<Props> = ({ isNested }) => {
                    </div>
                    <div className="flex gap-4">
                       <button onClick={() => setSelectedItem(null)} className="px-8 py-3 bg-slate-200 text-slate-600 font-black uppercase text-[10px] tracking-widest rounded-2xl hover:bg-slate-300 transition-all">Dismiss</button>
-                      {isAuthenticated && <button onClick={() => { setItemToDelete(selectedItem); setShowDeleteConfirm(true); }} className="px-8 py-3 bg-rose-500 text-white font-black uppercase text-[10px] tracking-widest rounded-2xl shadow-lg hover:bg-rose-600 transition-all flex items-center gap-2"><Trash2 size={14}/> Remove</button>}
+                      {isAuthenticated && <button onClick={() => { setItemToDelete(selectedItem); setShowDeleteConfirm(true); }} className="px-8 py-3 bg-rose-50 text-white font-black uppercase text-[10px] tracking-widest rounded-2xl shadow-lg hover:bg-rose-600 transition-all flex items-center gap-2"><Trash2 size={14}/> Remove</button>}
                    </div>
                 </div>
               </div>
