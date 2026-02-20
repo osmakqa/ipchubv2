@@ -208,8 +208,100 @@ const PendingTasksDashboard: React.FC = () => {
                                                 <Select label="Reason for Referral" name="referralReason" options={NTP_REASONS_FOR_REFERRAL} value={reviewModal.item.referralReason} onChange={handleModalInputChange} />
                                             </>
                                         )}
+                                        {activeTab === 'hai' && (
+                                            <>
+                                                <Select label="Infection Type" name="haiType" options={HAI_TYPES} value={reviewModal.item.haiType} onChange={handleModalInputChange} />
+                                                <Input label="Admission Date" name="dateOfAdmission" type="date" value={reviewModal.item.dateOfAdmission} onChange={handleModalInputChange} />
+                                                <Input label="Organism" name="cultureOrganism" value={reviewModal.item.cultureOrganism} onChange={handleModalInputChange} />
+                                                <Input label="Empiric Antibiotics" name="empiricAntibiotics" value={reviewModal.item.empiricAntibiotics} onChange={handleModalInputChange} />
+                                            </>
+                                        )}
+                                        {activeTab === 'notifiable' && (
+                                            <>
+                                                <Select label="Disease" name="disease" options={NOTIFIABLE_DISEASES} value={reviewModal.item.disease} onChange={handleModalInputChange} />
+                                                <Input label="Admission Date" name="dateOfAdmission" type="date" value={reviewModal.item.dateOfAdmission} onChange={handleModalInputChange} />
+                                            </>
+                                        )}
+                                        {activeTab === 'isolation' && (
+                                            <>
+                                                <Select label="Precaution Type" name="precautionType" options={['Contact', 'Droplet', 'Airborne', 'Protective']} value={reviewModal.item.precautionType} onChange={handleModalInputChange} />
+                                                <Input label="Indication" name="indication" value={reviewModal.item.indication} onChange={handleModalInputChange} />
+                                            </>
+                                        )}
+                                        {activeTab === 'needlestick' && (
+                                            <>
+                                                <Input label="Date of Injury" name="dateOfInjury" type="date" value={reviewModal.item.dateOfInjury} onChange={handleModalInputChange} />
+                                                <Input label="Time of Injury" name="timeOfInjury" type="time" value={reviewModal.item.timeOfInjury} onChange={handleModalInputChange} />
+                                                <Input label="Device Involved" name="deviceInvolved" value={reviewModal.item.deviceInvolved} onChange={handleModalInputChange} />
+                                            </>
+                                        )}
+                                        {activeTab === 'culture' && (
+                                            <>
+                                                <Input label="Specimen" name="specimen" value={reviewModal.item.specimen} onChange={handleModalInputChange} />
+                                                <Input label="Organism" name="organism" value={reviewModal.item.organism} onChange={handleModalInputChange} />
+                                            </>
+                                        )}
                                         {activeTab !== 'ntp' && <Select label="Area / Ward" name="area" options={AREAS} value={reviewModal.item.area} onChange={handleModalInputChange} />}
-                                        <Input label="Date" name="dateReported" type="date" value={reviewModal.item.dateReported || reviewModal.item.date} onChange={handleModalInputChange} />
+                                        <Input label="Date Reported" name="dateReported" type="date" value={reviewModal.item.dateReported || reviewModal.item.date} onChange={handleModalInputChange} />
+                                    </div>
+                                </section>
+                            </div>
+
+                            {/* Additional Details Section */}
+                            <div className="grid grid-cols-1 gap-6">
+                                <section className="p-5 bg-gray-50 rounded-xl border border-gray-100 flex flex-col gap-4">
+                                    <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest flex items-center gap-2 border-b pb-2"><FileText size={14}/> Clinical & Additional Details</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                        {Object.entries(reviewModal.item).map(([key, value]) => {
+                                            // Skip already displayed fields
+                                            const skipFields = [
+                                                'id', 'lastName', 'firstName', 'middleName', 'hospitalNumber', 'age', 'sex', 
+                                                'patientType', 'clinicalDept', 'tbDiagnosis', 'referralReason', 'area', 
+                                                'dateReported', 'date', 'haiType', 'dateOfAdmission', 'cultureOrganism', 
+                                                'empiricAntibiotics', 'disease', 'precautionType', 'indication', 
+                                                'dateOfInjury', 'timeOfInjury', 'deviceInvolved', 'specimen', 'organism',
+                                                'referredBy', 'reporterName', 'designation', 'status', 'validatedBy', 'validationDate'
+                                            ];
+                                            
+                                            if (skipFields.includes(key)) return null;
+                                            if (typeof value === 'object' && value !== null) return null; // Skip arrays/objects for now or handle specifically
+
+                                            return (
+                                                <Input 
+                                                    key={key} 
+                                                    label={key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())} 
+                                                    name={key} 
+                                                    value={value as string} 
+                                                    onChange={handleModalInputChange} 
+                                                />
+                                            );
+                                        })}
+                                        
+                                        {/* Handle Arrays specifically if needed */}
+                                        {reviewModal.item.sensitivities && Array.isArray(reviewModal.item.sensitivities) && (
+                                            <div className="col-span-full">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Sensitivities</label>
+                                                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                                    {reviewModal.item.sensitivities.map((s: any, i: number) => (
+                                                        <div key={i} className="p-2 bg-white border rounded-lg text-xs font-bold flex justify-between">
+                                                            <span>{s.antibiotic}</span>
+                                                            <span className="text-primary">{s.result}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+                                        
+                                        {reviewModal.item.clinicalSigns && Array.isArray(reviewModal.item.clinicalSigns) && (
+                                            <div className="col-span-full">
+                                                <label className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-2 block">Clinical Signs</label>
+                                                <div className="flex flex-wrap gap-2">
+                                                    {reviewModal.item.clinicalSigns.map((s: string, i: number) => (
+                                                        <span key={i} className="px-2 py-1 bg-blue-100 text-blue-700 rounded-md text-[10px] font-black uppercase">{s}</span>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
                                 </section>
                             </div>
@@ -220,6 +312,9 @@ const PendingTasksDashboard: React.FC = () => {
                                     <p className="text-[10px] font-black uppercase text-blue-400 tracking-widest">Entry Date: {reviewModal.item.dateReported || reviewModal.item.date}</p>
                                 </div>
                                 <div className="flex items-center gap-3">
+                                    <button onClick={() => promptDeleteConfirmation(activeTab, reviewModal.item)} className="px-6 py-3 bg-white text-red-600 font-bold rounded-xl border border-red-100 hover:bg-red-50 transition-colors flex items-center gap-2">
+                                        <Trash2 size={18} /> Discard
+                                    </button>
                                     <button onClick={() => setReviewModal({ show: false, item: null })} className="px-6 py-3 bg-white text-gray-600 font-bold rounded-xl border border-gray-200 hover:bg-gray-50 transition-colors">Cancel</button>
                                     <button onClick={() => handleValidate(activeTab, reviewModal.item.id, reviewModal.item)} disabled={validatingId === reviewModal.item.id} className="px-10 py-3 bg-primary text-white font-black rounded-xl shadow-lg hover:bg-osmak-green-dark transition-all flex items-center gap-2">
                                         {validatingId === reviewModal.item.id ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} Publish to Hub

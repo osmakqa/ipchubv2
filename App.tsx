@@ -21,7 +21,7 @@ import NTPForm from './components/forms/NTPForm';
 import CultureReportForm from './components/forms/CultureReportForm';
 import Resources from './components/Resources';
 import ReporterAnalytics from './components/dashboards/ReporterAnalytics';
-import PlaceholderPage from './PlaceholderPage';
+import PlaceholderPage from './components/PlaceholderPage';
 
 const App: React.FC = () => {
   return (
