@@ -73,12 +73,8 @@ const Header: React.FC = () => {
     <>
       <header className={`sticky top-0 z-[100] flex items-center justify-between gap-4 ${getThemeColors()} px-4 md:px-8 py-2 shadow-xl transition-all duration-500 h-14 relative`}>
         <div className="flex items-center gap-2 md:gap-3 cursor-pointer group shrink-0" onClick={() => navigate('/')}>
-          <div className="transition-transform group-hover:scale-105 shrink-0">
-            <img src="https://maxterrenal-hash.github.io/justculture/osmak-logo.png" alt="OsMak" className="h-7 md:h-9 w-auto" />
-          </div>
-          <div className="hidden sm:flex flex-col">
-            <h1 className="text-xs md:text-base font-black tracking-tighter uppercase leading-none">Ospital ng Makati</h1>
-            <span className="text-[7px] md:text-[9px] opacity-70 font-black uppercase tracking-widest mt-0.5">IPC Hub</span>
+          <div className="flex flex-col">
+            <h1 className="text-sm md:text-xl font-black tracking-tighter uppercase leading-none">IPC Hub</h1>
           </div>
         </div>
 
